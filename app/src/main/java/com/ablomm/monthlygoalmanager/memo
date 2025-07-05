@@ -1,0 +1,66 @@
+MonthlyGoalsBucket
+├─ month: YearMonth
+├─ goalItems: List<GoalItem>
+│  └─ GoalItem
+│     ├─ title: String
+│     ├─ targetMonth: YearMonth
+│     ├─ targetValue: Int
+│     ├─ currentProgress: Int
+│     ├─ priority: Priority (enum)
+│     ├─ isCompleted: Boolean
+│     ├─ associatedMissionItem: MissionItem
+│     ├─ checkInLogs: List<CheckInItem>
+│     │  └─ CheckInItem
+│     │     ├─ date: LocalDate
+│     │     ├─ progress: Int
+│     │     └─ memo: String
+│     └─ actionPlan: List<ActionStepItem>
+│        └─ ActionStepItem
+│           ├─ description: String
+│           └─ isDone: Boolean
+│
+└─ monthlyReviewResult: MonthlyReviewItem
+   ├─ month: YearMonth
+   ├─ monthlyResults: List<CheckInItem>
+   ├─ overallEvaluation: Evaluation (enum)
+   └─ overallComment: String
+
+
+
+   1. Home画面（MonthlyDashboard）
+      └─ 表示対象：MonthlyGoalsBucket(currentMonth)
+            ├─ goalItems: List<GoalItem>
+            └─ monthlyReviewResult: MonthlyReviewItem?
+      └─ アクション
+            ├─ 「チェックインへ」 → CheckinView(goalItem)
+            ├─ 「レビューへ」 → MonthlyReviewView(currentMonth)
+            └─ 「前月」「翌月」 → MonthlyDashboard(month±1)
+
+   2. 目標入力フォーム（GoalInputView）
+      └─ ViewModelが保持する: GoalFormUiState
+            ├─ title: String
+            ├─ targetValue: Int
+            ├─ targetMonth: YearMonth
+            ├─ priority: Priority
+            ├─ associatedMissionItem: MissionItem?
+      └─ 保存時：
+            → GoalItemを生成
+            → MonthlyGoalsBucket(currentMonth).goalItems に追加
+
+   3. チェックイン画面（CheckinView）
+      └─ 表示：GoalItemの概要（title, targetValue, currentProgress など）
+      └─ 入力：CheckInFormUiState
+            ├─ currentProgress: Int
+            ├─ memo: String
+      └─ 保存時：
+            → CheckInItemを生成し、GoalItem.checkInLogs に追加
+            → GoalItem.currentProgress を更新
+
+   4. 月次レビュー（MonthlyReviewView）
+      └─ ウィザード形式で全GoalItemを巡回
+      └─ 各Goalごとに入力：CheckInItem（= レビュー時の最終進捗）
+      └─ 最後に表示：ReviewSummaryScreen
+            ├─ 各目標のレビュー一覧（CheckInItem）
+            ├─ 総評：overallEvaluation + overallComment
+      └─ 保存時：
+            → MonthlyReviewItem を作成し、MonthlyGoalsBucket.monthlyReviewResult に格納

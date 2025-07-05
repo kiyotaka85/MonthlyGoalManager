@@ -1,0 +1,173 @@
+package com.ablomm.monthlygoalmanager
+
+import android.media.Image
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.ViewModel
+import java.util.UUID
+import kotlin.uuid.Uuid
+
+data class GoalItem(
+    val id: UUID = UUID.randomUUID(),
+    val title: String,
+    val detailedDescription: String? = null,
+    val icon: Int = R.drawable.ic_launcher_background,
+    val targetMonth: Int = 2025005,
+    val targetValue: String = "0",
+    val currentProgress: Int = 0,
+    val priority: GoalPriority = GoalPriority.Middle,
+    val isCompleted: Boolean = false,
+    val associatedMissionItem: MissionItem? = null
+)
+
+    //ToDo var checkInLogs: List<CheckInItem>
+    //ToDo var actionPlan: List<ActionStepItem>
+
+data class MissionItem(
+    val title: String
+)
+
+
+enum class GoalPriority{
+    High, Middle, Low
+}
+
+class GoalsViewModel: ViewModel() {
+    private val _goalList = mutableStateOf(julyGoals)
+    val goalList: State<List<GoalItem>> = _goalList
+
+    fun getGoalById(id: UUID) : GoalItem? {
+        return _goalList.value.find { it.id == id}
+    }
+
+    fun updateGoalItem(updatedGoalItem: GoalItem) {
+        // 現在のリストを取得
+        val currentList = _goalList.value
+
+        // mapを使って新しいリストを作成する
+        _goalList.value = currentList.map { existingGoal ->
+            // もしリスト内のアイテムのIDが、更新したいアイテムのIDと一致したら
+            if (existingGoal.id == updatedGoalItem.id) {
+                // 更新されたアイテムを返す
+                updatedGoalItem
+            } else {
+                // IDが違う場合は、元のアイテムをそのまま返す
+                existingGoal
+            }
+        }
+    }
+
+}
+
+val juneGoals = listOf(
+    GoalItem(
+        title = "MATH 1201 を6月末までに完了する",
+        detailedDescription = "SophiaにてCollege Algebraをスコア90%以上で突破する。",
+        targetMonth = 2025006,
+        targetValue = "100%", // 完了目標
+        currentProgress = 100,
+        priority = GoalPriority.High
+    ),
+    GoalItem(
+        title = "CS 2203 を6月末までに完了する",
+        targetMonth = 2025006,
+        targetValue = "100%",
+        currentProgress = 5,
+        priority = GoalPriority.High
+    ),
+    GoalItem(
+        title = "目標入力フォーム画面を完成させる",
+        targetMonth = 2025006,
+        targetValue = "UI完成+ViewModel連携",
+        currentProgress = 50,
+        priority = GoalPriority.Middle
+    ),
+    GoalItem(
+        title = "チェックイン画面のUIを仮実装する",
+        targetMonth = 2025006,
+        targetValue = "進捗入力+保存動作確認",
+        currentProgress = 10,
+        priority = GoalPriority.Middle
+    ),
+    GoalItem(
+        title = "Plan 2028 のチェックリスト2項目を深掘りする",
+        targetMonth = 2025006,
+        targetValue = "第4・5項目の自己分析完了",
+        currentProgress = 80,
+        priority = GoalPriority.Middle
+    ),
+    GoalItem(
+        title = "週1回の自己内省ジャーナルを書く",
+        targetMonth = 2025006,
+        targetValue = "4回分",
+        currentProgress = 0,
+        priority = GoalPriority.Low
+    )
+)
+
+val julyGoals = listOf(
+    GoalItem(
+        title = "月次目標管理アプリのMVPを完成させる",
+        detailedDescription = "Jetpack Compose Unit3〜4を進めながら、目標入力・チェックイン・レビューのUIとロジックを最低限実装する。",
+        targetMonth = 2025007,
+        targetValue = "基本画面と保存処理の実装",
+        currentProgress = 20,
+        priority = GoalPriority.High
+    ),
+    GoalItem(
+        title = "Sophia Database教材のPDFをすべて事前学習する",
+        detailedDescription = "サブスク再開前にPDFを1周読み、章末まとめをNotion等に整理する。余力があればEthics教材にも着手。",
+        targetMonth = 2025007,
+        targetValue = "Database教材1周＋要点まとめ",
+        currentProgress = 10,
+        priority = GoalPriority.High
+    ),
+    GoalItem(
+        title = "人生設計とキャリア・学位計画をブラッシュアップする",
+        detailedDescription = "NotionやPDFにて「Plan2028」含むライフ・キャリアビジョンを言語化・更新し、現実解像度を高める。",
+        targetMonth = 2025007,
+        targetValue = "文書化された設計書の完成",
+        currentProgress = 30,
+        priority = GoalPriority.High
+    ),
+    GoalItem(
+        title = "Jetpack Composeチュートリアル Unit3〜4 を完了する",
+        targetMonth = 2025007,
+        targetValue = "Unit3とUnit4を完了",
+        currentProgress = 20,
+        priority = GoalPriority.Middle
+    ),
+    GoalItem(
+        title = "運動習慣を週1回以上継続する",
+        detailedDescription = "ジムまたは外ランニングを週1回以上行う。Grabでジム移動も1回実施する。",
+        targetMonth = 2025007,
+        targetValue = "月4回の運動実施",
+        currentProgress = 0,
+        priority = GoalPriority.Middle
+    ),
+    GoalItem(
+        title = "ベトナム語を毎日1フレーズ＋週末に実践する",
+        detailedDescription = "日々の暮らしで1日1表現を記録し、週末にGrabや買い物などで実践チャレンジする。",
+        targetMonth = 2025007,
+        targetValue = "毎日継続＋週末実践4回",
+        currentProgress = 0,
+        priority = GoalPriority.Low
+    ),
+    GoalItem(
+        title = "育児を家族と分担し信頼を築く",
+        detailedDescription = "朝のミルクと午後の沐浴は可能な限り担当。柔軟に妻をサポートし、家庭の安心感を保つ。",
+        targetMonth = 2025007,
+        targetValue = "週5日以上ミルク＋沐浴参加",
+        currentProgress = 0,
+        priority = GoalPriority.Middle
+    ),
+    GoalItem(
+        title = "Grabで1人でTime Cityのジムに行く",
+        detailedDescription = "道順・語彙・流れを確認し、ベトナム滞在中に自立移動体験を達成する。",
+        targetMonth = 2025007,
+        targetValue = "1回成功体験を積む",
+        currentProgress = 0,
+        priority = GoalPriority.Low
+    )
+)
