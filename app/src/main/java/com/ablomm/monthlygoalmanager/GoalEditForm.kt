@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,9 +38,19 @@ fun GoalEditForm(
     viewModel: GoalsViewModel,
     navController: NavHostController)
 {
-    val goalItem =goalId?.let{viewModel.getGoalById(it)}
+    var goalItemState by remember { mutableStateOf<GoalItem?>(null) }
 
-    var goalItemState by remember { mutableStateOf(goalItem) }
+    // 2. LaunchedEffectを使って、初回描画時またはgoalIdが変更された時に一度だけ実行
+    LaunchedEffect(key1 = goalId) {
+        // goalIdがnullでない場合のみ実行
+        goalId?.let {
+            // このブロックの中はコルーチンなので、suspend関数を安全に呼び出せる
+            val goal = viewModel.getGoalById(it)
+            // データベースから取得したデータでStateを更新
+            goalItemState = goal
+        }
+    }
+
     var dropMenuExpanded by remember {mutableStateOf(false)}
     var isChecked by remember {mutableStateOf(false)}
     val scrollPosition = rememberScrollState()
@@ -54,7 +65,7 @@ fun GoalEditForm(
 
         }
     ) {
-        if (goalItem != null) {
+        if (goalItemState != null) {
             Column(
                 modifier = Modifier
                     .padding(it).verticalScroll(scrollPosition)

@@ -1,0 +1,45 @@
+package com.ablomm.monthlygoalmanager
+
+import android.content.Context
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class) // アプリ全体で共有する設定
+object AppModule {
+
+    @Provides
+    @Singleton // アプリ内で常に同じインスタンス（一つだけ）を使う
+    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(context, AppDatabase::class.java, "goals_database")
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    super.onCreate(db)
+                    // 初期データを投入
+                    val dao = provideAppDatabase(context).goalDao()
+                    CoroutineScope(SupervisorJob()).launch {
+                        julyGoals.forEach { dao.upsertGoal(it) }
+                    }
+                }
+            })
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideGoalDao(db: AppDatabase): GoalDao = db.goalDao()
+
+    @Provides
+    @Singleton
+    fun provideGoalsRepository(dao: GoalDao): GoalsRepository = GoalsRepository(dao)
+}

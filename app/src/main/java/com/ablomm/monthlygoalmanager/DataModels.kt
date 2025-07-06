@@ -5,10 +5,20 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import java.util.UUID
 import kotlin.uuid.Uuid
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverter
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
+@Entity(tableName = "goals")
 data class GoalItem(
+    @PrimaryKey
     val id: UUID = UUID.randomUUID(),
     val title: String,
     val detailedDescription: String? = null,
@@ -18,11 +28,23 @@ data class GoalItem(
     val currentProgress: Int = 0,
     val priority: GoalPriority = GoalPriority.Middle,
     val isCompleted: Boolean = false,
-    val associatedMissionItem: MissionItem? = null
+    //val associatedMissionItem: MissionItem? = null
 )
 
     //ToDo var checkInLogs: List<CheckInItem>
     //ToDo var actionPlan: List<ActionStepItem>
+
+class Converters {
+    @TypeConverter
+    fun fromUUID(uuid: UUID?): String? {
+        return uuid?.toString()
+    }
+
+    @TypeConverter
+    fun toUUID(uuid: String?): UUID? {
+        return uuid?.let { UUID.fromString(it) }
+    }
+}
 
 data class MissionItem(
     val title: String
@@ -33,32 +55,23 @@ enum class GoalPriority{
     High, Middle, Low
 }
 
-class GoalsViewModel: ViewModel() {
-    private val _goalList = mutableStateOf(julyGoals)
-    val goalList: State<List<GoalItem>> = _goalList
+@HiltViewModel
+class GoalsViewModel @Inject constructor(private val repository: GoalsRepository): ViewModel() {
+    val goalList: Flow<List<GoalItem>> = repository.allGoals
 
-    fun getGoalById(id: UUID) : GoalItem? {
-        return _goalList.value.find { it.id == id}
+    suspend fun getGoalById(id: UUID) : GoalItem? {
+        return repository.getGoalById(id)
     }
 
     fun updateGoalItem(updatedGoalItem: GoalItem) {
-        // 現在のリストを取得
-        val currentList = _goalList.value
-
-        // mapを使って新しいリストを作成する
-        _goalList.value = currentList.map { existingGoal ->
-            // もしリスト内のアイテムのIDが、更新したいアイテムのIDと一致したら
-            if (existingGoal.id == updatedGoalItem.id) {
-                // 更新されたアイテムを返す
-                updatedGoalItem
-            } else {
-                // IDが違う場合は、元のアイテムをそのまま返す
-                existingGoal
-            }
+        viewModelScope.launch {
+            repository.updateGoal(updatedGoalItem)
         }
     }
 
 }
+
+
 
 val juneGoals = listOf(
     GoalItem(

@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposeCompilerApi
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,11 +56,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import java.time.format.TextStyle
 import java.util.UUID
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun AppNaviagtion() {
     val navController = rememberNavController()
-    val goalsViewModel: GoalsViewModel = viewModel()
+    val goalsViewModel: GoalsViewModel = hiltViewModel()
 
     NavHost(
         navController = navController,
@@ -89,6 +91,7 @@ fun AppNaviagtion() {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
+    val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {
@@ -99,7 +102,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
         LazyColumn(
             modifier = Modifier.padding(innerPadding).fillMaxSize()
         ) {
-            items(viewModel.goalList.value) {
+            items(goalListState.value) {
                 GoalCard(goalItem = it, navController = navController)
             }
 
