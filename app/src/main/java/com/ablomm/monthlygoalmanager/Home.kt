@@ -33,6 +33,9 @@ import java.util.UUID
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -77,10 +80,14 @@ fun AppNavigation() {
 @Composable
 fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
+    val currentDate = LocalDate.now()
+    val monthYear = currentDate.format(
+        DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
+    )
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("My Goals - June 2025") })
+            TopAppBar(title = { Text("My Goals - $monthYear") })
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -93,54 +100,97 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
         }
     ) { innerPadding ->
 
-        LazyColumn(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-        ) {
-            items(
-                items = goalListState.value,
-                key = { it.id }
-            ) { goalItem ->
-
-                val dismissState = rememberSwipeToDismissBoxState(
-                    positionalThreshold = { it * 0.25f },
-                    confirmValueChange = { dismissValue ->
-                        if (dismissValue == SwipeToDismissBoxValue.StartToEnd || dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                            viewModel.deleteGoalItem(goalItem)
-                            true
-                        } else false
-                    }
-                )
-
-                SwipeToDismissBox(
-                    state = dismissState,
-                    backgroundContent = {
-                        val color = when (dismissState.targetValue) {
-                            SwipeToDismissBoxValue.StartToEnd,
-                            SwipeToDismissBoxValue.EndToStart -> Color.Red.copy(alpha = 0.8f)
-                            else -> Color.Transparent
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .background(color, shape = RoundedCornerShape(6.dp)),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                modifier = Modifier.padding(end = 16.dp)
-                            )
-                        }
-                    }
+        if (goalListState.value.isEmpty()) {
+            // 空の状態の表示
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    GoalCard(goalItem = goalItem, navController = navController)
+                    Text(
+                        text = "🎯",
+                        fontSize = 48.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "目標がありません",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "右下のボタンから新しい目標を追加してください",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
                 }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+            ) {
+                items(
+                    items = goalListState.value,
+                    key = { it.id }
+                ) { goalItem ->
 
-                HorizontalDivider()
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        positionalThreshold = { it * 0.25f },
+                        confirmValueChange = { dismissValue ->
+                            if (dismissValue == SwipeToDismissBoxValue.StartToEnd || dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                                viewModel.deleteGoalItem(goalItem)
+                                true
+                            } else false
+                        }
+                    )
+
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        backgroundContent = {
+                            val color = when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.StartToEnd,
+                                SwipeToDismissBoxValue.EndToStart -> Color.Red.copy(alpha = 0.8f)
+                                else -> Color.Transparent
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp)
+                                    .background(color, shape = RoundedCornerShape(6.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.White
+                                    )
+                                    Text(
+                                        text = "削除",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        GoalCard(goalItem = goalItem, navController = navController)
+                    }
+
+                    HorizontalDivider()
+                }
             }
         }
     }
