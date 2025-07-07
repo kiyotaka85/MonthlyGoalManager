@@ -196,65 +196,69 @@ fun MonthlyReviewWizard(
                         Text("Previous")
                     }
                     
-                    if (currentStep < finalCheckIns.size) {
-                        Button(
-                            onClick = { currentStep++ },
-                            enabled = finalCheckIns[currentStep].let { 
-                                it.finalProgress.isNotBlank() && 
-                                it.achievements.isNotBlank() && 
-                                it.challenges.isNotBlank() && 
-                                it.learnings.isNotBlank() 
-                            }
-                        ) {
-                            Text("Next")
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(Icons.Default.ArrowForward, contentDescription = null)
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                // Save monthly review
-                                val review = monthlyReview?.copy(
-                                    overallReflection = overallReflection
-                                ) ?: MonthlyReview(
-                                    year = year,
-                                    month = month,
-                                    overallReflection = overallReflection
-                                )
-                                
-                                viewModel.insertMonthlyReview(review)
-                                
-                                // Save final check-ins
-                                finalCheckIns.forEach { checkInState ->
-                                    val finalCheckIn = FinalCheckIn(
-                                        goalId = checkInState.goalId,
-                                        monthlyReviewId = review.id,
-                                        finalProgress = checkInState.finalProgress.toIntOrNull() ?: 0,
-                                        achievements = checkInState.achievements,
-                                        challenges = checkInState.challenges,
-                                        learnings = checkInState.learnings
-                                    )
-                                    viewModel.insertFinalCheckIn(finalCheckIn)
-                                    
-                                    // Update goal progress
-                                    val goal = monthGoals.find { it.id == checkInState.goalId }
-                                    goal?.let {
-                                        val updatedGoal = it.copy(
-                                            currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
-                                            isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
-                                        )
-                                        viewModel.updateGoalItem(updatedGoal)
-                                    }
+                    when {
+                        currentStep < finalCheckIns.size -> {
+                            // Next button for goal steps
+                            Button(
+                                onClick = { currentStep++ },
+                                enabled = finalCheckIns[currentStep].let { 
+                                    it.finalProgress.isNotBlank() && 
+                                    it.achievements.isNotBlank()
+                                    // Removed strict validation for challenges and learnings
                                 }
-                                
-                                // Navigate to summary
-                                navController.navigate("monthlyReviewSummary/$year/$month")
-                            },
-                            enabled = overallReflection.isNotBlank()
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Complete Review")
+                            ) {
+                                Text("Next")
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(Icons.Default.ArrowForward, contentDescription = null)
+                            }
+                        }
+                        else -> {
+                            // Complete button for final step
+                            Button(
+                                onClick = {
+                                    // Save monthly review
+                                    val review = monthlyReview?.copy(
+                                        overallReflection = overallReflection
+                                    ) ?: MonthlyReview(
+                                        year = year,
+                                        month = month,
+                                        overallReflection = overallReflection
+                                    )
+                                    
+                                    viewModel.insertMonthlyReview(review)
+                                    
+                                    // Save final check-ins
+                                    finalCheckIns.forEach { checkInState ->
+                                        val finalCheckIn = FinalCheckIn(
+                                            goalId = checkInState.goalId,
+                                            monthlyReviewId = review.id,
+                                            finalProgress = checkInState.finalProgress.toIntOrNull() ?: 0,
+                                            achievements = checkInState.achievements,
+                                            challenges = checkInState.challenges,
+                                            learnings = checkInState.learnings
+                                        )
+                                        viewModel.insertFinalCheckIn(finalCheckIn)
+                                        
+                                        // Update goal progress
+                                        val goal = monthGoals.find { it.id == checkInState.goalId }
+                                        goal?.let {
+                                            val updatedGoal = it.copy(
+                                                currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
+                                                isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
+                                            )
+                                            viewModel.updateGoalItem(updatedGoal)
+                                        }
+                                    }
+                                    
+                                    // Navigate to summary
+                                    navController.navigate("monthlyReviewSummary/$year/$month")
+                                },
+                                enabled = overallReflection.isNotBlank()
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Complete Review")
+                            }
                         }
                     }
                 }
@@ -318,7 +322,7 @@ fun FinalCheckInStep(
             OutlinedTextField(
                 value = checkInState.achievements,
                 onValueChange = { onUpdate(checkInState.copy(achievements = it)) },
-                label = { Text("What did you achieve?") },
+                label = { Text("What did you achieve? *") },
                 placeholder = { Text("Describe your accomplishments and successes") },
                 minLines = 3,
                 maxLines = 5,
@@ -330,10 +334,10 @@ fun FinalCheckInStep(
             OutlinedTextField(
                 value = checkInState.challenges,
                 onValueChange = { onUpdate(checkInState.copy(challenges = it)) },
-                label = { Text("What were the challenges?") },
+                label = { Text("What were the challenges? (Optional)") },
                 placeholder = { Text("Describe difficulties and obstacles you faced") },
-                minLines = 3,
-                maxLines = 5,
+                minLines = 2,
+                maxLines = 4,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -342,10 +346,10 @@ fun FinalCheckInStep(
             OutlinedTextField(
                 value = checkInState.learnings,
                 onValueChange = { onUpdate(checkInState.copy(learnings = it)) },
-                label = { Text("What did you learn?") },
+                label = { Text("What did you learn? (Optional)") },
                 placeholder = { Text("Reflect on insights and lessons learned") },
-                minLines = 3,
-                maxLines = 5,
+                minLines = 2,
+                maxLines = 4,
                 modifier = Modifier.fillMaxWidth()
             )
         }
