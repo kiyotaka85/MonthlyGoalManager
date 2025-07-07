@@ -293,6 +293,36 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                     .padding(innerPadding)
                     .fillMaxSize()
             ) {
+                // Swipe instruction hint
+                item {
+                    Card(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "💡 Tip",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF666666)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Swipe left → Check-in  |  Swipe right → Edit",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF888888),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+                
                 items(
                     items = filteredGoals,
                     key = { it.id }
@@ -301,10 +331,19 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                     val dismissState = rememberSwipeToDismissBoxState(
                         positionalThreshold = { it * 0.25f },
                         confirmValueChange = { dismissValue ->
-                            if (dismissValue == SwipeToDismissBoxValue.StartToEnd || dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                                viewModel.deleteGoalItem(goalItem)
-                                true
-                            } else false
+                            when (dismissValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> {
+                                    // 左から右へのスワイプ：チェックイン画面へ
+                                    navController.navigate("checkin/${goalItem.id}")
+                                    false // スワイプ状態をリセット
+                                }
+                                SwipeToDismissBoxValue.EndToStart -> {
+                                    // 右から左へのスワイプ：編集画面へ
+                                    navController.navigate("edit/${goalItem.id}")
+                                    false // スワイプ状態をリセット
+                                }
+                                else -> false
+                            }
                         }
                     )
 
@@ -312,8 +351,8 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                         state = dismissState,
                         backgroundContent = {
                             val color = when (dismissState.targetValue) {
-                                SwipeToDismissBoxValue.StartToEnd,
-                                SwipeToDismissBoxValue.EndToStart -> Color.Red.copy(alpha = 0.8f)
+                                SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50).copy(alpha = 0.8f) // Green for check-in
+                                SwipeToDismissBoxValue.EndToStart -> Color(0xFF2196F3).copy(alpha = 0.8f) // Blue for edit
                                 else -> Color.Transparent
                             }
 
@@ -322,22 +361,48 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                                     .fillMaxSize()
                                     .padding(16.dp)
                                     .background(color, shape = RoundedCornerShape(6.dp)),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                    else -> Alignment.Center
+                                }
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Delete",
-                                        tint = Color.White
-                                    )
-                                    Text(
-                                        text = "Delete",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.padding(start = 16.dp)
+                                        ) {
+                                            Text(
+                                                text = "📊",
+                                                fontSize = 24.sp
+                                            )
+                                            Text(
+                                                text = "Check-in",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    SwipeToDismissBoxValue.EndToStart -> {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.padding(end = 16.dp)
+                                        ) {
+                                            Text(
+                                                text = "Edit",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = "✏️",
+                                                fontSize = 24.sp
+                                            )
+                                        }
+                                    }
+                                    else -> {}
                                 }
                             }
                         }
@@ -392,27 +457,6 @@ fun GoalCard(
                         },
                         progress = goalItem.currentProgress
                     )
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Action buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { navController.navigate("checkin/${goalItem.id}") },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Check-in")
-                    }
-                    OutlinedButton(
-                        onClick = { navController.navigate("edit/${goalItem.id}") },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Edit")
-                    }
                 }
             }
         }
