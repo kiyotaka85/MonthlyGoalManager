@@ -1,26 +1,36 @@
 package com.ablomm.monthlygoalmanager
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,166 +50,242 @@ import java.util.UUID
 fun GoalEditForm(
     goalId: UUID?,
     viewModel: GoalsViewModel,
-    navController: NavHostController)
-{
+    navController: NavHostController
+) {
     var goalItemState by remember { mutableStateOf<GoalItem?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    // 2. LaunchedEffectを使って、初回描画時またはgoalIdが変更された時に一度だけ実行
+    // LaunchedEffectを使って、初回描画時またはgoalIdが変更された時に一度だけ実行
     LaunchedEffect(key1 = goalId) {
         if (goalId == null) {
-            // ▼ 新規作成モード ▼
-            // 新しい空のGoalItemを生成してStateにセット
-            goalItemState = GoalItem(id = UUID.randomUUID(), title = "", /* 他の初期値 */)
+            // 新規作成モード
+            goalItemState = GoalItem(
+                id = UUID.randomUUID(),
+                title = "",
+                detailedDescription = "",
+                targetValue = "",
+                currentProgress = 0,
+                priority = GoalPriority.Middle,
+                isCompleted = false
+            )
         } else {
-            // ▼ 編集モード ▼
-            // 既存のデータをDBから取得してStateにセット
+            // 編集モード
             goalItemState = viewModel.getGoalById(goalId)
         }
+        isLoading = false
     }
 
-    var dropMenuExpanded by remember {mutableStateOf(false)}
-    var isChecked by remember {mutableStateOf(false)}
+    var dropMenuExpanded by remember { mutableStateOf(false) }
     val scrollPosition = rememberScrollState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Edit Goal")
+                    Text(if (goalId == null) "新しい目標" else "目標を編集")
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "戻る")
+                    }
                 }
             )
-
         }
-    ) {
-        if (goalItemState != null) {
+    ) { paddingValues ->
+    ) { paddingValues ->
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (goalItemState != null) {
             Column(
                 modifier = Modifier
-                    .padding(it).verticalScroll(scrollPosition)
+                    .padding(paddingValues)
+                    .verticalScroll(scrollPosition)
+                    .fillMaxSize()
             ) {
-                TextField(
-                    modifier = Modifier.padding(15.dp),
-                    value = goalItemState!!.title,
-                    onValueChange = { goalItemState = goalItemState!!.copy(title = it) },
-                    label = { Text("Goal Description") },
-                    minLines = 5
-                )
-                //ToDo targetMonth
-                TextField(
-                    modifier = Modifier.padding(15.dp),
-                    value = goalItemState!!.targetValue,
-                    onValueChange = { goalItemState = goalItemState!!.copy(targetValue = it) },
-                    label = { Text("Target Value") })
-                TextField(
-                    modifier = Modifier.padding(15.dp),
-                    value = goalItemState!!.currentProgress.toString(),
-                    onValueChange = { text ->
-                        // toIntOrNull()で安全に変換。失敗したら0にする
-                        val progress = text.toIntOrNull() ?: 0
-                        goalItemState = goalItemState!!.copy(currentProgress = progress)
-                    },
-                    label = { Text("Current Progress") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number) // 数字キーボードを表示
-                )
-
-                ExposedDropdownMenuBox(
-                    modifier = Modifier.padding(15.dp),
-                    expanded = dropMenuExpanded,
-                    onExpandedChange = { dropMenuExpanded = !dropMenuExpanded }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
-                    TextField(
-                        modifier = Modifier.menuAnchor(
-                            type = MenuAnchorType.PrimaryEditable,
-                            enabled = true
-                        ),
-                        value = goalItemState!!.priority.name,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Priority") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropMenuExpanded)
-                        }
-                    )
-                    DropdownMenu(
-                        expanded = dropMenuExpanded,
-                        onDismissRequest = { dropMenuExpanded = false }
+                    Column(
+                        modifier = Modifier.padding(16.dp)
                     ) {
-                        DropdownMenuItem(text = { Text(GoalPriority.Low.name) }, onClick = {
-                            goalItemState = goalItemState!!.copy(priority = GoalPriority.Low)
-                            dropMenuExpanded = false
-                        })
-                        DropdownMenuItem(text = { Text(GoalPriority.Middle.name) }, onClick = {
-                            goalItemState = goalItemState!!.copy(priority = GoalPriority.Middle)
-                            dropMenuExpanded = false
-                        })
-                        DropdownMenuItem(text = { Text(GoalPriority.High.name) }, onClick = {
-                            goalItemState = goalItemState!!.copy(priority = GoalPriority.High)
-                            dropMenuExpanded = false
-                        })
+                        Text(
+                            text = "基本情報",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        OutlinedTextField(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            value = goalItemState!!.title,
+                            onValueChange = { goalItemState = goalItemState!!.copy(title = it) },
+                            label = { Text("目標のタイトル") },
+                            placeholder = { Text("例: 毎日30分読書する") },
+                            minLines = 2,
+                            maxLines = 3
+                        )
+
+                        OutlinedTextField(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            value = goalItemState!!.detailedDescription ?: "",
+                            onValueChange = { goalItemState = goalItemState!!.copy(detailedDescription = it) },
+                            label = { Text("詳細説明（任意）") },
+                            placeholder = { Text("目標の詳細や背景を記入してください") },
+                            minLines = 3,
+                            maxLines = 5
+                        )
+
+                        OutlinedTextField(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            value = goalItemState!!.targetValue,
+                            onValueChange = { goalItemState = goalItemState!!.copy(targetValue = it) },
+                            label = { Text("目標値") },
+                            placeholder = { Text("例: 30冊、10kg、毎日") }
+                        )
+
+                        OutlinedTextField(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            value = goalItemState!!.currentProgress.toString(),
+                            onValueChange = { text ->
+                                val progress = text.toIntOrNull() ?: 0
+                                val clampedProgress = progress.coerceIn(0, 100)
+                                goalItemState = goalItemState!!.copy(currentProgress = clampedProgress)
+                            },
+                            label = { Text("現在の進捗 (%)") },
+                            placeholder = { Text("0-100の数値を入力") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+
+                        ExposedDropdownMenuBox(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            expanded = dropMenuExpanded,
+                            onExpandedChange = { dropMenuExpanded = !dropMenuExpanded }
+                        ) {
+                            OutlinedTextField(
+                                modifier = Modifier
+                                    .menuAnchor(
+                                        type = MenuAnchorType.PrimaryEditable,
+                                        enabled = true
+                                    )
+                                    .fillMaxWidth(),
+                                value = when (goalItemState!!.priority) {
+                                    GoalPriority.Low -> "低"
+                                    GoalPriority.Middle -> "中"
+                                    GoalPriority.High -> "高"
+                                },
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("優先度") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropMenuExpanded)
+                                }
+                            )
+                            DropdownMenu(
+                                expanded = dropMenuExpanded,
+                                onDismissRequest = { dropMenuExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("高") },
+                                    onClick = {
+                                        goalItemState = goalItemState!!.copy(priority = GoalPriority.High)
+                                        dropMenuExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("中") },
+                                    onClick = {
+                                        goalItemState = goalItemState!!.copy(priority = GoalPriority.Middle)
+                                        dropMenuExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("低") },
+                                    onClick = {
+                                        goalItemState = goalItemState!!.copy(priority = GoalPriority.Low)
+                                        dropMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = goalItemState!!.isCompleted,
+                                onCheckedChange = { isChecked ->
+                                    goalItemState = goalItemState!!.copy(
+                                        isCompleted = isChecked,
+                                        currentProgress = if (isChecked) 100 else goalItemState!!.currentProgress
+                                    )
+                                }
+                            )
+                            Text(
+                                text = "完了済み",
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = isChecked,
-                        onCheckedChange = {
-                            isChecked = !isChecked
-                        })
-
-                    Text("Completed")
-                }
-
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text("Optional", modifier = Modifier.padding(15.dp))
-
-                TextField(
-                    modifier = Modifier.padding(15.dp),
-                    value = " ",
-                    onValueChange = { /* To Do */ },
-                    label = { Text("Associated Hi-level Goal") }
-                )
-
-                Button(
-                    modifier = Modifier.padding(20.dp).align(Alignment.End),
-                    onClick = {
-                        goalItemState?.let { currentGoal ->
-                            if (goalId == null) {
-                                // ▼ 新規作成モードの保存処理 ▼
-                                viewModel.addGoalItem(currentGoal)
-                            } else {
-                                // ▼ 編集モードの保存処理 ▼
-                                viewModel.updateGoalItem(currentGoal)
-                            }
-                            // 保存後は前の画面に戻る
-                            navController.popBackStack()
+                // 保存ボタン
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                goalItemState?.let { currentGoal ->
+                                    if (goalId == null) {
+                                        viewModel.addGoalItem(currentGoal)
+                                    } else {
+                                        viewModel.updateGoalItem(currentGoal)
+                                    }
+                                    navController.popBackStack()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = goalItemState!!.title.isNotBlank()
+                        ) {
+                            Text(if (goalId == null) "目標を追加" else "変更を保存")
                         }
-                    }) {
-                    // モードによってボタンのテキストを変える
-                    Text(if (goalId == null) "Add" else "Save")
+                    }
                 }
-
             }
-
-
         } else {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                // CircularProgressIndicator() などを置くとより親切
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("エラーが発生しました")
             }
         }
     }
-}
-
-//@Preview(showBackground = true)
-@Composable
-fun Test() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(
-            checked = true,
-            onCheckedChange = {
-
-            })
-
-        Text("Completed")
     }
 }
+
