@@ -34,6 +34,16 @@ data class GoalItem(
     //ToDo var checkInLogs: List<CheckInItem>
     //ToDo var actionPlan: List<ActionStepItem>
 
+@Entity(tableName = "check_ins")
+data class CheckInItem(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val goalId: UUID,
+    val progressPercent: Int,
+    val comment: String,
+    val checkInDate: Long = System.currentTimeMillis() // Timestamp
+)
+
 class Converters {
     @TypeConverter
     fun fromUUID(uuid: UUID?): String? {
@@ -43,6 +53,16 @@ class Converters {
     @TypeConverter
     fun toUUID(uuid: String?): UUID? {
         return uuid?.let { UUID.fromString(it) }
+    }
+
+    @TypeConverter
+    fun fromGoalPriority(priority: GoalPriority): String {
+        return priority.name
+    }
+
+    @TypeConverter
+    fun toGoalPriority(priority: String): GoalPriority {
+        return GoalPriority.valueOf(priority)
     }
 }
 
@@ -80,6 +100,28 @@ class GoalsViewModel @Inject constructor(private val repository: GoalsRepository
             repository.deleteGoal(goalItem) // Repositoryのdeleteを呼び出す
         }
 
+    // CheckIn関連のメソッド
+    fun getCheckInsForGoal(goalId: UUID): Flow<List<CheckInItem>> {
+        return repository.getCheckInsForGoal(goalId)
+    }
+    
+    fun addCheckIn(checkIn: CheckInItem) {
+        viewModelScope.launch {
+            repository.addCheckIn(checkIn)
+        }
+    }
+    
+    fun updateCheckIn(checkIn: CheckInItem) {
+        viewModelScope.launch {
+            repository.updateCheckIn(checkIn)
+        }
+    }
+    
+    fun deleteCheckIn(checkIn: CheckInItem) {
+        viewModelScope.launch {
+            repository.deleteCheckIn(checkIn)
+        }
+    }
 }
 
 

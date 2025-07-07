@@ -23,3 +23,26 @@ interface GoalDao {
     @Delete
     suspend fun deleteGoal(goal: GoalItem)
 }
+
+@Dao
+interface CheckInDao {
+    // 特定の目標のチェックイン履歴を取得
+    @Query("SELECT * FROM check_ins WHERE goalId = :goalId ORDER BY checkInDate DESC")
+    fun getCheckInsForGoal(goalId: UUID): Flow<List<CheckInItem>>
+    
+    // 全てのチェックイン履歴を取得
+    @Query("SELECT * FROM check_ins ORDER BY checkInDate DESC")
+    fun getAllCheckIns(): Flow<List<CheckInItem>>
+    
+    // チェックインを追加
+    @Insert
+    suspend fun insertCheckIn(checkIn: CheckInItem)
+    
+    // チェックインを更新
+    @Update
+    suspend fun updateCheckIn(checkIn: CheckInItem)
+    
+    // チェックインを削除
+    @Delete
+    suspend fun deleteCheckIn(checkIn: CheckInItem)
+}

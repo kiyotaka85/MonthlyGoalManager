@@ -4,7 +4,10 @@ package com.ablomm.monthlygoalmanager
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
-class GoalsRepository(private val goalDao: GoalDao) {
+class GoalsRepository(
+    private val goalDao: GoalDao,
+    private val checkInDao: CheckInDao
+) {
     val allGoals: Flow<List<GoalItem>> = goalDao.getAllGoals()
 
     suspend fun getGoalById(id: UUID): GoalItem? {
@@ -21,5 +24,24 @@ class GoalsRepository(private val goalDao: GoalDao) {
 
     suspend fun deleteGoal(goal: GoalItem) {
         goalDao.deleteGoal(goal)
+    }
+
+    // CheckIn関連のメソッド
+    fun getCheckInsForGoal(goalId: UUID): Flow<List<CheckInItem>> {
+        return checkInDao.getCheckInsForGoal(goalId)
+    }
+
+    val allCheckIns: Flow<List<CheckInItem>> = checkInDao.getAllCheckIns()
+
+    suspend fun addCheckIn(checkIn: CheckInItem) {
+        checkInDao.insertCheckIn(checkIn)
+    }
+
+    suspend fun updateCheckIn(checkIn: CheckInItem) {
+        checkInDao.updateCheckIn(checkIn)
+    }
+
+    suspend fun deleteCheckIn(checkIn: CheckInItem) {
+        checkInDao.deleteCheckIn(checkIn)
     }
 }

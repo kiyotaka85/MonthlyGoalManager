@@ -72,6 +72,22 @@ fun AppNavigation() {
                 navController = navController
             )
         }
+
+        composable(
+            route = "checkin/{goalId}",
+            arguments = listOf(navArgument("goalId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val goalIdString = backStackEntry.arguments?.getString("goalId")
+            val goalId: UUID? = goalIdString?.let { UUID.fromString(it) }
+
+            goalId?.let {
+                CheckInScreen(
+                    goalId = it,
+                    viewModel = goalsViewModel,
+                    navController = navController
+                )
+            }
+        }
     }
 }
 
@@ -205,10 +221,7 @@ fun GoalCard(
     Card(
         modifier = modifier
             .padding(16.dp)
-            .fillMaxWidth()
-            .clickable {
-                navController.navigate("edit/${goalItem.id}")
-            },
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(6.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -239,6 +252,27 @@ fun GoalCard(
                         },
                         progress = goalItem.currentProgress
                     )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Action buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { navController.navigate("checkin/${goalItem.id}") },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Check-in")
+                    }
+                    OutlinedButton(
+                        onClick = { navController.navigate("edit/${goalItem.id}") },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Edit")
+                    }
                 }
             }
         }

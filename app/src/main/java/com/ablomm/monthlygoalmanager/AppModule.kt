@@ -45,5 +45,10 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideGoalsRepository(dao: GoalDao): GoalsRepository = GoalsRepository(dao)
+    fun provideCheckInDao(db: AppDatabase): CheckInDao = db.checkInDao()
+
+    @Provides
+    @Singleton
+    fun provideGoalsRepository(goalDao: GoalDao, checkInDao: CheckInDao): GoalsRepository = 
+        GoalsRepository(goalDao, checkInDao)
 }
