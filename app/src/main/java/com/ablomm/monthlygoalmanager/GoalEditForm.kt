@@ -50,7 +50,8 @@ import java.util.UUID
 fun GoalEditForm(
     goalId: UUID?,
     viewModel: GoalsViewModel,
-    navController: NavHostController
+    navController: NavHostController,
+    targetMonth: Int? = null
 ) {
     var goalItemState by remember { mutableStateOf<GoalItem?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -63,6 +64,7 @@ fun GoalEditForm(
                 id = UUID.randomUUID(),
                 title = "",
                 detailedDescription = "",
+                targetMonth = targetMonth ?: 2025007, // デフォルトは現在月
                 targetValue = "",
                 currentProgress = 0,
                 priority = GoalPriority.Middle,

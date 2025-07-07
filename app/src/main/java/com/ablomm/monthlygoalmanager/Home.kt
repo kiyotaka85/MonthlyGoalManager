@@ -11,9 +11,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,6 +41,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.YearMonth
 import java.util.Locale
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -61,7 +68,8 @@ fun AppNavigation() {
             GoalEditForm(
                 goalId = goalId,
                 viewModel = goalsViewModel,
-                navController = navController
+                navController = navController,
+                targetMonth = null
             )
         }
 
@@ -69,7 +77,24 @@ fun AppNavigation() {
             GoalEditForm(
                 goalId = null,
                 viewModel = goalsViewModel,
-                navController = navController
+                navController = navController,
+                targetMonth = null
+            )
+        }
+
+        composable(
+            route = "edit?targetMonth={targetMonth}",
+            arguments = listOf(navArgument("targetMonth") { 
+                type = NavType.IntType
+                defaultValue = 0
+            })
+        ) { backStackEntry ->
+            val targetMonth = backStackEntry.arguments?.getInt("targetMonth") ?: 0
+            GoalEditForm(
+                goalId = null,
+                viewModel = goalsViewModel,
+                navController = navController,
+                targetMonth = if (targetMonth != 0) targetMonth else null
             )
         }
 
@@ -96,19 +121,70 @@ fun AppNavigation() {
 @Composable
 fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
-    val currentDate = LocalDate.now()
-    val monthYear = currentDate.format(
+    
+    // 現在表示中の年月を管理
+    var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
+    
+    // 現在の年月に基づいてフィルタリング
+    val filteredGoals = goalListState.value.filter { goal ->
+        val goalYearMonth = goal.targetMonth
+        val goalYear = goalYearMonth / 1000
+        val goalMonth = goalYearMonth % 1000
+        currentYearMonth.year == goalYear && currentYearMonth.monthValue == goalMonth
+    }
+    
+    val monthYearText = currentYearMonth.format(
         DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
     )
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("My Goals - $monthYear") })
+            TopAppBar(
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Previous month button
+                        IconButton(
+                            onClick = { 
+                                currentYearMonth = currentYearMonth.minusMonths(1)
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.KeyboardArrowLeft, 
+                                contentDescription = "Previous Month"
+                            )
+                        }
+                        
+                        // Month and year title
+                        Text(
+                            text = "My Goals - $monthYearText",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        
+                        // Next month button
+                        IconButton(
+                            onClick = { 
+                                currentYearMonth = currentYearMonth.plusMonths(1)
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.KeyboardArrowRight, 
+                                contentDescription = "Next Month"
+                            )
+                        }
+                    }
+                }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    navController.navigate("edit")
+                    // 現在選択されている年月を引数として渡す
+                    val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
+                    navController.navigate("edit?targetMonth=$targetMonth")
                 }
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Goal")
@@ -116,7 +192,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
         }
     ) { innerPadding ->
 
-        if (goalListState.value.isEmpty()) {
+        if (filteredGoals.isEmpty()) {
             // 空の状態の表示
             Box(
                 modifier = Modifier
@@ -134,13 +210,13 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "目標がありません",
+                        text = "No goals for this month",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "右下のボタンから新しい目標を追加してください",
+                        text = "Tap the + button to add a new goal",
                         fontSize = 14.sp,
                         color = Color.Gray,
                         textAlign = TextAlign.Center
@@ -154,7 +230,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                     .fillMaxSize()
             ) {
                 items(
-                    items = goalListState.value,
+                    items = filteredGoals,
                     key = { it.id }
                 ) { goalItem ->
 
@@ -194,7 +270,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                                         tint = Color.White
                                     )
                                     Text(
-                                        text = "削除",
+                                        text = "Delete",
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold
                                     )
