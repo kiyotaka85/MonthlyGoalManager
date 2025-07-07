@@ -161,6 +161,12 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     // 現在表示中の年月を管理
     var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
     
+    // 月次レビューの存在をチェック
+    val hasReviewState = viewModel.hasMonthlyReview(
+        currentYearMonth.year, 
+        currentYearMonth.monthValue
+    ).collectAsState(initial = false)
+    
     // 現在の年月に基づいてフィルタリング
     val filteredGoals = goalListState.value.filter { goal ->
         val goalYearMonth = goal.targetMonth
@@ -214,6 +220,17 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                     }
                 },
                 actions = {
+                    // Monthly Summary button (only if review exists)
+                    if (hasReviewState.value) {
+                        TextButton(
+                            onClick = {
+                                navController.navigate("monthlyReviewSummary/${currentYearMonth.year}/${currentYearMonth.monthValue}")
+                            }
+                        ) {
+                            Text("Summary")
+                        }
+                    }
+                    
                     // Monthly Review button
                     TextButton(
                         onClick = {

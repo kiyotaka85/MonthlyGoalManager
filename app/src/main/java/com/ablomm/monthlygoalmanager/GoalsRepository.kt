@@ -52,6 +52,10 @@ class GoalsRepository(
         return monthlyReviewDao.getMonthlyReview(year, month)
     }
 
+    fun hasMonthlyReview(year: Int, month: Int): Flow<Boolean> {
+        return monthlyReviewDao.hasMonthlyReview(year, month)
+    }
+
     val allMonthlyReviews: Flow<List<MonthlyReview>> = monthlyReviewDao.getAllMonthlyReviews()
 
     suspend fun insertMonthlyReview(review: MonthlyReview): Long {

@@ -52,6 +52,9 @@ interface MonthlyReviewDao {
     @Query("SELECT * FROM monthly_reviews WHERE year = :year AND month = :month")
     suspend fun getMonthlyReview(year: Int, month: Int): MonthlyReview?
     
+    @Query("SELECT COUNT(*) > 0 FROM monthly_reviews WHERE year = :year AND month = :month")
+    fun hasMonthlyReview(year: Int, month: Int): Flow<Boolean>
+    
     @Query("SELECT * FROM monthly_reviews ORDER BY year DESC, month DESC")
     fun getAllMonthlyReviews(): Flow<List<MonthlyReview>>
     

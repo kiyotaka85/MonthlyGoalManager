@@ -129,6 +129,10 @@ class GoalsViewModel @Inject constructor(private val repository: GoalsRepository
         return repository.getMonthlyReview(year, month)
     }
     
+    fun hasMonthlyReview(year: Int, month: Int): Flow<Boolean> {
+        return repository.hasMonthlyReview(year, month)
+    }
+    
     val allMonthlyReviews: Flow<List<MonthlyReview>> = repository.allMonthlyReviews
     
     fun insertMonthlyReview(review: MonthlyReview) {
