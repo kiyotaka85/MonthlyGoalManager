@@ -84,11 +84,11 @@ fun GoalEditForm(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (goalId == null) "新しい目標" else "目標を編集")
+                    Text(if (goalId == null) "Add New Goal" else "Edit Goal")
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "戻る")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -118,7 +118,7 @@ fun GoalEditForm(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "基本情報",
+                            text = "Basic Information",
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
@@ -129,8 +129,8 @@ fun GoalEditForm(
                                 .padding(bottom = 16.dp),
                             value = goalItemState!!.title,
                             onValueChange = { goalItemState = goalItemState!!.copy(title = it) },
-                            label = { Text("目標のタイトル") },
-                            placeholder = { Text("例: 毎日30分読書する") },
+                            label = { Text("Goal Title") },
+                            placeholder = { Text("e.g., Read 30 minutes daily") },
                             minLines = 2,
                             maxLines = 3
                         )
@@ -141,8 +141,8 @@ fun GoalEditForm(
                                 .padding(bottom = 16.dp),
                             value = goalItemState!!.detailedDescription ?: "",
                             onValueChange = { goalItemState = goalItemState!!.copy(detailedDescription = it) },
-                            label = { Text("詳細説明（任意）") },
-                            placeholder = { Text("目標の詳細や背景を記入してください") },
+                            label = { Text("Detailed Description (Optional)") },
+                            placeholder = { Text("Enter details or background of your goal") },
                             minLines = 3,
                             maxLines = 5
                         )
@@ -153,8 +153,8 @@ fun GoalEditForm(
                                 .padding(bottom = 16.dp),
                             value = goalItemState!!.targetValue,
                             onValueChange = { goalItemState = goalItemState!!.copy(targetValue = it) },
-                            label = { Text("目標値") },
-                            placeholder = { Text("例: 30冊、10kg、毎日") }
+                            label = { Text("Target Value") },
+                            placeholder = { Text("e.g., 30 books, 10kg, daily") }
                         )
 
                         OutlinedTextField(
@@ -167,8 +167,8 @@ fun GoalEditForm(
                                 val clampedProgress = progress.coerceIn(0, 100)
                                 goalItemState = goalItemState!!.copy(currentProgress = clampedProgress)
                             },
-                            label = { Text("現在の進捗 (%)") },
-                            placeholder = { Text("0-100の数値を入力") },
+                            label = { Text("Current Progress (%)") },
+                            placeholder = { Text("Enter value between 0-100") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
 
@@ -187,13 +187,13 @@ fun GoalEditForm(
                                     )
                                     .fillMaxWidth(),
                                 value = when (goalItemState!!.priority) {
-                                    GoalPriority.Low -> "低"
-                                    GoalPriority.Middle -> "中"
-                                    GoalPriority.High -> "高"
+                                    GoalPriority.Low -> "Low"
+                                    GoalPriority.Middle -> "Medium"
+                                    GoalPriority.High -> "High"
                                 },
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("優先度") },
+                                label = { Text("Priority") },
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropMenuExpanded)
                                 }
@@ -203,21 +203,21 @@ fun GoalEditForm(
                                 onDismissRequest = { dropMenuExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("高") },
+                                    text = { Text("High") },
                                     onClick = {
                                         goalItemState = goalItemState!!.copy(priority = GoalPriority.High)
                                         dropMenuExpanded = false
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("中") },
+                                    text = { Text("Medium") },
                                     onClick = {
                                         goalItemState = goalItemState!!.copy(priority = GoalPriority.Middle)
                                         dropMenuExpanded = false
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("低") },
+                                    text = { Text("Low") },
                                     onClick = {
                                         goalItemState = goalItemState!!.copy(priority = GoalPriority.Low)
                                         dropMenuExpanded = false
@@ -242,7 +242,7 @@ fun GoalEditForm(
                                 }
                             )
                             Text(
-                                text = "完了済み",
+                                text = "Completed",
                                 modifier = Modifier.padding(start = 8.dp)
                             )
                         }
@@ -273,7 +273,7 @@ fun GoalEditForm(
                             modifier = Modifier.fillMaxWidth(),
                             enabled = goalItemState!!.title.isNotBlank()
                         ) {
-                            Text(if (goalId == null) "目標を追加" else "変更を保存")
+                            Text(if (goalId == null) "Add Goal" else "Save Changes")
                         }
                     }
                 }
@@ -283,7 +283,7 @@ fun GoalEditForm(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("エラーが発生しました")
+                Text("An error occurred")
             }
         }
     }
