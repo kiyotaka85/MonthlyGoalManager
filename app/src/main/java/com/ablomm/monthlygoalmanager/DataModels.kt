@@ -99,6 +99,7 @@ class GoalsViewModel @Inject constructor(private val repository: GoalsRepository
         viewModelScope.launch {
             repository.deleteGoal(goalItem) // Repositoryのdeleteを呼び出す
         }
+    }
 
     // CheckIn関連のメソッド
     fun getCheckInsForGoal(goalId: UUID): Flow<List<CheckInItem>> {
@@ -236,4 +237,4 @@ val julyGoals = listOf(
         currentProgress = 0,
         priority = GoalPriority.Low
     )
-)}
+)

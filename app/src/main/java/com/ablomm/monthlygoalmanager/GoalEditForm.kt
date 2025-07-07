@@ -92,7 +92,6 @@ fun GoalEditForm(
             )
         }
     ) { paddingValues ->
-    ) { paddingValues ->
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -285,7 +284,6 @@ fun GoalEditForm(
                 Text("エラーが発生しました")
             }
         }
-    }
     }
 }
 
