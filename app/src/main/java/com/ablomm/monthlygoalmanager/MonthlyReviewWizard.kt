@@ -153,111 +153,120 @@ fun MonthlyReviewWizard(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                when {
-                    currentStep < finalCheckIns.size -> {
-                        // Individual goal review steps
-                        FinalCheckInStep(
-                            checkInState = finalCheckIns[currentStep],
-                            onUpdate = { updatedState ->
-                                finalCheckIns = finalCheckIns.toMutableList().apply {
-                                    set(currentStep, updatedState)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    when {
+                        currentStep < finalCheckIns.size -> {
+                            // Individual goal review steps
+                            FinalCheckInStep(
+                                checkInState = finalCheckIns[currentStep],
+                                onUpdate = { updatedState ->
+                                    finalCheckIns = finalCheckIns.toMutableList().apply {
+                                        set(currentStep, updatedState)
+                                    }
                                 }
-                            }
-                        )
-                    }
-                    else -> {
-                        // Overall reflection step
-                        OverallReflectionStep(
-                            reflection = overallReflection,
-                            onReflectionChange = { overallReflection = it }
-                        )
+                            )
+                        }
+                        else -> {
+                            // Overall reflection step
+                            OverallReflectionStep(
+                                reflection = overallReflection,
+                                onReflectionChange = { overallReflection = it }
+                            )
+                        }
                     }
                 }
                 
-                Spacer(modifier = Modifier.weight(1f))
-                
-                // Navigation buttons
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                // Navigation buttons at the bottom
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = { 
-                            if (currentStep > 0) {
-                                currentStep--
-                            }
-                        },
-                        enabled = currentStep > 0
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Previous")
-                    }
-                    
-                    when {
-                        currentStep < finalCheckIns.size -> {
-                            // Next button for goal steps
-                            Button(
-                                onClick = { currentStep++ },
-                                enabled = finalCheckIns[currentStep].let { 
-                                    it.finalProgress.isNotBlank() && 
-                                    it.achievements.isNotBlank()
-                                    // Removed strict validation for challenges and learnings
+                        OutlinedButton(
+                            onClick = { 
+                                if (currentStep > 0) {
+                                    currentStep--
                                 }
-                            ) {
-                                Text("Next")
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(Icons.Default.ArrowForward, contentDescription = null)
-                            }
+                            },
+                            enabled = currentStep > 0
+                        ) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Previous")
                         }
-                        else -> {
-                            // Complete button for final step
-                            Button(
-                                onClick = {
-                                    // Save monthly review
-                                    val review = monthlyReview?.copy(
-                                        overallReflection = overallReflection
-                                    ) ?: MonthlyReview(
-                                        year = year,
-                                        month = month,
-                                        overallReflection = overallReflection
-                                    )
-                                    
-                                    viewModel.insertMonthlyReview(review)
-                                    
-                                    // Save final check-ins
-                                    finalCheckIns.forEach { checkInState ->
-                                        val finalCheckIn = FinalCheckIn(
-                                            goalId = checkInState.goalId,
-                                            monthlyReviewId = review.id,
-                                            finalProgress = checkInState.finalProgress.toIntOrNull() ?: 0,
-                                            achievements = checkInState.achievements,
-                                            challenges = checkInState.challenges,
-                                            learnings = checkInState.learnings
-                                        )
-                                        viewModel.insertFinalCheckIn(finalCheckIn)
-                                        
-                                        // Update goal progress
-                                        val goal = monthGoals.find { it.id == checkInState.goalId }
-                                        goal?.let {
-                                            val updatedGoal = it.copy(
-                                                currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
-                                                isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
-                                            )
-                                            viewModel.updateGoalItem(updatedGoal)
-                                        }
+                        
+                        when {
+                            currentStep < finalCheckIns.size -> {
+                                // Next button for goal steps
+                                Button(
+                                    onClick = { currentStep++ },
+                                    enabled = finalCheckIns[currentStep].let { 
+                                        it.finalProgress.isNotBlank() && 
+                                        it.achievements.isNotBlank()
+                                        // Removed strict validation for challenges and learnings
                                     }
-                                    
-                                    // Navigate to summary
-                                    navController.navigate("monthlyReviewSummary/$year/$month")
-                                },
-                                enabled = overallReflection.isNotBlank()
-                            ) {
-                                Icon(Icons.Default.Check, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Complete Review")
+                                ) {
+                                    Text("Next")
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(Icons.Default.ArrowForward, contentDescription = null)
+                                }
+                            }
+                            else -> {
+                                // Complete button for final step
+                                Button(
+                                    onClick = {
+                                        // Save monthly review
+                                        val review = monthlyReview?.copy(
+                                            overallReflection = overallReflection
+                                        ) ?: MonthlyReview(
+                                            year = year,
+                                            month = month,
+                                            overallReflection = overallReflection
+                                        )
+                                        
+                                        viewModel.insertMonthlyReview(review)
+                                        
+                                        // Save final check-ins
+                                        finalCheckIns.forEach { checkInState ->
+                                            val finalCheckIn = FinalCheckIn(
+                                                goalId = checkInState.goalId,
+                                                monthlyReviewId = review.id,
+                                                finalProgress = checkInState.finalProgress.toIntOrNull() ?: 0,
+                                                achievements = checkInState.achievements,
+                                                challenges = checkInState.challenges,
+                                                learnings = checkInState.learnings
+                                            )
+                                            viewModel.insertFinalCheckIn(finalCheckIn)
+                                            
+                                            // Update goal progress
+                                            val goal = monthGoals.find { it.id == checkInState.goalId }
+                                            goal?.let {
+                                                val updatedGoal = it.copy(
+                                                    currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
+                                                    isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
+                                                )
+                                                viewModel.updateGoalItem(updatedGoal)
+                                            }
+                                        }
+                                        
+                                        // Navigate to summary
+                                        navController.navigate("monthlyReviewSummary/$year/$month")
+                                    },
+                                    enabled = overallReflection.isNotBlank()
+                                ) {
+                                    Icon(Icons.Default.Check, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Complete Review")
+                                }
                             }
                         }
                     }
@@ -272,87 +281,79 @@ fun FinalCheckInStep(
     checkInState: FinalCheckInState,
     onUpdate: (FinalCheckInState) -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "Final Check-in",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = checkInState.goalTitle,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+                Text(
+                    text = "Final Check-in",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = checkInState.goalTitle,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
         
-        item {
-            OutlinedTextField(
-                value = checkInState.finalProgress,
-                onValueChange = { text ->
-                    val progress = text.toIntOrNull()
-                    if (progress == null && text.isNotEmpty()) return@OutlinedTextField
-                    if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
-                    onUpdate(checkInState.copy(finalProgress = text))
-                },
-                label = { Text("Final Progress (%)") },
-                placeholder = { Text("Enter final progress percentage") },
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        OutlinedTextField(
+            value = checkInState.finalProgress,
+            onValueChange = { text ->
+                val progress = text.toIntOrNull()
+                if (progress == null && text.isNotEmpty()) return@OutlinedTextField
+                if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
+                onUpdate(checkInState.copy(finalProgress = text))
+            },
+            label = { Text("Final Progress (%) *") },
+            placeholder = { Text("Enter final progress percentage") },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
         
-        item {
-            OutlinedTextField(
-                value = checkInState.achievements,
-                onValueChange = { onUpdate(checkInState.copy(achievements = it)) },
-                label = { Text("What did you achieve? *") },
-                placeholder = { Text("Describe your accomplishments and successes") },
-                minLines = 3,
-                maxLines = 5,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        OutlinedTextField(
+            value = checkInState.achievements,
+            onValueChange = { onUpdate(checkInState.copy(achievements = it)) },
+            label = { Text("What did you achieve? *") },
+            placeholder = { Text("Describe your accomplishments and successes") },
+            minLines = 3,
+            maxLines = 5,
+            modifier = Modifier.fillMaxWidth()
+        )
         
-        item {
-            OutlinedTextField(
-                value = checkInState.challenges,
-                onValueChange = { onUpdate(checkInState.copy(challenges = it)) },
-                label = { Text("What were the challenges? (Optional)") },
-                placeholder = { Text("Describe difficulties and obstacles you faced") },
-                minLines = 2,
-                maxLines = 4,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        OutlinedTextField(
+            value = checkInState.challenges,
+            onValueChange = { onUpdate(checkInState.copy(challenges = it)) },
+            label = { Text("What were the challenges? (Optional)") },
+            placeholder = { Text("Describe difficulties and obstacles you faced") },
+            minLines = 2,
+            maxLines = 4,
+            modifier = Modifier.fillMaxWidth()
+        )
         
-        item {
-            OutlinedTextField(
-                value = checkInState.learnings,
-                onValueChange = { onUpdate(checkInState.copy(learnings = it)) },
-                label = { Text("What did you learn? (Optional)") },
-                placeholder = { Text("Reflect on insights and lessons learned") },
-                minLines = 2,
-                maxLines = 4,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        OutlinedTextField(
+            value = checkInState.learnings,
+            onValueChange = { onUpdate(checkInState.copy(learnings = it)) },
+            label = { Text("What did you learn? (Optional)") },
+            placeholder = { Text("Reflect on insights and lessons learned") },
+            minLines = 2,
+            maxLines = 4,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -361,52 +362,50 @@ fun OverallReflectionStep(
     reflection: String,
     onReflectionChange: (String) -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "📝",
-                        fontSize = 32.sp,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Overall Monthly Reflection",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Reflect on your overall experience this month",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
-                }
+                Text(
+                    text = "📝",
+                    fontSize = 32.sp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Overall Monthly Reflection",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Reflect on your overall experience this month",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
             }
         }
         
-        item {
-            OutlinedTextField(
-                value = reflection,
-                onValueChange = onReflectionChange,
-                label = { Text("Monthly Reflection") },
-                placeholder = { Text("How was this month overall? What are your key takeaways? What would you do differently?") },
-                minLines = 6,
-                maxLines = 10,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        OutlinedTextField(
+            value = reflection,
+            onValueChange = onReflectionChange,
+            label = { Text("Monthly Reflection") },
+            placeholder = { Text("How was this month overall? What are your key takeaways? What would you do differently?") },
+            minLines = 6,
+            maxLines = 10,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
