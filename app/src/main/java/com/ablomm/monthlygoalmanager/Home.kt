@@ -113,6 +113,42 @@ fun AppNavigation() {
                 )
             }
         }
+
+        composable(
+            route = "monthlyReview/{year}/{month}",
+            arguments = listOf(
+                navArgument("year") { type = NavType.IntType },
+                navArgument("month") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val year = backStackEntry.arguments?.getInt("year") ?: 2025
+            val month = backStackEntry.arguments?.getInt("month") ?: 7
+
+            MonthlyReviewWizard(
+                year = year,
+                month = month,
+                viewModel = goalsViewModel,
+                navController = navController
+            )
+        }
+
+        composable(
+            route = "monthlyReviewSummary/{year}/{month}",
+            arguments = listOf(
+                navArgument("year") { type = NavType.IntType },
+                navArgument("month") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val year = backStackEntry.arguments?.getInt("year") ?: 2025
+            val month = backStackEntry.arguments?.getInt("month") ?: 7
+
+            MonthlyReviewSummary(
+                year = year,
+                month = month,
+                viewModel = goalsViewModel,
+                navController = navController
+            )
+        }
     }
 }
 
@@ -175,6 +211,17 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                                 contentDescription = "Next Month"
                             )
                         }
+                    }
+                },
+                actions = {
+                    // Monthly Review button
+                    TextButton(
+                        onClick = {
+                            val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
+                            navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
+                        }
+                    ) {
+                        Text("Review")
                     }
                 }
             )

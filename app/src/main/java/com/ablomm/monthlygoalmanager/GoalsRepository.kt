@@ -6,7 +6,9 @@ import java.util.UUID
 
 class GoalsRepository(
     private val goalDao: GoalDao,
-    private val checkInDao: CheckInDao
+    private val checkInDao: CheckInDao,
+    private val monthlyReviewDao: MonthlyReviewDao,
+    private val finalCheckInDao: FinalCheckInDao
 ) {
     val allGoals: Flow<List<GoalItem>> = goalDao.getAllGoals()
 
@@ -43,5 +45,37 @@ class GoalsRepository(
 
     suspend fun deleteCheckIn(checkIn: CheckInItem) {
         checkInDao.deleteCheckIn(checkIn)
+    }
+
+    // MonthlyReview関連のメソッド
+    suspend fun getMonthlyReview(year: Int, month: Int): MonthlyReview? {
+        return monthlyReviewDao.getMonthlyReview(year, month)
+    }
+
+    val allMonthlyReviews: Flow<List<MonthlyReview>> = monthlyReviewDao.getAllMonthlyReviews()
+
+    suspend fun insertMonthlyReview(review: MonthlyReview): Long {
+        return monthlyReviewDao.insertMonthlyReview(review)
+    }
+
+    suspend fun updateMonthlyReview(review: MonthlyReview) {
+        monthlyReviewDao.updateMonthlyReview(review)
+    }
+
+    // FinalCheckIn関連のメソッド
+    fun getFinalCheckInsForReview(reviewId: UUID): Flow<List<FinalCheckIn>> {
+        return finalCheckInDao.getFinalCheckInsForReview(reviewId)
+    }
+
+    suspend fun insertFinalCheckIn(checkIn: FinalCheckIn) {
+        finalCheckInDao.insertFinalCheckIn(checkIn)
+    }
+
+    suspend fun updateFinalCheckIn(checkIn: FinalCheckIn) {
+        finalCheckInDao.updateFinalCheckIn(checkIn)
+    }
+
+    suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn? {
+        return finalCheckInDao.getFinalCheckInForGoal(goalId, reviewId)
     }
 }

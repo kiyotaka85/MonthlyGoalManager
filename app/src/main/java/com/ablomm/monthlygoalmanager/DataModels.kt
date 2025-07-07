@@ -123,6 +123,46 @@ class GoalsViewModel @Inject constructor(private val repository: GoalsRepository
             repository.deleteCheckIn(checkIn)
         }
     }
+    
+    // MonthlyReview関連のメソッド
+    suspend fun getMonthlyReview(year: Int, month: Int): MonthlyReview? {
+        return repository.getMonthlyReview(year, month)
+    }
+    
+    val allMonthlyReviews: Flow<List<MonthlyReview>> = repository.allMonthlyReviews
+    
+    fun insertMonthlyReview(review: MonthlyReview) {
+        viewModelScope.launch {
+            repository.insertMonthlyReview(review)
+        }
+    }
+    
+    fun updateMonthlyReview(review: MonthlyReview) {
+        viewModelScope.launch {
+            repository.updateMonthlyReview(review)
+        }
+    }
+    
+    // FinalCheckIn関連のメソッド
+    fun getFinalCheckInsForReview(reviewId: UUID): Flow<List<FinalCheckIn>> {
+        return repository.getFinalCheckInsForReview(reviewId)
+    }
+    
+    fun insertFinalCheckIn(checkIn: FinalCheckIn) {
+        viewModelScope.launch {
+            repository.insertFinalCheckIn(checkIn)
+        }
+    }
+    
+    fun updateFinalCheckIn(checkIn: FinalCheckIn) {
+        viewModelScope.launch {
+            repository.updateFinalCheckIn(checkIn)
+        }
+    }
+    
+    suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn? {
+        return repository.getFinalCheckInForGoal(goalId, reviewId)
+    }
 }
 
 
@@ -237,4 +277,26 @@ val julyGoals = listOf(
         currentProgress = 0,
         priority = GoalPriority.Low
     )
+)
+
+@Entity(tableName = "monthly_reviews")
+data class MonthlyReview(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val year: Int,
+    val month: Int,
+    val overallReflection: String,
+    val createdDate: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "final_checkins")
+data class FinalCheckIn(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val goalId: UUID,
+    val monthlyReviewId: UUID,
+    val finalProgress: Int,
+    val achievements: String, // 達成したこと
+    val challenges: String,   // 困難だったこと
+    val learnings: String     // 学んだこと
 )

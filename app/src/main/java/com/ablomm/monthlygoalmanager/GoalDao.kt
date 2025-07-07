@@ -46,3 +46,33 @@ interface CheckInDao {
     @Delete
     suspend fun deleteCheckIn(checkIn: CheckInItem)
 }
+
+@Dao
+interface MonthlyReviewDao {
+    @Query("SELECT * FROM monthly_reviews WHERE year = :year AND month = :month")
+    suspend fun getMonthlyReview(year: Int, month: Int): MonthlyReview?
+    
+    @Query("SELECT * FROM monthly_reviews ORDER BY year DESC, month DESC")
+    fun getAllMonthlyReviews(): Flow<List<MonthlyReview>>
+    
+    @Insert
+    suspend fun insertMonthlyReview(review: MonthlyReview): Long
+    
+    @Update
+    suspend fun updateMonthlyReview(review: MonthlyReview)
+}
+
+@Dao
+interface FinalCheckInDao {
+    @Query("SELECT * FROM final_checkins WHERE monthlyReviewId = :reviewId")
+    fun getFinalCheckInsForReview(reviewId: UUID): Flow<List<FinalCheckIn>>
+    
+    @Insert
+    suspend fun insertFinalCheckIn(checkIn: FinalCheckIn)
+    
+    @Update
+    suspend fun updateFinalCheckIn(checkIn: FinalCheckIn)
+    
+    @Query("SELECT * FROM final_checkins WHERE goalId = :goalId AND monthlyReviewId = :reviewId")
+    suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn?
+}
