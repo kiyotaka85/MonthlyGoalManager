@@ -36,7 +36,6 @@ fun MonthlyReviewSummary(
     navController: NavHostController
 ) {
     var monthlyReview by remember { mutableStateOf<MonthlyReview?>(null) }
-    var finalCheckIns by remember { mutableStateOf<List<FinalCheckIn>>(emptyList()) }
     var goals by remember { mutableStateOf<List<GoalItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     
@@ -44,18 +43,23 @@ fun MonthlyReviewSummary(
     val yearMonth = YearMonth.of(year, month)
     val monthYearText = yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
     
-    LaunchedEffect(year, month) {
+    // Collect goals state
+    val allGoalsState = viewModel.goalList.collectAsState(initial = emptyList())
+    
+    // Final check-ins state
+    val finalCheckInsState = monthlyReview?.let { review ->
+        viewModel.getFinalCheckInsForReview(review.id).collectAsState(initial = emptyList())
+    }
+    val finalCheckIns = finalCheckInsState?.value ?: emptyList()
+    
+    LaunchedEffect(year, month, allGoalsState.value) {
         monthlyReview = viewModel.getMonthlyReview(year, month)
-        monthlyReview?.let { review ->
-            finalCheckIns = viewModel.getFinalCheckInsForReview(review.id).value
-            
-            // Get all goals for this month
-            val allGoals = viewModel.goalList.value
-            goals = allGoals.filter { goal ->
-                val goalYear = goal.targetMonth / 1000
-                val goalMonth = goal.targetMonth % 1000
-                goalYear == year && goalMonth == month
-            }
+        
+        // Get all goals for this month
+        goals = allGoalsState.value.filter { goal ->
+            val goalYear = goal.targetMonth / 1000
+            val goalMonth = goal.targetMonth % 1000
+            goalYear == year && goalMonth == month
         }
         isLoading = false
     }
