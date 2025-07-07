@@ -226,13 +226,12 @@ fun GoalSummaryCard(goal: GoalItem, finalCheckIn: FinalCheckIn) {
                 
                 Box(
                     modifier = Modifier
-                        .background(
-                            color = when {
-                                finalCheckIn.finalProgress >= 100 -> Color.Green.copy(alpha = 0.2f)
-                                finalCheckIn.finalProgress >= 75 -> Color.Blue.copy(alpha = 0.2f)
-                                finalCheckIn.finalProgress >= 50 -> Color.Orange.copy(alpha = 0.2f)
-                                else -> Color.Red.copy(alpha = 0.2f)
-                            },
+                        .background(                        color = when {
+                            finalCheckIn.finalProgress >= 100 -> Color.Green.copy(alpha = 0.2f)
+                            finalCheckIn.finalProgress >= 75 -> Color.Blue.copy(alpha = 0.2f)
+                            finalCheckIn.finalProgress >= 50 -> Color(0xFFFF9800).copy(alpha = 0.2f) // Orange color
+                            else -> Color.Red.copy(alpha = 0.2f)
+                        },
                             shape = RoundedCornerShape(12.dp)
                         )
                         .padding(horizontal = 12.dp, vertical = 4.dp)
@@ -243,7 +242,7 @@ fun GoalSummaryCard(goal: GoalItem, finalCheckIn: FinalCheckIn) {
                         color = when {
                             finalCheckIn.finalProgress >= 100 -> Color.Green.copy(alpha = 0.8f)
                             finalCheckIn.finalProgress >= 75 -> Color.Blue.copy(alpha = 0.8f)
-                            finalCheckIn.finalProgress >= 50 -> Color.Orange.copy(alpha = 0.8f)
+                            finalCheckIn.finalProgress >= 50 -> Color(0xFFFF9800).copy(alpha = 0.8f) // Orange color
                             else -> Color.Red.copy(alpha = 0.8f)
                         }
                     )
