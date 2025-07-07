@@ -25,11 +25,15 @@ object AppModule {
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
-                    // 初期データを投入
-                    val dao = provideAppDatabase(context).goalDao()
-                    CoroutineScope(SupervisorJob()).launch {
-                        julyGoals.forEach { dao.upsertGoal(it) }
-                    }
+                    // データベースが初めて作成される時に一度だけ実行される
+                    // ここで初期データを投入する
+
+                    // データベースのインスタンスを直接使うのではなく、
+                    // Hiltが管理するDAOを取得して使うのがより安全です。
+                    // ただし、このコールバック内では直接インスタンスを生成する必要があります。
+                    val database = provideAppDatabase(context)
+                    val dao = database.goalDao()
+
                 }
             })
             .build()

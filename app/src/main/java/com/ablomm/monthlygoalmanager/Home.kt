@@ -1,52 +1,26 @@
 package com.ablomm.monthlygoalmanager
 
-import android.media.Image
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ProgressIndicatorDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ComposeCompilerApi
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -54,12 +28,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import java.time.format.TextStyle
-import java.util.UUID
 import androidx.hilt.navigation.compose.hiltViewModel
+import java.util.UUID
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AppNaviagtion() {
+fun AppNavigation() {
     val navController = rememberNavController()
     val goalsViewModel: GoalsViewModel = hiltViewModel()
 
@@ -73,13 +50,21 @@ fun AppNaviagtion() {
 
         composable(
             route = "edit/{goalId}",
-            arguments = listOf(navArgument("goalId") {type = NavType.StringType})
+            arguments = listOf(navArgument("goalId") { type = NavType.StringType })
         ) { backStackEntry ->
             val goalIdString = backStackEntry.arguments?.getString("goalId")
-            val goalId: UUID? = goalIdString?.let {UUID.fromString(it)}
-            
+            val goalId: UUID? = goalIdString?.let { UUID.fromString(it) }
+
             GoalEditForm(
                 goalId = goalId,
+                viewModel = goalsViewModel,
+                navController = navController
+            )
+        }
+
+        composable("edit") {
+            GoalEditForm(
+                goalId = null,
                 viewModel = goalsViewModel,
                 navController = navController
             )
@@ -96,103 +81,139 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("My Goals - June 2025") })
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    navController.navigate("edit")
+                }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Goal")
+            }
         }
     ) { innerPadding ->
 
         LazyColumn(
-            modifier = Modifier.padding(innerPadding).fillMaxSize()
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
         ) {
-            items(goalListState.value) {
-                GoalCard(goalItem = it, navController = navController)
-            }
+            items(
+                items = goalListState.value,
+                key = { it.id }
+            ) { goalItem ->
 
+                val dismissState = rememberSwipeToDismissBoxState(
+                    positionalThreshold = { it * 0.25f },
+                    confirmValueChange = { dismissValue ->
+                        if (dismissValue == SwipeToDismissBoxValue.StartToEnd || dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                            viewModel.deleteGoalItem(goalItem)
+                            true
+                        } else false
+                    }
+                )
+
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {
+                        val color = when (dismissState.targetValue) {
+                            SwipeToDismissBoxValue.StartToEnd,
+                            SwipeToDismissBoxValue.EndToStart -> Color.Red.copy(alpha = 0.8f)
+                            else -> Color.Transparent
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .background(color, shape = RoundedCornerShape(6.dp)),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                modifier = Modifier.padding(end = 16.dp)
+                            )
+                        }
+                    }
+                ) {
+                    GoalCard(goalItem = goalItem, navController = navController)
+                }
+
+                HorizontalDivider()
+            }
         }
     }
 }
 
 @Composable
-fun GoalCard(goalItem: GoalItem,
-             modifier: Modifier = Modifier,
-             navController: NavHostController
+fun GoalCard(
+    goalItem: GoalItem,
+    modifier: Modifier = Modifier,
+    navController: NavHostController
+) {
+    Card(
+        modifier = modifier
+            .padding(16.dp)
+            .fillMaxWidth()
+            .clickable {
+                navController.navigate("edit/${goalItem.id}")
+            },
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Card(
-            modifier = modifier
+        Box(
+            modifier = Modifier
                 .padding(16.dp)
-                .fillMaxWidth()
-                .clickable {
-                    navController.navigate("edit/${goalItem.id.toString()}")
-                },
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White // Post-it風の黄色
-            ),
-            shape = RoundedCornerShape(6.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.CenterStart
         ) {
-            Box(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-
-                        GoalTextArea(
-                            modifier = Modifier
-                                .weight(1f),
-                            title = goalItem.title,
-                            description = goalItem.detailedDescription
-                        )
-
-                        GoalStatusArea(
-                            modifier = Modifier
-                                .width(64.dp),
-                            statusEmoji = when (goalItem.currentProgress) {
-                                0 -> "🆕"
-                                100 -> "✅"
-                                else -> "⏳"
-                            },
-                            progress = goalItem.currentProgress,
-                        )
-                    }
-
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    GoalTextArea(
+                        modifier = Modifier.weight(1f),
+                        title = goalItem.title,
+                        description = goalItem.detailedDescription
+                    )
+                    GoalStatusArea(
+                        modifier = Modifier.width(64.dp),
+                        statusEmoji = when (goalItem.currentProgress) {
+                            0 -> "🆕"
+                            100 -> "✅"
+                            else -> "⏳"
+                        },
+                        progress = goalItem.currentProgress
+                    )
                 }
             }
         }
     }
+}
 
-@Preview(showBackground = true)
 @Composable
 fun GoalTextArea(
     modifier: Modifier = Modifier,
-    title: String = "Sample Goal Title",
-    description: String? = "Sample This goal is to achieve my personal growth and earn profits to support my family"
+    title: String,
+    description: String?
 ) {
-    Column(
-        modifier = modifier
-    ) {
-
-        //Goal Title
+    Column(modifier = modifier) {
         Text(
             text = title,
             fontWeight = FontWeight.Bold
         )
-
-        //Goal Description
-        if (description != null) {
+        if (!description.isNullOrBlank()) {
             Text(
                 text = description,
-                fontSize = 12.sp
+                fontSize = MaterialTheme.typography.bodySmall.fontSize
             )
         }
-
     }
 }
-
 
 @Composable
 fun GoalStatusArea(
@@ -204,15 +225,8 @@ fun GoalStatusArea(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = statusEmoji,
-            fontSize = 18.sp
-        )
-
-        Spacer(
-            modifier = Modifier.height(3.dp)
-        )
-
+        Text(text = statusEmoji, fontSize = 18.sp)
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = "$progress %",
             modifier = Modifier.fillMaxWidth(),

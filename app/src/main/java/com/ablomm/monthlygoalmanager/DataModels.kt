@@ -69,6 +69,17 @@ class GoalsViewModel @Inject constructor(private val repository: GoalsRepository
         }
     }
 
+    fun addGoalItem(newGoalItem: GoalItem) {
+        viewModelScope.launch {
+            repository.addGoal(newGoalItem)
+        }
+    }
+
+    fun deleteGoalItem(goalItem: GoalItem) {
+        viewModelScope.launch {
+            repository.deleteGoal(goalItem) // Repositoryのdeleteを呼び出す
+        }
+
 }
 
 
@@ -183,4 +194,4 @@ val julyGoals = listOf(
         currentProgress = 0,
         priority = GoalPriority.Low
     )
-)
+)}

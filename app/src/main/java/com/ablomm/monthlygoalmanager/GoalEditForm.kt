@@ -1,11 +1,14 @@
 package com.ablomm.monthlygoalmanager
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -27,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import java.util.UUID
@@ -42,12 +46,14 @@ fun GoalEditForm(
 
     // 2. LaunchedEffectを使って、初回描画時またはgoalIdが変更された時に一度だけ実行
     LaunchedEffect(key1 = goalId) {
-        // goalIdがnullでない場合のみ実行
-        goalId?.let {
-            // このブロックの中はコルーチンなので、suspend関数を安全に呼び出せる
-            val goal = viewModel.getGoalById(it)
-            // データベースから取得したデータでStateを更新
-            goalItemState = goal
+        if (goalId == null) {
+            // ▼ 新規作成モード ▼
+            // 新しい空のGoalItemを生成してStateにセット
+            goalItemState = GoalItem(id = UUID.randomUUID(), title = "", /* 他の初期値 */)
+        } else {
+            // ▼ 編集モード ▼
+            // 既存のデータをDBから取得してStateにセット
+            goalItemState = viewModel.getGoalById(goalId)
         }
     }
 
@@ -86,8 +92,14 @@ fun GoalEditForm(
                 TextField(
                     modifier = Modifier.padding(15.dp),
                     value = goalItemState!!.currentProgress.toString(),
-                    onValueChange = { goalItemState = goalItemState!!.copy(currentProgress = it.toInt()) },
-                    label = { Text("Current Progress") })
+                    onValueChange = { text ->
+                        // toIntOrNull()で安全に変換。失敗したら0にする
+                        val progress = text.toIntOrNull() ?: 0
+                        goalItemState = goalItemState!!.copy(currentProgress = progress)
+                    },
+                    label = { Text("Current Progress") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number) // 数字キーボードを表示
+                )
 
                 ExposedDropdownMenuBox(
                     modifier = Modifier.padding(15.dp),
@@ -151,12 +163,28 @@ fun GoalEditForm(
                 Button(
                     modifier = Modifier.padding(20.dp).align(Alignment.End),
                     onClick = {
-                        viewModel.updateGoalItem(goalItemState!!.copy())
-                        navController.popBackStack()
+                        goalItemState?.let { currentGoal ->
+                            if (goalId == null) {
+                                // ▼ 新規作成モードの保存処理 ▼
+                                viewModel.addGoalItem(currentGoal)
+                            } else {
+                                // ▼ 編集モードの保存処理 ▼
+                                viewModel.updateGoalItem(currentGoal)
+                            }
+                            // 保存後は前の画面に戻る
+                            navController.popBackStack()
+                        }
                     }) {
-                    Text("Add")
+                    // モードによってボタンのテキストを変える
+                    Text(if (goalId == null) "Add" else "Save")
                 }
 
+            }
+
+
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                // CircularProgressIndicator() などを置くとより親切
             }
         }
     }
