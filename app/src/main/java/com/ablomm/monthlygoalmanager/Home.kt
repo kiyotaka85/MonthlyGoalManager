@@ -267,7 +267,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                     Box {
                         IconButton(onClick = { showSortMenu = true }) {
                             Icon(
-                                imageVector = Icons.Default.FilterList,
+                                imageVector = Icons.Default.MoreVert,
                                 contentDescription = "Sort goals"
                             )
                         }

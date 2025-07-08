@@ -1,13 +1,8 @@
 package com.ablomm.monthlygoalmanager
 
-import android.media.Image
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import java.util.UUID
-import kotlin.uuid.Uuid
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
@@ -22,7 +17,6 @@ data class GoalItem(
     val id: UUID = UUID.randomUUID(),
     val title: String,
     val detailedDescription: String? = null,
-    val icon: Int = R.drawable.ic_launcher_background,
     val targetMonth: Int = 2025005,
     val targetValue: String = "0",
     val currentProgress: Int = 0,
