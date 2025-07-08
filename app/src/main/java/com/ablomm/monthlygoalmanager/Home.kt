@@ -251,7 +251,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                         
                         // Month and year title
                         Text(
-                            text = "My Goals - $monthYearText",
+                            text = monthYearText,
                             style = MaterialTheme.typography.titleLarge
                         )
                         
