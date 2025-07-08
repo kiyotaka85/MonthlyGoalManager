@@ -172,8 +172,8 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     val isTipsHidden = viewModel.isTipsHidden.collectAsState(initial = false)
     val isHideCompletedGoals = viewModel.isHideCompletedGoals.collectAsState(initial = false)
     
-    // 現在表示中の年月を管理
-    var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
+    // 現在表示中の年月を管理 - ViewModelに保存して状態を保持
+    val currentYearMonth by viewModel.currentYearMonth.collectAsState(initial = YearMonth.now())
     var sortMode by remember { mutableStateOf(SortMode.DEFAULT) }
     var showSortMenu by remember { mutableStateOf(false) }
     
@@ -227,7 +227,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                         // Previous month button
                         IconButton(
                             onClick = { 
-                                currentYearMonth = currentYearMonth.minusMonths(1)
+                                viewModel.setCurrentYearMonth(currentYearMonth.minusMonths(1))
                             }
                         ) {
                             Icon(
@@ -245,7 +245,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                         // Next month button
                         IconButton(
                             onClick = { 
-                                currentYearMonth = currentYearMonth.plusMonths(1)
+                                viewModel.setCurrentYearMonth(currentYearMonth.plusMonths(1))
                             }
                         ) {
                             Icon(
@@ -260,28 +260,43 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
         floatingActionButton = {
             // レビューが完了している場合は何も表示しない
             if (!hasReviewState.value) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.Bottom
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.End
                 ) {
                     // Create Review FAB
-                    FloatingActionButton(
+                    ExtendedFloatingActionButton(
                         onClick = {
                             navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
                         },
-                        containerColor = MaterialTheme.colorScheme.secondary
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = "Create Review")
+                        Icon(
+                            Icons.Default.Edit, 
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Conduct Month End Review")
                     }
                     
                     // Add Goal FAB
-                    FloatingActionButton(
+                    ExtendedFloatingActionButton(
                         onClick = {
                             val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
                             navController.navigate("edit?targetMonth=$targetMonth")
-                        }
+                        },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Goal")
+                        Icon(
+                            Icons.Default.Add, 
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Add Goal")
                     }
                 }
             }

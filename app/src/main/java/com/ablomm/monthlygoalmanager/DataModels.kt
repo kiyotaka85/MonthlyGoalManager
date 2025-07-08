@@ -7,9 +7,14 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import java.time.YearMonth
+import android.os.Build
+import androidx.annotation.RequiresApi
 
 @Entity(tableName = "goals")
 data class GoalItem(
@@ -80,6 +85,17 @@ class GoalsViewModel @Inject constructor(
     // Preferences関連
     val isTipsHidden: Flow<Boolean> = preferencesManager.isTipsHidden
     val isHideCompletedGoals: Flow<Boolean> = preferencesManager.isHideCompletedGoals
+    
+    // 現在表示中の年月を管理
+    @RequiresApi(Build.VERSION_CODES.O)
+    private val _currentYearMonth = MutableStateFlow(YearMonth.now())
+    @RequiresApi(Build.VERSION_CODES.O)
+    val currentYearMonth: StateFlow<YearMonth> = _currentYearMonth
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun setCurrentYearMonth(yearMonth: YearMonth) {
+        _currentYearMonth.value = yearMonth
+    }
     
     fun setTipsHidden(hidden: Boolean) {
         viewModelScope.launch {
