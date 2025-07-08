@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -252,271 +253,61 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                             )
                         }
                     }
-                },
-                actions = {
-                    // 並べ替えメニュー
-                    Box {
-                        IconButton(onClick = { showSortMenu = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Sort goals"
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Default order") },
-                                onClick = {
-                                    sortMode = SortMode.DEFAULT
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Priority (High → Low)") },
-                                onClick = {
-                                    sortMode = SortMode.PRIORITY
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Progress (High → Low)") },
-                                onClick = {
-                                    sortMode = SortMode.PROGRESS
-                                    showSortMenu = false
-                                }
-                            )
-                        }
-                    }
-                    
-                    // 完了済み目標の非表示トグル
-                    IconButton(
-                        onClick = { viewModel.setHideCompletedGoals(!isHideCompletedGoals.value) }
-                    ) {
-                        Icon(
-                            imageVector = if (isHideCompletedGoals.value) Icons.Default.CheckCircle else Icons.Default.Check,
-                            contentDescription = if (isHideCompletedGoals.value) "Show completed goals" else "Hide completed goals",
-                            tint = if (isHideCompletedGoals.value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    
-                    // Monthly Summary button (only if review exists)
-                    if (hasReviewState.value) {
-                        TextButton(
-                            onClick = {
-                                navController.navigate("monthlyReviewSummary/${currentYearMonth.year}/${currentYearMonth.monthValue}")
-                            }
-                        ) {
-                            Text("Summary")
-                        }
-                    }
-                    
-                    // Monthly Review button - intelligent navigation
-                    TextButton(
-                        onClick = {
-                            // レビューが存在するかチェックしてから遷移先を決定
-                            if (hasReviewState.value) {
-                                navController.navigate("monthlyReviewSummary/${currentYearMonth.year}/${currentYearMonth.monthValue}")
-                            } else {
-                                navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
-                            }
-                        }
-                    ) {
-                        Text(if (hasReviewState.value) "Review" else "Create Review")
-                    }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    // 現在選択されている年月を引数として渡す
-                    val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
-                    navController.navigate("edit?targetMonth=$targetMonth")
+            // レビューが完了している場合は何も表示しない
+            if (!hasReviewState.value) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    // Create Review FAB
+                    FloatingActionButton(
+                        onClick = {
+                            navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
+                        },
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = "Create Review")
+                    }
+                    
+                    // Add Goal FAB
+                    FloatingActionButton(
+                        onClick = {
+                            val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
+                            navController.navigate("edit?targetMonth=$targetMonth")
+                        }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Goal")
+                    }
                 }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Goal")
             }
         }
     ) { innerPadding ->
-
-        if (filteredGoals.isEmpty()) {
-            // 空の状態の表示
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "🎯",
-                        fontSize = 48.sp
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "No goals for this month",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Tap the + button to add a new goal",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+        if (hasReviewState.value) {
+            // レビューが完了している場合：サマリーを表示
+            MonthlyReviewSummaryContent(
+                year = currentYearMonth.year,
+                month = currentYearMonth.monthValue,
+                viewModel = viewModel,
+                modifier = Modifier.padding(innerPadding)
+            )
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-            ) {
-                // Swipe instruction hint
-                if (!isTipsHidden.value) {
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(12.dp)
-                                    .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "💡 Tip",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF666666)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Swipe left → Check-in  |  Swipe right → Edit",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color(0xFF888888),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { viewModel.setTipsHidden(true) }
-                                ) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "Hide tips",
-                                        tint = Color(0xFF666666)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                items(
-                    items = filteredGoals,
-                    key = { it.id }
-                ) { goalItem ->
-
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        positionalThreshold = { it * 0.25f },
-                        confirmValueChange = { dismissValue ->
-                            when (dismissValue) {
-                                SwipeToDismissBoxValue.StartToEnd -> {
-                                    // 左から右へのスワイプ：チェックイン画面へ
-                                    navController.navigate("checkin/${goalItem.id}")
-                                    false // スワイプ状態をリセット
-                                }
-                                SwipeToDismissBoxValue.EndToStart -> {
-                                    // 右から左へのスワイプ：編集画面へ
-                                    navController.navigate("edit/${goalItem.id}")
-                                    false // スワイプ状態をリセット
-                                }
-                                else -> false
-                            }
-                        }
-                    )
-
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        backgroundContent = {
-                            val color = when (dismissState.targetValue) {
-                                SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50).copy(alpha = 0.8f) // Green for check-in
-                                SwipeToDismissBoxValue.EndToStart -> Color(0xFF2196F3).copy(alpha = 0.8f) // Blue for edit
-                                else -> Color.Transparent
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp)
-                                    .background(color, shape = RoundedCornerShape(6.dp)),
-                                contentAlignment = when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                    else -> Alignment.Center
-                                }
-                            ) {
-                                when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            modifier = Modifier.padding(start = 16.dp)
-                                        ) {
-                                            Text(
-                                                text = "📊",
-                                                fontSize = 24.sp
-                                            )
-                                            Text(
-                                                text = "Check-in",
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-                                    SwipeToDismissBoxValue.EndToStart -> {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            modifier = Modifier.padding(end = 16.dp)
-                                        ) {
-                                            Text(
-                                                text = "Edit",
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = "✏️",
-                                                fontSize = 24.sp
-                                            )
-                                        }
-                                    }
-                                    else -> {}
-                                }
-                            }
-                        }
-                    ) {
-                        GoalCard(goalItem = goalItem, navController = navController)
-                    }
-
-                    HorizontalDivider()
-                }
-            }
+            // レビューが未完了の場合：目標リストを表示
+            GoalListContent(
+                filteredGoals = filteredGoals,
+                isTipsHidden = isTipsHidden.value,
+                viewModel = viewModel,
+                navController = navController,
+                sortMode = sortMode,
+                setSortMode = { sortMode = it },
+                showSortMenu = showSortMenu,
+                setShowSortMenu = { showSortMenu = it },
+                isHideCompletedGoals = isHideCompletedGoals.value,
+                modifier = Modifier.padding(innerPadding)
+            )
         }
     }
 }
@@ -604,5 +395,437 @@ fun GoalStatusArea(
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun GoalListContent(
+    filteredGoals: List<GoalItem>,
+    isTipsHidden: Boolean,
+    viewModel: GoalsViewModel,
+    navController: NavHostController,
+    sortMode: SortMode,
+    setSortMode: (SortMode) -> Unit,
+    showSortMenu: Boolean,
+    setShowSortMenu: (Boolean) -> Unit,
+    isHideCompletedGoals: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (filteredGoals.isEmpty()) {
+        // 空の状態の表示
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "🎯",
+                    fontSize = 48.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No goals for this month",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Tap the + button to add a new goal",
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier = modifier.fillMaxSize()
+        ) {
+            // Tips表示
+            if (!isTipsHidden) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "💡 Tip",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF666666)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Swipe left → Check-in  |  Swipe right → Edit",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF888888),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                            IconButton(
+                                onClick = { viewModel.setTipsHidden(true) }
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Hide tips",
+                                    tint = Color(0xFF666666)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // ソートと完了済み目標の制御バー
+            item {
+                Card(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 完了済み目標の非表示トグル
+                        IconButton(
+                            onClick = { viewModel.setHideCompletedGoals(!isHideCompletedGoals) }
+                        ) {
+                            Icon(
+                                imageVector = if (isHideCompletedGoals) Icons.Default.CheckCircle else Icons.Default.Check,
+                                contentDescription = if (isHideCompletedGoals) "Show completed goals" else "Hide completed goals",
+                                tint = if (isHideCompletedGoals) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        
+                        // 並べ替えメニュー
+                        Box {
+                            IconButton(onClick = { setShowSortMenu(true) }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Sort goals"
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showSortMenu,
+                                onDismissRequest = { setShowSortMenu(false) }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Default order") },
+                                    onClick = {
+                                        setSortMode(SortMode.DEFAULT)
+                                        setShowSortMenu(false)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Priority (High → Low)") },
+                                    onClick = {
+                                        setSortMode(SortMode.PRIORITY)
+                                        setShowSortMenu(false)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Progress (High → Low)") },
+                                    onClick = {
+                                        setSortMode(SortMode.PROGRESS)
+                                        setShowSortMenu(false)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 目標カードリスト
+            items(
+                items = filteredGoals,
+                key = { it.id }
+            ) { goalItem ->
+                val dismissState = rememberSwipeToDismissBoxState(
+                    positionalThreshold = { it * 0.25f },
+                    confirmValueChange = { dismissValue ->
+                        when (dismissValue) {
+                            SwipeToDismissBoxValue.StartToEnd -> {
+                                navController.navigate("checkin/${goalItem.id}")
+                                false
+                            }
+                            SwipeToDismissBoxValue.EndToStart -> {
+                                navController.navigate("edit/${goalItem.id}")
+                                false
+                            }
+                            else -> false
+                        }
+                    }
+                )
+
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {
+                        val color = when (dismissState.targetValue) {
+                            SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50).copy(alpha = 0.8f)
+                            SwipeToDismissBoxValue.EndToStart -> Color(0xFF2196F3).copy(alpha = 0.8f)
+                            else -> Color.Transparent
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .background(color, shape = RoundedCornerShape(6.dp)),
+                            contentAlignment = when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                else -> Alignment.Center
+                            }
+                        ) {
+                            when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(start = 16.dp)
+                                    ) {
+                                        Text("📊", fontSize = 24.sp)
+                                        Text("Check-in", color = Color.White, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                SwipeToDismissBoxValue.EndToStart -> {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(end = 16.dp)
+                                    ) {
+                                        Text("Edit", color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text("✏️", fontSize = 24.sp)
+                                    }
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
+                ) {
+                    GoalCard(goalItem = goalItem, navController = navController)
+                }
+
+                HorizontalDivider()
+            }
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun MonthlyReviewSummaryContent(
+    year: Int,
+    month: Int,
+    viewModel: GoalsViewModel,
+    modifier: Modifier = Modifier
+) {
+    var monthlyReview by remember { mutableStateOf<MonthlyReview?>(null) }
+    var goals by remember { mutableStateOf<List<GoalItem>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    
+    val yearMonth = YearMonth.of(year, month)
+    val monthYearText = yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+    
+    // データロード
+    LaunchedEffect(year, month) {
+        monthlyReview = viewModel.getMonthlyReview(year, month)
+        goals = viewModel.goalList.value.filter { goal ->
+            val goalYearMonth = goal.targetMonth
+            val goalYear = goalYearMonth / 1000
+            val goalMonth = goalYearMonth % 1000
+            year == goalYear && month == goalMonth
+        }
+        isLoading = false
+    }
+    
+    if (isLoading) {
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        LazyColumn(
+            modifier = modifier.fillMaxSize()
+        ) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "🎉 Monthly Review Complete!",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Review for $monthYearText",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+            
+            // 目標達成状況サマリー
+            item {
+                Card(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "📊 Goals Summary",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        val completedGoals = goals.count { it.isCompleted }
+                        val totalGoals = goals.size
+                        val averageProgress = if (goals.isNotEmpty()) goals.map { it.currentProgress }.average() else 0.0
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "$completedGoals",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text("Completed", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "$totalGoals",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text("Total", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "${averageProgress.toInt()}%",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                                Text("Avg Progress", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // レビューコメント
+            monthlyReview?.let { review ->
+                item {
+                    Card(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "💭 Monthly Reflection",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = review.overallReflection,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // 目標一覧（簡易版）
+            item {
+                Card(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "🎯 Goals Overview",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        goals.forEach { goal ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = goal.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = if (goal.isCompleted) "✅" else "${goal.currentProgress}%",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
