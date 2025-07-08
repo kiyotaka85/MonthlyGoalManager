@@ -14,9 +14,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Sort
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -258,7 +259,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                     Box {
                         IconButton(onClick = { showSortMenu = true }) {
                             Icon(
-                                imageVector = Icons.Default.Sort,
+                                imageVector = Icons.Default.FilterList,
                                 contentDescription = "Sort goals"
                             )
                         }
@@ -295,7 +296,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                         onClick = { viewModel.setHideCompletedGoals(!isHideCompletedGoals.value) }
                     ) {
                         Icon(
-                            imageVector = if (isHideCompletedGoals.value) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            imageVector = if (isHideCompletedGoals.value) Icons.Default.CheckCircle else Icons.Default.Check,
                             contentDescription = if (isHideCompletedGoals.value) "Show completed goals" else "Hide completed goals",
                             tint = if (isHideCompletedGoals.value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                         )
