@@ -645,21 +645,25 @@ fun MonthlyReviewSummaryContent(
     modifier: Modifier = Modifier
 ) {
     var monthlyReview by remember { mutableStateOf<MonthlyReview?>(null) }
-    var goals by remember { mutableStateOf<List<GoalItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     
     val yearMonth = YearMonth.of(year, month)
     val monthYearText = yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
     
+    // Collect goals state
+    val allGoals by viewModel.goalList.collectAsState(initial = emptyList())
+    
+    // Filter goals for the specific month
+    val goals = allGoals.filter { goal ->
+        val goalYearMonth = goal.targetMonth
+        val goalYear = goalYearMonth / 1000
+        val goalMonth = goalYearMonth % 1000
+        year == goalYear && month == goalMonth
+    }
+    
     // データロード
     LaunchedEffect(year, month) {
         monthlyReview = viewModel.getMonthlyReview(year, month)
-        goals = viewModel.goalList.value.filter { goal ->
-            val goalYearMonth = goal.targetMonth
-            val goalYear = goalYearMonth / 1000
-            val goalMonth = goalYearMonth % 1000
-            year == goalYear && month == goalMonth
-        }
         isLoading = false
     }
     
