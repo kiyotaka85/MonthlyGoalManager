@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,8 +41,29 @@ fun CheckInScreen(
     var progressPercent by remember { mutableStateOf("") }
     var comment by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
+    var showNoHistoryDialog by remember { mutableStateOf(false) }
     
     val checkInsState = viewModel.getCheckInsForGoal(goalId).collectAsState(initial = emptyList())
+    
+    // 最後のチェックイン内容を転記する関数
+    fun copyLastCheckIn() {
+        val checkIns = checkInsState.value
+        if (checkIns.isEmpty()) {
+            showNoHistoryDialog = true
+            return
+        }
+        
+        val lastCheckIn = checkIns.maxByOrNull { it.checkInDate }
+        lastCheckIn?.let { 
+            progressPercent = it.progressPercent.toString()
+            comment = it.comment
+        }
+    }
+    
+    // 進捗がない場合の判定
+    val currentGoalProgress = goalItemState?.currentProgress ?: 0
+    val lastCheckInProgress = checkInsState.value.maxByOrNull { it.checkInDate }?.progressPercent ?: 0
+    val hasNoProgressSinceLastCheckIn = currentGoalProgress == lastCheckInProgress && checkInsState.value.isNotEmpty()
 
     LaunchedEffect(goalId) {
         goalItemState = viewModel.getGoalById(goalId)
@@ -123,6 +145,23 @@ fun CheckInScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        // 最後のチェックイン内容を転記するボタン
+                        if (hasNoProgressSinceLastCheckIn) {
+                            OutlinedButton(
+                                onClick = { copyLastCheckIn() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Copy from last check-in")
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
 
                         OutlinedTextField(
                             value = progressPercent,
@@ -213,6 +252,22 @@ fun CheckInScreen(
                     }
                 }
             }
+        }
+        
+        // チェックイン履歴がない場合のダイアログ
+        if (showNoHistoryDialog) {
+            AlertDialog(
+                onDismissRequest = { showNoHistoryDialog = false },
+                title = { Text("No Check-in History") },
+                text = { Text("There are no previous check-ins to copy from. Please create your first check-in manually.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = { showNoHistoryDialog = false }
+                    ) {
+                        Text("OK")
+                    }
+                }
+            )
         }
     }
 }
