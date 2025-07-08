@@ -10,9 +10,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,6 +47,12 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.YearMonth
 import java.util.Locale
+
+enum class SortMode {
+    DEFAULT,
+    PRIORITY,
+    PROGRESS
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -157,9 +167,13 @@ fun AppNavigation() {
 @Composable
 fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
+    val isTipsHidden = viewModel.isTipsHidden.collectAsState(initial = false)
+    val isHideCompletedGoals = viewModel.isHideCompletedGoals.collectAsState(initial = false)
     
     // 現在表示中の年月を管理
     var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
+    var sortMode by remember { mutableStateOf(SortMode.DEFAULT) }
+    var showSortMenu by remember { mutableStateOf(false) }
     
     // 月次レビューの存在をチェック
     val hasReviewState = viewModel.hasMonthlyReview(
@@ -173,6 +187,26 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
         val goalYear = goalYearMonth / 1000
         val goalMonth = goalYearMonth % 1000
         currentYearMonth.year == goalYear && currentYearMonth.monthValue == goalMonth
+    }.let { goals ->
+        // 完了済み目標の非表示機能
+        if (isHideCompletedGoals.value) {
+            goals.filter { !it.isCompleted }
+        } else {
+            goals
+        }
+    }.let { goals ->
+        // 並べ替え機能
+        when (sortMode) {
+            SortMode.DEFAULT -> goals.sortedBy { it.displayOrder }
+            SortMode.PRIORITY -> goals.sortedBy { 
+                when (it.priority) {
+                    GoalPriority.High -> 0
+                    GoalPriority.Middle -> 1
+                    GoalPriority.Low -> 2
+                }
+            }
+            SortMode.PROGRESS -> goals.sortedByDescending { it.currentProgress }
+        }
     }
     
     val monthYearText = currentYearMonth.format(
@@ -220,6 +254,53 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                     }
                 },
                 actions = {
+                    // 並べ替えメニュー
+                    Box {
+                        IconButton(onClick = { showSortMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Sort,
+                                contentDescription = "Sort goals"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Default order") },
+                                onClick = {
+                                    sortMode = SortMode.DEFAULT
+                                    showSortMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Priority (High → Low)") },
+                                onClick = {
+                                    sortMode = SortMode.PRIORITY
+                                    showSortMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Progress (High → Low)") },
+                                onClick = {
+                                    sortMode = SortMode.PROGRESS
+                                    showSortMenu = false
+                                }
+                            )
+                        }
+                    }
+                    
+                    // 完了済み目標の非表示トグル
+                    IconButton(
+                        onClick = { viewModel.setHideCompletedGoals(!isHideCompletedGoals.value) }
+                    ) {
+                        Icon(
+                            imageVector = if (isHideCompletedGoals.value) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (isHideCompletedGoals.value) "Show completed goals" else "Hide completed goals",
+                            tint = if (isHideCompletedGoals.value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
                     // Monthly Summary button (only if review exists)
                     if (hasReviewState.value) {
                         TextButton(
@@ -231,14 +312,18 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                         }
                     }
                     
-                    // Monthly Review button
+                    // Monthly Review button - intelligent navigation
                     TextButton(
                         onClick = {
-                            val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
-                            navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
+                            // レビューが存在するかチェックしてから遷移先を決定
+                            if (hasReviewState.value) {
+                                navController.navigate("monthlyReviewSummary/${currentYearMonth.year}/${currentYearMonth.monthValue}")
+                            } else {
+                                navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
+                            }
                         }
                     ) {
-                        Text("Review")
+                        Text(if (hasReviewState.value) "Review" else "Create Review")
                     }
                 }
             )
@@ -294,31 +379,50 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                     .fillMaxSize()
             ) {
                 // Swipe instruction hint
-                item {
-                    Card(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                if (!isTipsHidden.value) {
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Text(
-                                text = "💡 Tip",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF666666)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Swipe left → Check-in  |  Swipe right → Edit",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF888888),
-                                textAlign = TextAlign.Center
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .padding(12.dp)
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "💡 Tip",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF666666)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Swipe left → Check-in  |  Swipe right → Edit",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF888888),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { viewModel.setTipsHidden(true) }
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Hide tips",
+                                        tint = Color(0xFF666666)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

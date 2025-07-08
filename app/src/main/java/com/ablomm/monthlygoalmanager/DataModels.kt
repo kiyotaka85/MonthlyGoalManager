@@ -28,6 +28,7 @@ data class GoalItem(
     val currentProgress: Int = 0,
     val priority: GoalPriority = GoalPriority.Middle,
     val isCompleted: Boolean = false,
+    val displayOrder: Int = 0
     //val associatedMissionItem: MissionItem? = null
 )
 
@@ -76,8 +77,45 @@ enum class GoalPriority{
 }
 
 @HiltViewModel
-class GoalsViewModel @Inject constructor(private val repository: GoalsRepository): ViewModel() {
+class GoalsViewModel @Inject constructor(
+    private val repository: GoalsRepository,
+    private val preferencesManager: PreferencesManager
+): ViewModel() {
     val goalList: Flow<List<GoalItem>> = repository.allGoals
+    
+    // Preferences関連
+    val isTipsHidden: Flow<Boolean> = preferencesManager.isTipsHidden
+    val isHideCompletedGoals: Flow<Boolean> = preferencesManager.isHideCompletedGoals
+    
+    fun setTipsHidden(hidden: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setTipsHidden(hidden)
+        }
+    }
+    
+    fun setHideCompletedGoals(hide: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setHideCompletedGoals(hide)
+        }
+    }
+    
+    // 並べ替え機能
+    fun updateGoalOrder(goalId: UUID, newOrder: Int) {
+        viewModelScope.launch {
+            val goal = repository.getGoalById(goalId)
+            goal?.let {
+                repository.updateGoal(it.copy(displayOrder = newOrder))
+            }
+        }
+    }
+    
+    fun reorderGoals(goals: List<GoalItem>) {
+        viewModelScope.launch {
+            goals.forEachIndexed { index, goal ->
+                repository.updateGoal(goal.copy(displayOrder = index))
+            }
+        }
+    }
 
     suspend fun getGoalById(id: UUID) : GoalItem? {
         return repository.getGoalById(id)
@@ -178,42 +216,48 @@ val juneGoals = listOf(
         targetMonth = 2025006,
         targetValue = "100%", // 完了目標
         currentProgress = 100,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 0
     ),
     GoalItem(
         title = "CS 2203 を6月末までに完了する",
         targetMonth = 2025006,
         targetValue = "100%",
         currentProgress = 5,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 1
     ),
     GoalItem(
         title = "目標入力フォーム画面を完成させる",
         targetMonth = 2025006,
         targetValue = "UI完成+ViewModel連携",
         currentProgress = 50,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 2
     ),
     GoalItem(
         title = "チェックイン画面のUIを仮実装する",
         targetMonth = 2025006,
         targetValue = "進捗入力+保存動作確認",
         currentProgress = 10,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 3
     ),
     GoalItem(
         title = "Plan 2028 のチェックリスト2項目を深掘りする",
         targetMonth = 2025006,
         targetValue = "第4・5項目の自己分析完了",
         currentProgress = 80,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 4
     ),
     GoalItem(
         title = "週1回の自己内省ジャーナルを書く",
         targetMonth = 2025006,
         targetValue = "4回分",
         currentProgress = 0,
-        priority = GoalPriority.Low
+        priority = GoalPriority.Low,
+        displayOrder = 5
     )
 )
 
@@ -224,7 +268,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "基本画面と保存処理の実装",
         currentProgress = 20,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 0
     ),
     GoalItem(
         title = "Sophia Database教材のPDFをすべて事前学習する",
@@ -232,7 +277,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "Database教材1周＋要点まとめ",
         currentProgress = 10,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 1
     ),
     GoalItem(
         title = "人生設計とキャリア・学位計画をブラッシュアップする",
@@ -240,14 +286,16 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "文書化された設計書の完成",
         currentProgress = 30,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 2
     ),
     GoalItem(
         title = "Jetpack Composeチュートリアル Unit3〜4 を完了する",
         targetMonth = 2025007,
         targetValue = "Unit3とUnit4を完了",
         currentProgress = 20,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 3
     ),
     GoalItem(
         title = "運動習慣を週1回以上継続する",
@@ -255,7 +303,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "月4回の運動実施",
         currentProgress = 0,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 4
     ),
     GoalItem(
         title = "ベトナム語を毎日1フレーズ＋週末に実践する",
@@ -263,7 +312,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "毎日継続＋週末実践4回",
         currentProgress = 0,
-        priority = GoalPriority.Low
+        priority = GoalPriority.Low,
+        displayOrder = 5
     ),
     GoalItem(
         title = "育児を家族と分担し信頼を築く",
@@ -271,7 +321,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "週5日以上ミルク＋沐浴参加",
         currentProgress = 0,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 6
     ),
     GoalItem(
         title = "Grabで1人でTime Cityのジムに行く",
@@ -279,7 +330,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "1回成功体験を積む",
         currentProgress = 0,
-        priority = GoalPriority.Low
+        priority = GoalPriority.Low,
+        displayOrder = 7
     )
 )
 

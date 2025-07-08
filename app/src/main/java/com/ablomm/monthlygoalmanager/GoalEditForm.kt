@@ -14,7 +14,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -31,6 +33,7 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -68,7 +72,8 @@ fun GoalEditForm(
                 targetValue = "",
                 currentProgress = 0,
                 priority = GoalPriority.Middle,
-                isCompleted = false
+                isCompleted = false,
+                displayOrder = 0
             )
         } else {
             // 編集モード
@@ -117,11 +122,11 @@ fun GoalEditForm(
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
-                        Text(
-                            text = "Basic Information",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
+                        //Text(
+                        //    text = "Basic Information",
+                        //    style = MaterialTheme.typography.titleMedium,
+                        //    modifier = Modifier.padding(bottom = 16.dp)
+                        //)
 
                         OutlinedTextField(
                             modifier = Modifier
@@ -274,6 +279,49 @@ fun GoalEditForm(
                             enabled = goalItemState!!.title.isNotBlank()
                         ) {
                             Text(if (goalId == null) "Add Goal" else "Save Changes")
+                        }
+                        
+                        // 削除ボタン (編集モード時のみ表示)
+                        if (goalId != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            var showDeleteDialog by remember { mutableStateOf(false) }
+                            
+                            Button(
+                                onClick = { showDeleteDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Text("Delete Goal", color = Color.White)
+                            }
+                            
+                            // 削除確認ダイアログ
+                            if (showDeleteDialog) {
+                                AlertDialog(
+                                    onDismissRequest = { showDeleteDialog = false },
+                                    title = { Text("Delete Goal") },
+                                    text = { Text("Are you sure you want to delete this goal? This action cannot be undone.") },
+                                    confirmButton = {
+                                        TextButton(
+                                            onClick = {
+                                                goalItemState?.let { currentGoal ->
+                                                    viewModel.deleteGoalItem(currentGoal)
+                                                    navController.popBackStack()
+                                                }
+                                            }
+                                        ) {
+                                            Text("Delete", color = MaterialTheme.colorScheme.error)
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { showDeleteDialog = false }) {
+                                            Text("Cancel")
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }

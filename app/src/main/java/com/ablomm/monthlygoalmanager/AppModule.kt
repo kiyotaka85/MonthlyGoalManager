@@ -22,6 +22,7 @@ object AppModule {
     @Singleton // アプリ内で常に同じインスタンス（一つだけ）を使う
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(context, AppDatabase::class.java, "goals_database")
+            .fallbackToDestructiveMigration() // 開発中は破壊的変更を許可
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
@@ -63,4 +64,10 @@ object AppModule {
         monthlyReviewDao: MonthlyReviewDao,
         finalCheckInDao: FinalCheckInDao
     ): GoalsRepository = GoalsRepository(goalDao, checkInDao, monthlyReviewDao, finalCheckInDao)
+
+    @Provides
+    @Singleton
+    fun providePreferencesManager(@ApplicationContext context: Context): PreferencesManager {
+        return PreferencesManager(context)
+    }
 }

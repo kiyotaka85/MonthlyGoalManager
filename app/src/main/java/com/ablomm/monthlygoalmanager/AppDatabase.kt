@@ -3,7 +3,7 @@ package com.ablomm.monthlygoalmanager
 // AppDatabase.kt (新しいファイルとして作成)
 import androidx.room.*
 
-@Database(entities = [GoalItem::class, CheckInItem::class, MonthlyReview::class, FinalCheckIn::class], version = 3)
+@Database(entities = [GoalItem::class, CheckInItem::class, MonthlyReview::class, FinalCheckIn::class], version = 4)
 @TypeConverters(Converters::class) // 先ほど作ったConverterを登録
 abstract class AppDatabase : RoomDatabase() {
 
