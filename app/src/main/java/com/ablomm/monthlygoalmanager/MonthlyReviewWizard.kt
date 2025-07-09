@@ -7,10 +7,36 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.Icon        OutlinedTextField(
+            value = checkInState.learnings,
+            onValueChange = { onUpdate(checkInState.copy(learnings = it)) },
+            label = { Text("What did you learn? (Optional)") },
+            placeholder = { Text("Key insights and learnings from this goal") },
+            minLines = 2,
+            maxLines = 4,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+    
+    // チェックイン履歴がない場合のダイアログ
+    if (showNoHistoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showNoHistoryDialog = false },
+            title = { Text("No Check-in History") },
+            text = { Text("There are no previous check-ins to copy from. Please create your final check-in manually.") },
+            confirmButton = {
+                TextButton(
+                    onClick = { showNoHistoryDialog = false }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+}droidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -167,7 +193,8 @@ fun MonthlyReviewWizard(
                                     finalCheckIns = finalCheckIns.toMutableList().apply {
                                         set(currentStep, updatedState)
                                     }
-                                }
+                                },
+                                viewModel = viewModel
                             )
                         }
                         else -> {
@@ -279,8 +306,33 @@ fun MonthlyReviewWizard(
 @Composable
 fun FinalCheckInStep(
     checkInState: FinalCheckInState,
-    onUpdate: (FinalCheckInState) -> Unit
+    onUpdate: (FinalCheckInState) -> Unit,
+    viewModel: GoalsViewModel
 ) {
+    var showNoHistoryDialog by remember { mutableStateOf(false) }
+    
+    // チェックイン履歴を取得
+    val checkInsState = viewModel.getCheckInsForGoal(checkInState.goalId).collectAsState(initial = emptyList())
+    val hasCheckInHistory = checkInsState.value.isNotEmpty()
+    
+    // 最後のチェックイン内容を転記する関数
+    fun copyLastCheckIn() {
+        val checkIns = checkInsState.value
+        if (checkIns.isEmpty()) {
+            showNoHistoryDialog = true
+            return
+        }
+        
+        val lastCheckIn = checkIns.maxByOrNull { it.checkInDate }
+        lastCheckIn?.let { 
+            onUpdate(checkInState.copy(
+                finalProgress = it.progressPercent.toString(),
+                achievements = it.comment,
+                challenges = "",
+                learnings = ""
+            ))
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -307,6 +359,23 @@ fun FinalCheckInStep(
                     fontWeight = FontWeight.Medium
                 )
             }
+        }
+        
+        // 最後のチェックイン内容を転記するボタン
+        if (hasCheckInHistory) {
+            OutlinedButton(
+                onClick = { copyLastCheckIn() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.ContentCopy,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Copy from last check-in")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
         
         OutlinedTextField(

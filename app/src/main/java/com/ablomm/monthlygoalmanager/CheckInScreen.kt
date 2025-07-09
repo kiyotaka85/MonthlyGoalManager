@@ -41,31 +41,8 @@ fun CheckInScreen(
     var progressPercent by remember { mutableStateOf("") }
     var comment by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
-    var showNoHistoryDialog by remember { mutableStateOf(false) }
     
     val checkInsState = viewModel.getCheckInsForGoal(goalId).collectAsState(initial = emptyList())
-    
-    // 最後のチェックイン内容を転記する関数
-    fun copyLastCheckIn() {
-        val checkIns = checkInsState.value
-        if (checkIns.isEmpty()) {
-            showNoHistoryDialog = true
-            return
-        }
-        
-        val lastCheckIn = checkIns.maxByOrNull { it.checkInDate }
-        lastCheckIn?.let { 
-            progressPercent = it.progressPercent.toString()
-            comment = it.comment
-        }
-    }
-    
-    // 進捗がない場合の判定を緩和 - チェックイン履歴があれば常に表示
-    val hasCheckInHistory = checkInsState.value.isNotEmpty()
-    
-    // デバッグ用ログ（実際には削除する）
-    val currentGoalProgress = goalItemState?.currentProgress ?: 0
-    val lastCheckInProgress = checkInsState.value.maxByOrNull { it.checkInDate }?.progressPercent ?: 0
 
     LaunchedEffect(goalId) {
         goalItemState = viewModel.getGoalById(goalId)
@@ -147,69 +124,6 @@ fun CheckInScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-
-                        // デバッグ情報（開発時のみ）
-                        if (hasCheckInHistory) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(8.dp)
-                                ) {
-                                    Text(
-                                        text = "Debug Info:",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "Current Goal Progress: $currentGoalProgress%",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                    Text(
-                                        text = "Last Check-in Progress: $lastCheckInProgress%",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                    Text(
-                                        text = "Has Check-in History: $hasCheckInHistory",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                    Text(
-                                        text = "Check-ins Count: ${checkInsState.value.size}",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-
-                        // 最後のチェックイン内容を転記するボタン
-                        if (hasCheckInHistory) {
-                            val hasNoProgress = currentGoalProgress == lastCheckInProgress
-                            OutlinedButton(
-                                onClick = { copyLastCheckIn() },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = if (hasNoProgress) {
-                                    ButtonDefaults.outlinedButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                                    )
-                                } else {
-                                    ButtonDefaults.outlinedButtonColors()
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Default.ContentCopy,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    if (hasNoProgress) "Copy from last check-in (No progress since last time)" 
-                                    else "Copy from last check-in"
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
 
                         OutlinedTextField(
                             value = progressPercent,
@@ -300,22 +214,6 @@ fun CheckInScreen(
                     }
                 }
             }
-        }
-        
-        // チェックイン履歴がない場合のダイアログ
-        if (showNoHistoryDialog) {
-            AlertDialog(
-                onDismissRequest = { showNoHistoryDialog = false },
-                title = { Text("No Check-in History") },
-                text = { Text("There are no previous check-ins to copy from. Please create your first check-in manually.") },
-                confirmButton = {
-                    TextButton(
-                        onClick = { showNoHistoryDialog = false }
-                    ) {
-                        Text("OK")
-                    }
-                }
-            )
         }
     }
 }
