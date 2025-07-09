@@ -7,33 +7,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icon        OutlinedTextField(
-            value = checkInState.learnings,
-            onValueChange = { onUpdate(checkInState.copy(learnings = it)) },
-            label = { Text("What did you learn? (Optional)") },
-            placeholder = { Text("Key insights and learnings from this goal") },
-            minLines = 2,
-            maxLines = 4,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-    
-    // チェックイン履歴がない場合のダイアログ
-    if (showNoHistoryDialog) {
-        AlertDialog(
-            onDismissRequest = { showNoHistoryDialog = false },
-            title = { Text("No Check-in History") },
-            text = { Text("There are no previous check-ins to copy from. Please create your final check-in manually.") },
-            confirmButton = {
-                TextButton(
-                    onClick = { showNoHistoryDialog = false }
-                ) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-}droidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
@@ -422,6 +397,22 @@ fun FinalCheckInStep(
             minLines = 2,
             maxLines = 4,
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+    
+    // チェックイン履歴がない場合のダイアログ
+    if (showNoHistoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showNoHistoryDialog = false },
+            title = { Text("No Check-in History") },
+            text = { Text("There are no previous check-ins to copy from. Please create your final check-in manually.") },
+            confirmButton = {
+                TextButton(
+                    onClick = { showNoHistoryDialog = false }
+                ) {
+                    Text("OK")
+                }
+            }
         )
     }
 }
