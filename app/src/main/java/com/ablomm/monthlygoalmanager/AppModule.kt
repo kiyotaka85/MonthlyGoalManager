@@ -58,12 +58,17 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideHigherGoalDao(db: AppDatabase): HigherGoalDao = db.higherGoalDao()
+
+    @Provides
+    @Singleton
     fun provideGoalsRepository(
         goalDao: GoalDao, 
         checkInDao: CheckInDao,
         monthlyReviewDao: MonthlyReviewDao,
-        finalCheckInDao: FinalCheckInDao
-    ): GoalsRepository = GoalsRepository(goalDao, checkInDao, monthlyReviewDao, finalCheckInDao)
+        finalCheckInDao: FinalCheckInDao,
+        higherGoalDao: HigherGoalDao
+    ): GoalsRepository = GoalsRepository(goalDao, checkInDao, monthlyReviewDao, finalCheckInDao, higherGoalDao)
 
     @Provides
     @Singleton

@@ -8,7 +8,8 @@ class GoalsRepository(
     private val goalDao: GoalDao,
     private val checkInDao: CheckInDao,
     private val monthlyReviewDao: MonthlyReviewDao,
-    private val finalCheckInDao: FinalCheckInDao
+    private val finalCheckInDao: FinalCheckInDao,
+    private val higherGoalDao: HigherGoalDao
 ) {
     val allGoals: Flow<List<GoalItem>> = goalDao.getAllGoals()
 
@@ -81,5 +82,24 @@ class GoalsRepository(
 
     suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn? {
         return finalCheckInDao.getFinalCheckInForGoal(goalId, reviewId)
+    }
+
+    // HigherGoal関連のメソッド
+    val allHigherGoals: Flow<List<HigherGoal>> = higherGoalDao.getAllHigherGoals()
+
+    suspend fun getHigherGoalById(id: UUID): HigherGoal? {
+        return higherGoalDao.getHigherGoalById(id)
+    }
+
+    suspend fun addHigherGoal(higherGoal: HigherGoal) {
+        higherGoalDao.insertHigherGoal(higherGoal)
+    }
+
+    suspend fun updateHigherGoal(higherGoal: HigherGoal) {
+        higherGoalDao.updateHigherGoal(higherGoal)
+    }
+
+    suspend fun deleteHigherGoal(higherGoal: HigherGoal) {
+        higherGoalDao.deleteHigherGoal(higherGoal)
     }
 }

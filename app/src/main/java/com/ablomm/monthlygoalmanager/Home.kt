@@ -17,7 +17,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -161,6 +163,13 @@ fun AppNavigation() {
                 navController = navController
             )
         }
+
+        composable("higherGoals") {
+            HigherGoalsScreen(
+                navController = navController,
+                viewModel = goalsViewModel
+            )
+        }
     }
 }
 
@@ -171,6 +180,9 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
     val isTipsHidden = viewModel.isTipsHidden.collectAsState(initial = false)
     val isHideCompletedGoals = viewModel.isHideCompletedGoals.collectAsState(initial = false)
+    val higherGoals = viewModel.higherGoalList.collectAsState(initial = emptyList())
+    
+    val context = LocalContext.current
     
     // 現在表示中の年月を管理 - ViewModelに保存して状態を保持
     val currentYearMonth by viewModel.currentYearMonth.collectAsState(initial = YearMonth.now())
@@ -355,12 +367,20 @@ fun GoalCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     GoalTextArea(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { 
+                                navController.navigate("edit/${goalItem.id}")
+                            },
                         title = goalItem.title,
                         description = goalItem.detailedDescription
                     )
                     GoalStatusArea(
-                        modifier = Modifier.width(64.dp),
+                        modifier = Modifier
+                            .width(64.dp)
+                            .clickable {
+                                navController.navigate("checkin/${goalItem.id}")
+                            },
                         statusEmoji = when (goalItem.currentProgress) {
                             0 -> "🆕"
                             100 -> "✅"
@@ -536,6 +556,26 @@ fun GoalListContent(
                             )
                         }
                         
+                        // PDF出力ボタン
+                        IconButton(
+                            onClick = {
+                                val pdfExporter = PdfExporter(context)
+                                val intent = pdfExporter.exportGoalsToPdf(
+                                    goals = filteredGoals,
+                                    higherGoals = higherGoals.value,
+                                    yearMonth = monthYearText
+                                )
+                                intent?.let {
+                                    context.startActivity(Intent.createChooser(it, "Share Goals PDF"))
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PictureAsPdf,
+                                contentDescription = "Export to PDF"
+                            )
+                        }
+                        
                         // 並べ替えメニュー
                         Box {
                             IconButton(onClick = { setShowSortMenu(true) }) {
@@ -645,8 +685,6 @@ fun GoalListContent(
                 ) {
                     GoalCard(goalItem = goalItem, navController = navController)
                 }
-
-                HorizontalDivider()
             }
         }
     }
@@ -706,15 +744,9 @@ fun MonthlyReviewSummaryContent(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "🎉 Monthly Review Complete!",
+                            text = "📊 Monthly Result",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Review for $monthYearText",
-                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
@@ -841,6 +873,65 @@ fun MonthlyReviewSummaryContent(
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 編集・削除ボタン
+            item {
+                Card(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "⚙️ Actions",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    navController.navigate("monthlyReview/$year/$month")
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Edit Review")
+                            }
+                            
+                            OutlinedButton(
+                                onClick = {
+                                    // TODO: 削除機能を実装
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Delete")
                             }
                         }
                     }

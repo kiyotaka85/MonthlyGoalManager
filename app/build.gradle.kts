@@ -83,4 +83,7 @@ dependencies {
 
     // DataStore for preferences
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // PDF generation
+    implementation("com.itextpdf:itext7-core:7.2.5")
 }

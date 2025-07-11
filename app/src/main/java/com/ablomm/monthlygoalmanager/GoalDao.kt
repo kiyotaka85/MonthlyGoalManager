@@ -79,3 +79,21 @@ interface FinalCheckInDao {
     @Query("SELECT * FROM final_checkins WHERE goalId = :goalId AND monthlyReviewId = :reviewId")
     suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn?
 }
+
+@Dao
+interface HigherGoalDao {
+    @Query("SELECT * FROM higher_goals ORDER BY createdAt DESC")
+    fun getAllHigherGoals(): Flow<List<HigherGoal>>
+    
+    @Query("SELECT * FROM higher_goals WHERE id = :id")
+    suspend fun getHigherGoalById(id: UUID): HigherGoal?
+    
+    @Insert
+    suspend fun insertHigherGoal(higherGoal: HigherGoal)
+    
+    @Update
+    suspend fun updateHigherGoal(higherGoal: HigherGoal)
+    
+    @Delete
+    suspend fun deleteHigherGoal(higherGoal: HigherGoal)
+}

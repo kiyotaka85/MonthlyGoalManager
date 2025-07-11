@@ -47,6 +47,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +64,9 @@ fun GoalEditForm(
 ) {
     var goalItemState by remember { mutableStateOf<GoalItem?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    
+    // 上位目標のリストを取得
+    val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
 
     // LaunchedEffectを使って、初回描画時またはgoalIdが変更された時に一度だけ実行
     LaunchedEffect(key1 = goalId) {
@@ -161,6 +169,75 @@ fun GoalEditForm(
                             label = { Text("Target Value") },
                             placeholder = { Text("e.g., 30 books, 10kg, daily") }
                         )
+
+                        // 上位目標選択
+                        if (higherGoals.isNotEmpty()) {
+                            Text(
+                                text = "Higher Goal (Optional)",
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            
+                            val selectedHigherGoal = higherGoals.find { it.id == goalItemState!!.higherGoalId }
+                            
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                                    .clickable {
+                                        navController.navigate("higherGoals")
+                                    },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    if (selectedHigherGoal != null) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(android.graphics.Color.parseColor(selectedHigherGoal.color)))
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = selectedHigherGoal.title,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            TextButton(
+                                                onClick = {
+                                                    goalItemState = goalItemState!!.copy(higherGoalId = null)
+                                                }
+                                            ) {
+                                                Text("Remove", color = MaterialTheme.colorScheme.error)
+                                            }
+                                        }
+                                    } else {
+                                        Text(
+                                            text = "No higher goal selected",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Tap to manage higher goals",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
                         OutlinedTextField(
                             modifier = Modifier

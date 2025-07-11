@@ -16,6 +16,16 @@ import java.time.YearMonth
 import android.os.Build
 import androidx.annotation.RequiresApi
 
+@Entity(tableName = "higher_goals")
+data class HigherGoal(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val title: String,
+    val description: String? = null,
+    val color: String = "#2196F3", // デフォルト色
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "goals")
 data class GoalItem(
     @PrimaryKey
@@ -27,7 +37,8 @@ data class GoalItem(
     val currentProgress: Int = 0,
     val priority: GoalPriority = GoalPriority.Middle,
     val isCompleted: Boolean = false,
-    val displayOrder: Int = 0
+    val displayOrder: Int = 0,
+    val higherGoalId: UUID? = null // 上位目標への参照
     //val associatedMissionItem: MissionItem? = null
 )
 
@@ -214,6 +225,31 @@ class GoalsViewModel @Inject constructor(
     
     suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn? {
         return repository.getFinalCheckInForGoal(goalId, reviewId)
+    }
+    
+    // HigherGoal関連
+    val higherGoalList: Flow<List<HigherGoal>> = repository.allHigherGoals
+    
+    fun addHigherGoal(higherGoal: HigherGoal) {
+        viewModelScope.launch {
+            repository.addHigherGoal(higherGoal)
+        }
+    }
+    
+    fun updateHigherGoal(higherGoal: HigherGoal) {
+        viewModelScope.launch {
+            repository.updateHigherGoal(higherGoal)
+        }
+    }
+    
+    fun deleteHigherGoal(higherGoal: HigherGoal) {
+        viewModelScope.launch {
+            repository.deleteHigherGoal(higherGoal)
+        }
+    }
+    
+    suspend fun getHigherGoalById(id: UUID): HigherGoal? {
+        return repository.getHigherGoalById(id)
     }
 }
 
