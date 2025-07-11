@@ -1,3 +1,15 @@
+/**
+ * Goal List Components - UI components for displaying and managing goal lists
+ * 
+ * Components:
+ * - GoalCard: Individual goal display card with click actions
+ * - GoalTextArea: Text display area for goal title and description
+ * - GoalStatusArea: Status emoji and progress display
+ * - GoalListContent: Main list container with filtering, sorting, and tips
+ * - TipsCard: Helpful tips display for user guidance
+ * - ControlBar: Sorting and filtering controls
+ */
+
 package com.ablomm.monthlygoalmanager
 
 import android.content.Intent
@@ -24,6 +36,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 
+/**
+ * Individual goal card component
+ * 
+ * @param goalItem The goal data to display
+ * @param navController Navigation controller for actions
+ * @param modifier Optional modifier for styling
+ */
+
 @Composable
 fun GoalCard(
     goalItem: GoalItem,
@@ -44,35 +64,29 @@ fun GoalCard(
                 .fillMaxWidth(),
             contentAlignment = Alignment.CenterStart
         ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    GoalTextArea(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { 
-                                navController.navigate("edit/${goalItem.id}")
-                            },
-                        title = goalItem.title,
-                        description = goalItem.detailedDescription
-                    )
-                    GoalStatusArea(
-                        modifier = Modifier
-                            .width(64.dp)
-                            .clickable {
-                                navController.navigate("checkin/${goalItem.id}")
-                            },
-                        statusEmoji = when (goalItem.currentProgress) {
-                            0 -> "🆕"
-                            100 -> "✅"
-                            else -> "⏳"
-                        },
-                        progress = goalItem.currentProgress
-                    )
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GoalTextArea(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { navController.navigate("edit/${goalItem.id}") },
+                    title = goalItem.title,
+                    description = goalItem.detailedDescription
+                )
+                GoalStatusArea(
+                    modifier = Modifier
+                        .width(64.dp)
+                        .clickable { navController.navigate("checkin/${goalItem.id}") },
+                    statusEmoji = when (goalItem.currentProgress) {
+                        0 -> "🆕"
+                        100 -> "✅"
+                        else -> "⏳"
+                    },
+                    progress = goalItem.currentProgress
+                )
             }
         }
     }
@@ -118,6 +132,9 @@ fun GoalStatusArea(
     }
 }
 
+/**
+ * Main goal list content with optimized structure
+ */
 @Composable
 fun GoalListContent(
     filteredGoals: List<GoalItem>,
@@ -135,244 +152,84 @@ fun GoalListContent(
     modifier: Modifier = Modifier
 ) {
     if (filteredGoals.isEmpty()) {
-        // 空の状態の表示
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "🎯",
-                    fontSize = 48.sp
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "No goals for this month",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Tap the + button to add a new goal",
-                    fontSize = 14.sp,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
+        EmptyGoalsState(modifier = modifier)
     } else {
-        LazyColumn(
-            modifier = modifier.fillMaxSize()
-        ) {
-            // Tips表示
+        LazyColumn(modifier = modifier.fillMaxSize()) {
+            // Tips section
             if (!isTipsHidden) {
                 item {
-                    Card(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = "💡 Tip",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF666666)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Swipe left → Check-in  |  Swipe right → Edit",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFF888888),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                            IconButton(
-                                onClick = { viewModel.setTipsHidden(true) }
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Hide tips",
-                                    tint = Color(0xFF666666)
-                                )
-                            }
-                        }
-                    }
+                    TipsCard(onHideTips = { viewModel.setTipsHidden(true) })
                 }
             }
             
-            // ソートと完了済み目標の制御バー
+            // Control bar
             item {
-                Card(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // 完了済み目標の非表示トグル
-                        IconButton(
-                            onClick = { viewModel.setHideCompletedGoals(!isHideCompletedGoals) }
-                        ) {
-                            Icon(
-                                imageVector = if (isHideCompletedGoals) Icons.Default.CheckCircle else Icons.Default.Check,
-                                contentDescription = if (isHideCompletedGoals) "Show completed goals" else "Hide completed goals",
-                                tint = if (isHideCompletedGoals) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                            )
+                ControlBar(
+                    isHideCompletedGoals = isHideCompletedGoals,
+                    onToggleHideCompleted = { viewModel.setHideCompletedGoals(!isHideCompletedGoals) },
+                    onExportPdf = {
+                        val pdfExporter = PdfExporter(context)
+                        val intent = pdfExporter.exportGoalsToPdf(
+                            goals = filteredGoals,
+                            higherGoals = higherGoals,
+                            yearMonth = monthYearText
+                        )
+                        intent?.let {
+                            context.startActivity(Intent.createChooser(it, "Share Goals PDF"))
                         }
-                        
-                        // PDF出力ボタン
-                        IconButton(
-                            onClick = {
-                                val pdfExporter = PdfExporter(context)
-                                val intent = pdfExporter.exportGoalsToPdf(
-                                    goals = filteredGoals,
-                                    higherGoals = higherGoals,
-                                    yearMonth = monthYearText
-                                )
-                                intent?.let {
-                                    context.startActivity(Intent.createChooser(it, "Share Goals PDF"))
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PictureAsPdf,
-                                contentDescription = "Export to PDF"
-                            )
-                        }
-                        
-                        // 並べ替えメニュー
-                        Box {
-                            IconButton(onClick = { setShowSortMenu(true) }) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "Sort goals"
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showSortMenu,
-                                onDismissRequest = { setShowSortMenu(false) }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Default order") },
-                                    onClick = {
-                                        setSortMode(SortMode.DEFAULT)
-                                        setShowSortMenu(false)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Priority (High → Low)") },
-                                    onClick = {
-                                        setSortMode(SortMode.PRIORITY)
-                                        setShowSortMenu(false)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Progress (High → Low)") },
-                                    onClick = {
-                                        setSortMode(SortMode.PROGRESS)
-                                        setShowSortMenu(false)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+                    },
+                    sortMode = sortMode,
+                    showSortMenu = showSortMenu,
+                    onSortModeChange = setSortMode,
+                    onShowSortMenuChange = setShowSortMenu
+                )
             }
             
-            // 目標カードリスト
+            // Goal cards with swipe actions
             items(
                 items = filteredGoals,
                 key = { it.id }
             ) { goalItem ->
-                val dismissState = rememberSwipeToDismissBoxState(
-                    positionalThreshold = { it * 0.25f },
-                    confirmValueChange = { dismissValue ->
-                        when (dismissValue) {
-                            SwipeToDismissBoxValue.StartToEnd -> {
-                                navController.navigate("checkin/${goalItem.id}")
-                                false
-                            }
-                            SwipeToDismissBoxValue.EndToStart -> {
-                                navController.navigate("edit/${goalItem.id}")
-                                false
-                            }
-                            else -> false
-                        }
-                    }
+                GoalCardWithSwipe(
+                    goalItem = goalItem,
+                    navController = navController
                 )
-
-                SwipeToDismissBox(
-                    state = dismissState,
-                    backgroundContent = {
-                        val color = when (dismissState.targetValue) {
-                            SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50).copy(alpha = 0.8f)
-                            SwipeToDismissBoxValue.EndToStart -> Color(0xFF2196F3).copy(alpha = 0.8f)
-                            else -> Color.Transparent
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .background(color, shape = RoundedCornerShape(6.dp)),
-                            contentAlignment = when (dismissState.targetValue) {
-                                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                else -> Alignment.Center
-                            }
-                        ) {
-                            when (dismissState.targetValue) {
-                                SwipeToDismissBoxValue.StartToEnd -> {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.padding(start = 16.dp)
-                                    ) {
-                                        Text("📊", fontSize = 24.sp)
-                                        Text("Check-in", color = Color.White, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                SwipeToDismissBoxValue.EndToStart -> {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.padding(end = 16.dp)
-                                    ) {
-                                        Text("Edit", color = Color.White, fontWeight = FontWeight.Bold)
-                                        Text("✏️", fontSize = 24.sp)
-                                    }
-                                }
-                                else -> {}
-                            }
-                        }
-                    }
-                ) {
-                    GoalCard(goalItem = goalItem, navController = navController)
-                }
             }
         }
+    }
+}
+
+/**
+ * Goal card with swipe-to-dismiss functionality
+ */
+@Composable
+private fun GoalCardWithSwipe(
+    goalItem: GoalItem,
+    navController: NavHostController
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        positionalThreshold = { it * 0.25f },
+        confirmValueChange = { dismissValue ->
+            when (dismissValue) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    navController.navigate("checkin/${goalItem.id}")
+                    false
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    navController.navigate("edit/${goalItem.id}")
+                    false
+                }
+                else -> false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            SwipeBackground(dismissValue = dismissState.targetValue)
+        }
+    ) {
+        GoalCard(goalItem = goalItem, navController = navController)
     }
 }

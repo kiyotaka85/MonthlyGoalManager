@@ -4,19 +4,16 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 
+/**
+ * Monthly review summary content screen
+ * Optimized with component separation for better maintainability
+ */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MonthlyReviewSummaryContent(
@@ -29,18 +26,26 @@ fun MonthlyReviewSummaryContent(
     var monthlyReview by remember { mutableStateOf<MonthlyReview?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     
-    val yearMonth = YearMonth.of(year, month)
-    val monthYearText = yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
-    
     // Collect goals state
     val allGoals by viewModel.goalList.collectAsState(initial = emptyList())
     
-    // Filter goals for the specific month
-    val goals = allGoals.filter { goal ->
-        val goalYearMonth = goal.targetMonth
-        val goalYear = goalYearMonth / 1000
-        val goalMonth = goalYearMonth % 1000
-        year == goalYear && month == goalMonth
+    // Filter goals for the specific month with optimized filtering
+    val goals = remember(allGoals, year, month) {
+        allGoals.filter { goal ->
+            val goalYearMonth = goal.targetMonth
+            val goalYear = goalYearMonth / 1000
+            val goalMonth = goalYearMonth % 1000
+            year == goalYear && month == goalMonth
+        }
+    }
+    
+    // Calculate statistics
+    val statistics = remember(goals) {
+        GoalStatistics(
+            completedGoals = goals.count { it.isCompleted },
+            totalGoals = goals.size,
+            averageProgress = if (goals.isNotEmpty()) goals.map { it.currentProgress }.average() else 0.0
+        )
     }
     
     // データロード
@@ -50,221 +55,91 @@ fun MonthlyReviewSummaryContent(
     }
     
     if (isLoading) {
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
-        }
+        LoadingIndicator(modifier = modifier)
     } else {
-        LazyColumn(
-            modifier = modifier.fillMaxSize()
-        ) {
+        MonthlyReviewContent(
+            modifier = modifier,
+            monthlyReview = monthlyReview,
+            goals = goals,
+            statistics = statistics,
+            year = year,
+            month = month,
+            navController = navController
+        )
+    }
+}
+
+/**
+ * Data class for goal statistics
+ */
+private data class GoalStatistics(
+    val completedGoals: Int,
+    val totalGoals: Int,
+    val averageProgress: Double
+)
+
+/**
+ * Loading indicator composable
+ */
+@Composable
+private fun LoadingIndicator(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+/**
+ * Main monthly review content
+ */
+@Composable
+private fun MonthlyReviewContent(
+    modifier: Modifier,
+    monthlyReview: MonthlyReview?,
+    goals: List<Goal>,
+    statistics: GoalStatistics,
+    year: Int,
+    month: Int,
+    navController: NavHostController
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize()
+    ) {
+        item {
+            MonthlyReviewHeader()
+        }
+        
+        item {
+            GoalsSummaryCard(
+                completedGoals = statistics.completedGoals,
+                totalGoals = statistics.totalGoals,
+                averageProgress = statistics.averageProgress
+            )
+        }
+        
+        monthlyReview?.let { review ->
             item {
-                Card(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "📊 Monthly Result",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
+                MonthlyReflectionCard(
+                    reflection = review.overallReflection
+                )
             }
-            
-            // 目標達成状況サマリー
-            item {
-                Card(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "📊 Goals Summary",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        val completedGoals = goals.count { it.isCompleted }
-                        val totalGoals = goals.size
-                        val averageProgress = if (goals.isNotEmpty()) goals.map { it.currentProgress }.average() else 0.0
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "$completedGoals",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text("Completed", style = MaterialTheme.typography.bodySmall)
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "$totalGoals",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text("Total", style = MaterialTheme.typography.bodySmall)
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "${averageProgress.toInt()}%",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                                Text("Avg Progress", style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
+        }
+        
+        item {
+            GoalsOverviewCard(goals = goals)
+        }
+        
+        item {
+            MonthlyReviewActionsCard(
+                onEditClick = {
+                    navController.navigate("monthlyReview/$year/$month")
+                },
+                onDeleteClick = {
+                    // TODO: 削除機能を実装
                 }
-            }
-            
-            // レビューコメント
-            monthlyReview?.let { review ->
-                item {
-                    Card(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                text = "💭 Monthly Reflection",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = review.overallReflection,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
-            }
-            
-            // 目標一覧（簡易版）
-            item {
-                Card(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "🎯 Goals Overview",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        goals.forEach { goal ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = goal.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = if (goal.isCompleted) "✅" else "${goal.currentProgress}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // 編集・削除ボタン
-            item {
-                Card(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "⚙️ Actions",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    navController.navigate("monthlyReview/$year/$month")
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit Review")
-                            }
-                            
-                            OutlinedButton(
-                                onClick = {
-                                    // TODO: 削除機能を実装
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Delete")
-                            }
-                        }
-                    }
-                }
-            }
+            )
         }
     }
 }

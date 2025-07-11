@@ -5,8 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.ablomm.monthlygoalmanager.ui.theme.MonthlyGoalManagerTheme
+import com.ablomm.monthlygoalmanager.ui.navigation.AppNavigation
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Main Activity - Entry point of the application
+ * Configures the app theme and launches the navigation
+ */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,7 +20,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             MonthlyGoalManagerTheme {
                 AppNavigation()
-                //GoalEditForm(GoalItem(title = "This is my goal that I really want to achieve."))
             }
         }
     }

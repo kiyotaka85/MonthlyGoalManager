@@ -1,9 +1,10 @@
-package com.ablomm.monthlygoalmanager
+package com.ablomm.monthlygoalmanager.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.ablomm.monthlygoalmanager.*
 
 /**
  * Repository class that provides a clean API for data access to the UI layer

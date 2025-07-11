@@ -1,4 +1,4 @@
-package com.ablomm.monthlygoalmanager
+package com.ablomm.monthlygoalmanager.di
 
 import android.content.Context
 import androidx.room.Room
@@ -10,6 +10,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import com.ablomm.monthlygoalmanager.*
+import com.ablomm.monthlygoalmanager.data.database.AppDatabase
+import com.ablomm.monthlygoalmanager.data.repository.GoalsRepository
 
 /**
  * Hilt dependency injection module

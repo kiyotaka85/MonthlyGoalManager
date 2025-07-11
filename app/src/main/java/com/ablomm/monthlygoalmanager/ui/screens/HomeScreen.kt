@@ -1,14 +1,4 @@
-/**
- * Home Screen - Main screen for monthly goal management
- * 
- * Features:
- * - Monthly navigation
- * - Goal list with filtering and sorting
- * - Monthly review summary when completed
- * - FABs for adding goals and creating reviews
- */
-
-package com.ablomm.monthlygoalmanager
+package com.ablomm.monthlygoalmanager.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -26,9 +16,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.ablomm.monthlygoalmanager.*
+import com.ablomm.monthlygoalmanager.domain.enums.SortMode
+import com.ablomm.monthlygoalmanager.ui.components.*
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+/**
+ * Home Screen - Main screen for monthly goal management
+ * 
+ * Features:
+ * - Monthly navigation
+ * - Goal list with filtering and sorting
+ * - Monthly review summary when completed
+ * - FABs for adding goals and creating reviews
+ */
 
 /**
  * Main Home screen composable

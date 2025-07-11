@@ -1,6 +1,7 @@
-package com.ablomm.monthlygoalmanager
+package com.ablomm.monthlygoalmanager.data.database
 
 import androidx.room.*
+import com.ablomm.monthlygoalmanager.*
 
 /**
  * Room database for the Monthly Goal Manager application
