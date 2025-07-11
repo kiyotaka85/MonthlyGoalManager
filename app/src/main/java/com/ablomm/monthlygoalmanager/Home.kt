@@ -138,12 +138,10 @@ fun AppNavigation() {
         ) {
             composable("home") {
                 Home(navController = navController, viewModel = goalsViewModel)
-            }
-
-            composable(
-                route = "edit/{goalId}",
-                arguments = listOf(navArgument("goalId") { type = NavType.StringType })
-            ) { backStackEntry ->
+            }        composable(
+            route = "edit/{goalId}",
+            arguments = listOf(navArgument("goalId") { type = NavType.StringType })
+        ) { backStackEntry ->
             val goalIdString = backStackEntry.arguments?.getString("goalId")
             val goalId: UUID? = goalIdString?.let { UUID.fromString(it) }
 
