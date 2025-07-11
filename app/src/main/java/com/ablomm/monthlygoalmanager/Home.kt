@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -137,14 +136,14 @@ fun AppNavigation() {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-        composable("home") {
-            Home(navController = navController, viewModel = goalsViewModel)
-        }
+            composable("home") {
+                Home(navController = navController, viewModel = goalsViewModel)
+            }
 
-        composable(
-            route = "edit/{goalId}",
-            arguments = listOf(navArgument("goalId") { type = NavType.StringType })
-        ) { backStackEntry ->
+            composable(
+                route = "edit/{goalId}",
+                arguments = listOf(navArgument("goalId") { type = NavType.StringType })
+            ) { backStackEntry ->
             val goalIdString = backStackEntry.arguments?.getString("goalId")
             val goalId: UUID? = goalIdString?.let { UUID.fromString(it) }
 
