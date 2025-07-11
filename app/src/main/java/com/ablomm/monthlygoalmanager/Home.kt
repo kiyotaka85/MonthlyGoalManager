@@ -71,7 +71,6 @@ enum class SortMode {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val goalsViewModel: GoalsViewModel = hiltViewModel()
     
     // 現在のルートを取得
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -137,11 +136,15 @@ fun AppNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") {
+                val goalsViewModel: GoalsViewModel = hiltViewModel()
                 Home(navController = navController, viewModel = goalsViewModel)
-            }        composable(
+            }
+            
+            composable(
             route = "edit/{goalId}",
             arguments = listOf(navArgument("goalId") { type = NavType.StringType })
         ) { backStackEntry ->
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
             val goalIdString = backStackEntry.arguments?.getString("goalId")
             val goalId: UUID? = goalIdString?.let { UUID.fromString(it) }
 
@@ -154,6 +157,7 @@ fun AppNavigation() {
         }
 
         composable("edit") {
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
             GoalEditForm(
                 goalId = null,
                 viewModel = goalsViewModel,
@@ -169,6 +173,7 @@ fun AppNavigation() {
                 defaultValue = 0
             })
         ) { backStackEntry ->
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
             val targetMonth = backStackEntry.arguments?.getInt("targetMonth") ?: 0
             GoalEditForm(
                 goalId = null,
@@ -182,6 +187,7 @@ fun AppNavigation() {
             route = "checkin/{goalId}",
             arguments = listOf(navArgument("goalId") { type = NavType.StringType })
         ) { backStackEntry ->
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
             val goalIdString = backStackEntry.arguments?.getString("goalId")
             val goalId: UUID? = goalIdString?.let { UUID.fromString(it) }
 
@@ -201,6 +207,7 @@ fun AppNavigation() {
                 navArgument("month") { type = NavType.IntType }
             )
         ) { backStackEntry ->
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
             val year = backStackEntry.arguments?.getInt("year") ?: 2025
             val month = backStackEntry.arguments?.getInt("month") ?: 7
 
@@ -219,6 +226,7 @@ fun AppNavigation() {
                 navArgument("month") { type = NavType.IntType }
             )
         ) { backStackEntry ->
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
             val year = backStackEntry.arguments?.getInt("year") ?: 2025
             val month = backStackEntry.arguments?.getInt("month") ?: 7
 
@@ -231,6 +239,7 @@ fun AppNavigation() {
         }
 
         composable("higherGoals") {
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
             HigherGoalsScreen(
                 navController = navController,
                 viewModel = goalsViewModel
@@ -238,6 +247,7 @@ fun AppNavigation() {
         }
 
         composable("settings") {
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
             SettingsScreen(
                 navController = navController,
                 viewModel = goalsViewModel
