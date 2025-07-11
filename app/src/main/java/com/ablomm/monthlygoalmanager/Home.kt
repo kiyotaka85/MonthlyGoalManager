@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
@@ -320,6 +321,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                 year = currentYearMonth.year,
                 month = currentYearMonth.monthValue,
                 viewModel = viewModel,
+                navController = navController,
                 modifier = Modifier.padding(innerPadding)
             )
         } else {
@@ -334,6 +336,9 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                 showSortMenu = showSortMenu,
                 setShowSortMenu = { showSortMenu = it },
                 isHideCompletedGoals = isHideCompletedGoals.value,
+                higherGoals = higherGoals.value,
+                monthYearText = monthYearText,
+                context = context,
                 modifier = Modifier.padding(innerPadding)
             )
         }
@@ -445,6 +450,9 @@ fun GoalListContent(
     showSortMenu: Boolean,
     setShowSortMenu: (Boolean) -> Unit,
     isHideCompletedGoals: Boolean,
+    higherGoals: List<HigherGoal>,
+    monthYearText: String,
+    context: android.content.Context,
     modifier: Modifier = Modifier
 ) {
     if (filteredGoals.isEmpty()) {
@@ -696,6 +704,7 @@ fun MonthlyReviewSummaryContent(
     year: Int,
     month: Int,
     viewModel: GoalsViewModel,
+    navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     var monthlyReview by remember { mutableStateOf<MonthlyReview?>(null) }
