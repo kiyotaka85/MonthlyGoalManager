@@ -30,7 +30,6 @@ enum class SortMode {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
-    // ...existing code...
     val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
     val isTipsHidden = viewModel.isTipsHidden.collectAsState(initial = false)
     val isHideCompletedGoals = viewModel.isHideCompletedGoals.collectAsState(initial = false)
