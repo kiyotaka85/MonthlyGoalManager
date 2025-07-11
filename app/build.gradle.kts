@@ -53,6 +53,7 @@ dependencies {
     // Compose Core
     implementation("androidx.compose.ui:ui:1.8.3")
     implementation("androidx.compose.ui:ui-tooling-preview:1.8.3")
+    implementation(libs.androidx.material.icons.extended)
     debugImplementation("androidx.compose.ui:ui-tooling:1.8.3")
 
 // Material3 最新

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -52,6 +53,7 @@ import java.time.format.DateTimeFormatter
 import java.time.YearMonth
 import java.util.Locale
 import androidx.compose.runtime.LaunchedEffect
+//import kotlin.coroutines.jvm.internal.CompletedContinuation.context
 
 enum class SortMode {
     DEFAULT,
@@ -286,7 +288,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                         contentColor = MaterialTheme.colorScheme.onSecondary
                     ) {
                         Icon(
-                            Icons.Default.Edit, 
+                            Icons.Default.Edit,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
@@ -570,7 +572,7 @@ fun GoalListContent(
                                 val pdfExporter = PdfExporter(context)
                                 val intent = pdfExporter.exportGoalsToPdf(
                                     goals = filteredGoals,
-                                    higherGoals = higherGoals.value,
+                                    higherGoals = higherGoals,
                                     yearMonth = monthYearText
                                 )
                                 intent?.let {
