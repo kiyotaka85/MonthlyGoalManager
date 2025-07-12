@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MonthlyGoalManagerTheme {
-                AppNaviagtion()
+                AppNavigation()
                 //GoalEditForm(GoalItem(title = "This is my goal that I really want to achieve."))
             }
         }

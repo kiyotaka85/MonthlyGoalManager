@@ -65,8 +65,19 @@ fun GoalForm() {
             TextField(
                 modifier = Modifier.padding(15.dp),
                 value = goalItem.currentProgress.toString(),
-                onValueChange = { goalItem = goalItem.copy(currentProgress = it.toInt()) },
-                label = { Text("Current Progress") }
+                onValueChange = { 
+                    // Input validation: only allow numbers and limit to 0-100
+                    val numericValue = it.filter { char -> char.isDigit() }
+                    if (numericValue.isNotEmpty()) {
+                        val progress = numericValue.toIntOrNull() ?: 0
+                        if (progress in 0..100) {
+                            goalItem = goalItem.copy(currentProgress = progress)
+                        }
+                    } else {
+                        goalItem = goalItem.copy(currentProgress = 0)
+                    }
+                },
+                label = { Text("Current Progress (0-100)") }
             )
 
             ExposedDropdownMenuBox(

@@ -41,7 +41,7 @@ fun GoalEditForm(
 
     var goalItemState by remember { mutableStateOf(goalItem) }
     var dropMenuExpanded by remember {mutableStateOf(false)}
-    var isChecked by remember {mutableStateOf(false)}
+    var isChecked by remember { mutableStateOf(goalItem?.isCompleted ?: false) }
     val scrollPosition = rememberScrollState()
 
     Scaffold(
@@ -75,8 +75,20 @@ fun GoalEditForm(
                 TextField(
                     modifier = Modifier.padding(15.dp),
                     value = goalItemState!!.currentProgress.toString(),
-                    onValueChange = { goalItemState = goalItemState!!.copy(currentProgress = it.toInt()) },
-                    label = { Text("Current Progress") })
+                    onValueChange = { 
+                        // Input validation: only allow numbers and limit to 0-100
+                        val numericValue = it.filter { char -> char.isDigit() }
+                        if (numericValue.isNotEmpty()) {
+                            val progress = numericValue.toIntOrNull() ?: 0
+                            if (progress in 0..100) {
+                                goalItemState = goalItemState!!.copy(currentProgress = progress)
+                            }
+                        } else {
+                            goalItemState = goalItemState!!.copy(currentProgress = 0)
+                        }
+                    },
+                    label = { Text("Current Progress (0-100)") }
+                )
 
                 ExposedDropdownMenuBox(
                     modifier = Modifier.padding(15.dp),
@@ -140,10 +152,10 @@ fun GoalEditForm(
                 Button(
                     modifier = Modifier.padding(20.dp).align(Alignment.End),
                     onClick = {
-                        viewModel.updateGoalItem(goalItemState!!.copy())
+                        viewModel.updateGoalItem(goalItemState!!.copy(isCompleted = isChecked))
                         navController.popBackStack()
                     }) {
-                    Text("Add")
+                    Text("Save")
                 }
 
             }

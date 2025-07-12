@@ -57,7 +57,7 @@ import java.time.format.TextStyle
 import java.util.UUID
 
 @Composable
-fun AppNaviagtion() {
+fun AppNavigation() {
     val navController = rememberNavController()
     val goalsViewModel: GoalsViewModel = viewModel()
 
