@@ -9,7 +9,10 @@ com/ablomm/monthlygoalmanager/
 ├── ui/                           # User Interface Layer
 │   ├── screens/                  # Screen-level composables
 │   │   ├── HomeScreen.kt        # Main goal management screen
-│   │   └── SettingsScreen.kt    # App settings screen
+│   │   ├── SettingsScreen.kt    # App settings screen
+│   │   ├── CheckInScreen.kt     # Goal check-in screen
+│   │   ├── GoalEditForm.kt      # Goal creation/editing form
+│   │   └── HigherGoalsScreen.kt # Higher goals management
 │   ├── components/              # Reusable UI components
 │   │   ├── UIHelperComponents.kt    # Common UI elements
 │   │   ├── SettingsComponents.kt    # Settings-specific components
@@ -22,6 +25,7 @@ com/ablomm/monthlygoalmanager/
 │   ├── repository/             # Repository pattern
 │   │   └── GoalsRepository.kt  # Main data repository
 │   └── preferences/            # App preferences
+│       └── PreferencesManager.kt # DataStore preferences
 ├── domain/                     # Domain Layer
 │   ├── model/                 # Domain models (future)
 │   └── enums/                 # Enumerations
@@ -29,7 +33,10 @@ com/ablomm/monthlygoalmanager/
 ├── di/                        # Dependency Injection
 │   └── AppModule.kt           # Hilt module configuration
 ├── utils/                     # Utility classes
-└── MainActivity.kt            # Application entry point
+│   └── PdfExporter.kt         # PDF export functionality
+├── MainActivity.kt            # Application entry point
+├── MainApplication.kt         # Application class
+└── [Other core files...]      # ViewModels, DAOs, Models, etc.
 ```
 
 ## 🏗️ Architecture Principles

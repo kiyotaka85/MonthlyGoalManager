@@ -13,6 +13,7 @@ import javax.inject.Singleton
 import com.ablomm.monthlygoalmanager.*
 import com.ablomm.monthlygoalmanager.data.database.AppDatabase
 import com.ablomm.monthlygoalmanager.data.repository.GoalsRepository
+import com.ablomm.monthlygoalmanager.data.preferences.PreferencesManager
 
 /**
  * Hilt dependency injection module

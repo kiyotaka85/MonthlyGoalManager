@@ -70,7 +70,7 @@ fun AppNavigation() {
             // Main tab screens
             composable("home") {
                 val viewModel: GoalsViewModel = hiltViewModel()
-                Home(navController = navController, viewModel = viewModel)
+                HomeScreen(navController = navController, viewModel = viewModel)
             }
             
             composable("higherGoals") {
