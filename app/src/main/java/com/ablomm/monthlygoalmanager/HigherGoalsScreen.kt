@@ -32,15 +32,18 @@ import java.util.*
 @Composable
 fun HigherGoalsScreen(
     navController: NavHostController,
-    viewModel: GoalsViewModel = hiltViewModel()
+    viewModel: GoalsViewModel = hiltViewModel(),
+    goalId: UUID? = null // 選択モード用の目標ID
 ) {
     val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
     var showAddDialog by remember { mutableStateOf(false) }
 
+    val isSelectionMode = goalId != null
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Higher Goals & Visions") },
+                title = { Text(if (isSelectionMode) "Select Higher Goal" else "Higher Goals & Visions") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -96,7 +99,18 @@ fun HigherGoalsScreen(
                     HigherGoalCard(
                         higherGoal = higherGoal,
                         onEdit = { /* TODO: 編集画面に遷移 */ },
-                        onDelete = { viewModel.deleteHigherGoal(higherGoal) }
+                        onDelete = { viewModel.deleteHigherGoal(higherGoal) },
+                        isSelectionMode = isSelectionMode,
+                        onSelect = {
+                            if (goalId != null) {
+                                // 選択された上位目標IDを前の画面に渡す
+                                navController.previousBackStackEntry?.savedStateHandle?.set(
+                                    "selected_higher_goal_id",
+                                    higherGoal.id.toString()
+                                )
+                                navController.popBackStack()
+                            }
+                        }
                     )
                 }
             }
@@ -123,10 +137,18 @@ fun HigherGoalsScreen(
 fun HigherGoalCard(
     higherGoal: HigherGoal,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    isSelectionMode: Boolean = false,
+    onSelect: () -> Unit = {}
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                if (isSelectionMode) {
+                    onSelect()
+                }
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -164,22 +186,30 @@ fun HigherGoalCard(
                     }
                 }
                 
-                Row {
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            modifier = Modifier.size(18.dp)
-                        )
+                if (!isSelectionMode) {
+                    Row {
+                        IconButton(onClick = onEdit) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
+                } else {
+                    Text(
+                        text = "Tap to select",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }

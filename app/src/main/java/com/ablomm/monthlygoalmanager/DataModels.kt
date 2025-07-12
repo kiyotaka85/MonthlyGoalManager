@@ -251,6 +251,18 @@ class GoalsViewModel @Inject constructor(
     suspend fun getHigherGoalById(id: UUID): HigherGoal? {
         return repository.getHigherGoalById(id)
     }
+
+    // 編集中GoalItemの状態管理
+    private val _editingGoalItem = MutableStateFlow<GoalItem?>(null)
+    val editingGoalItem: StateFlow<GoalItem?> = _editingGoalItem
+
+    fun setEditingGoalItem(goal: GoalItem?) {
+        _editingGoalItem.value = goal
+    }
+
+    fun updateEditingGoalItem(update: (GoalItem) -> GoalItem) {
+        _editingGoalItem.value = _editingGoalItem.value?.let(update)
+    }
 }
 
 
@@ -402,3 +414,4 @@ data class FinalCheckIn(
     val challenges: String,   // 困難だったこと
     val learnings: String     // 学んだこと
 )
+

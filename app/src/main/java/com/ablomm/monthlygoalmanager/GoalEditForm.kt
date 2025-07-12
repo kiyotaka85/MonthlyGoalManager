@@ -68,9 +68,9 @@ fun GoalEditForm(
     navController: NavHostController,
     targetMonth: Int? = null
 ) {
-    var goalItemState by remember { mutableStateOf<GoalItem?>(null) }
+    val editingGoalItem by viewModel.editingGoalItem.collectAsState()
     var isLoading by remember { mutableStateOf(true) }
-    
+
     // 上位目標のリストを取得
     val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
 
@@ -78,7 +78,7 @@ fun GoalEditForm(
     LaunchedEffect(key1 = goalId) {
         if (goalId == null) {
             // 新規作成モード
-            goalItemState = GoalItem(
+            viewModel.setEditingGoalItem(GoalItem(
                 id = UUID.randomUUID(),
                 title = "",
                 detailedDescription = "",
@@ -88,12 +88,27 @@ fun GoalEditForm(
                 priority = GoalPriority.Middle,
                 isCompleted = false,
                 displayOrder = 0
-            )
+            ))
         } else {
             // 編集モード
-            goalItemState = viewModel.getGoalById(goalId)
+            val loaded = viewModel.getGoalById(goalId)
+            viewModel.setEditingGoalItem(loaded)
         }
         isLoading = false
+    }
+
+    // 上位目標選択結果の受け取り
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntry?.savedStateHandle?.getLiveData<String>("selected_higher_goal_id")?.observeForever { selectedId ->
+            if (selectedId != null) {
+                val higherGoalId = UUID.fromString(selectedId)
+                editingGoalItem?.let { currentGoal ->
+                    viewModel.setEditingGoalItem(currentGoal.copy(higherGoalId = higherGoalId))
+                }
+                // 使用済みのデータをクリア
+                navController.currentBackStackEntry?.savedStateHandle?.remove<String>("selected_higher_goal_id")
+            }
+        }
     }
 
     var dropMenuExpanded by remember { mutableStateOf(false) }
@@ -120,7 +135,7 @@ fun GoalEditForm(
             ) {
                 CircularProgressIndicator()
             }
-        } else if (goalItemState != null) {
+        } else if (editingGoalItem != null) {
             val focusManager = LocalFocusManager.current
             var titleFieldFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
             var descFieldFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
@@ -151,8 +166,8 @@ fun GoalEditForm(
                                 .fillMaxWidth()
                                 .padding(bottom = 16.dp)
                                 .focusRequester(titleFieldFocusRequester),
-                            value = goalItemState!!.title,
-                            onValueChange = { goalItemState = goalItemState!!.copy(title = it) },
+                            value = editingGoalItem!!.title,
+                            onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(title = it)) },
                             label = { Text("Goal Title") },
                             placeholder = { Text("e.g., Read 30 minutes daily") },
                             minLines = 2,
@@ -168,8 +183,8 @@ fun GoalEditForm(
                                 .fillMaxWidth()
                                 .padding(bottom = 16.dp)
                                 .focusRequester(descFieldFocusRequester),
-                            value = goalItemState!!.detailedDescription ?: "",
-                            onValueChange = { goalItemState = goalItemState!!.copy(detailedDescription = it) },
+                            value = editingGoalItem!!.detailedDescription ?: "",
+                            onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(detailedDescription = it)) },
                             label = { Text("Detailed Description (Optional)") },
                             placeholder = { Text("Enter details or background of your goal") },
                             minLines = 3,
@@ -185,8 +200,8 @@ fun GoalEditForm(
                                 .fillMaxWidth()
                                 .padding(bottom = 16.dp)
                                 .focusRequester(targetValueFieldFocusRequester),
-                            value = goalItemState!!.targetValue,
-                            onValueChange = { goalItemState = goalItemState!!.copy(targetValue = it) },
+                            value = editingGoalItem!!.targetValue,
+                            onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(targetValue = it)) },
                             label = { Text("Target Value") },
                             placeholder = { Text("e.g., 30 books, 10kg, daily") },
                             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
@@ -203,14 +218,15 @@ fun GoalEditForm(
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                             
-                            val selectedHigherGoal = higherGoals.find { it.id == goalItemState!!.higherGoalId }
-                            
+                            val selectedHigherGoal = higherGoals.find { it.id == editingGoalItem!!.higherGoalId }
+
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = 16.dp)
                                     .clickable {
-                                        navController.navigate("higherGoals")
+                                        // 編集中の目標IDを渡して選択モードで上位目標画面に遷移
+                                        navController.navigate("higherGoals/${editingGoalItem!!.id}")
                                     },
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -241,7 +257,7 @@ fun GoalEditForm(
                                         ) {
                                             TextButton(
                                                 onClick = {
-                                                    goalItemState = goalItemState!!.copy(higherGoalId = null)
+                                                    viewModel.setEditingGoalItem(editingGoalItem!!.copy(higherGoalId = null))
                                                 }
                                             ) {
                                                 Text("Remove", color = MaterialTheme.colorScheme.error)
@@ -268,15 +284,21 @@ fun GoalEditForm(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 16.dp),
-                            value = goalItemState!!.currentProgress.toString(),
+                            value = editingGoalItem!!.currentProgress.toString(),
                             onValueChange = { text ->
                                 val progress = text.toIntOrNull() ?: 0
                                 val clampedProgress = progress.coerceIn(0, 100)
-                                goalItemState = goalItemState!!.copy(currentProgress = clampedProgress)
+                                viewModel.setEditingGoalItem(editingGoalItem!!.copy(currentProgress = clampedProgress))
                             },
                             label = { Text("Current Progress (%)") },
                             placeholder = { Text("Enter value between 0-100") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { focusManager.clearFocus() }
+                            )
                         )
 
                         ExposedDropdownMenuBox(
@@ -293,7 +315,7 @@ fun GoalEditForm(
                                         enabled = true
                                     )
                                     .fillMaxWidth(),
-                                value = when (goalItemState!!.priority) {
+                                value = when (editingGoalItem!!.priority) {
                                     GoalPriority.Low -> "Low"
                                     GoalPriority.Middle -> "Medium"
                                     GoalPriority.High -> "High"
@@ -312,21 +334,21 @@ fun GoalEditForm(
                                 DropdownMenuItem(
                                     text = { Text("High") },
                                     onClick = {
-                                        goalItemState = goalItemState!!.copy(priority = GoalPriority.High)
+                                        viewModel.setEditingGoalItem(editingGoalItem!!.copy(priority = GoalPriority.High))
                                         dropMenuExpanded = false
                                     }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Medium") },
                                     onClick = {
-                                        goalItemState = goalItemState!!.copy(priority = GoalPriority.Middle)
+                                        viewModel.setEditingGoalItem(editingGoalItem!!.copy(priority = GoalPriority.Middle))
                                         dropMenuExpanded = false
                                     }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Low") },
                                     onClick = {
-                                        goalItemState = goalItemState!!.copy(priority = GoalPriority.Low)
+                                        viewModel.setEditingGoalItem(editingGoalItem!!.copy(priority = GoalPriority.Low))
                                         dropMenuExpanded = false
                                     }
                                 )
@@ -340,11 +362,13 @@ fun GoalEditForm(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(
-                                checked = goalItemState!!.isCompleted,
+                                checked = editingGoalItem!!.isCompleted,
                                 onCheckedChange = { isChecked ->
-                                    goalItemState = goalItemState!!.copy(
-                                        isCompleted = isChecked,
-                                        currentProgress = if (isChecked) 100 else goalItemState!!.currentProgress
+                                    viewModel.setEditingGoalItem(
+                                        editingGoalItem!!.copy(
+                                            isCompleted = isChecked,
+                                            currentProgress = if (isChecked) 100 else editingGoalItem!!.currentProgress
+                                        )
                                     )
                                 }
                             )
@@ -368,7 +392,7 @@ fun GoalEditForm(
                     ) {
                         Button(
                             onClick = {
-                                goalItemState?.let { currentGoal ->
+                                editingGoalItem?.let { currentGoal ->
                                     if (goalId == null) {
                                         viewModel.addGoalItem(currentGoal)
                                     } else {
@@ -378,7 +402,7 @@ fun GoalEditForm(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = goalItemState!!.title.isNotBlank()
+                            enabled = editingGoalItem!!.title.isNotBlank()
                         ) {
                             Text(if (goalId == null) "Add Goal" else "Save Changes")
                         }
@@ -408,7 +432,7 @@ fun GoalEditForm(
                                     confirmButton = {
                                         TextButton(
                                             onClick = {
-                                                goalItemState?.let { currentGoal ->
+                                                editingGoalItem?.let { currentGoal ->
                                                     viewModel.deleteGoalItem(currentGoal)
                                                     navController.popBackStack()
                                                 }
