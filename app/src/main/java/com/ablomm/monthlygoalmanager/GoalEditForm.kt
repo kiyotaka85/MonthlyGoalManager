@@ -44,6 +44,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -54,6 +57,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.focus.focusRequester
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,6 +121,10 @@ fun GoalEditForm(
                 CircularProgressIndicator()
             }
         } else if (goalItemState != null) {
+            val focusManager = LocalFocusManager.current
+            var titleFieldFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+            var descFieldFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+            var targetValueFieldFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
             Column(
                 modifier = Modifier
                     .padding(paddingValues)
@@ -141,35 +149,50 @@ fun GoalEditForm(
                         OutlinedTextField(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 16.dp),
+                                .padding(bottom = 16.dp)
+                                .focusRequester(titleFieldFocusRequester),
                             value = goalItemState!!.title,
                             onValueChange = { goalItemState = goalItemState!!.copy(title = it) },
                             label = { Text("Goal Title") },
                             placeholder = { Text("e.g., Read 30 minutes daily") },
                             minLines = 2,
-                            maxLines = 3
+                            maxLines = 3,
+                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(
+                                onNext = { descFieldFocusRequester.requestFocus() }
+                            )
                         )
 
                         OutlinedTextField(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 16.dp),
+                                .padding(bottom = 16.dp)
+                                .focusRequester(descFieldFocusRequester),
                             value = goalItemState!!.detailedDescription ?: "",
                             onValueChange = { goalItemState = goalItemState!!.copy(detailedDescription = it) },
                             label = { Text("Detailed Description (Optional)") },
                             placeholder = { Text("Enter details or background of your goal") },
                             minLines = 3,
-                            maxLines = 5
+                            maxLines = 5,
+                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(
+                                onNext = { targetValueFieldFocusRequester.requestFocus() }
+                            )
                         )
 
                         OutlinedTextField(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 16.dp),
+                                .padding(bottom = 16.dp)
+                                .focusRequester(targetValueFieldFocusRequester),
                             value = goalItemState!!.targetValue,
                             onValueChange = { goalItemState = goalItemState!!.copy(targetValue = it) },
                             label = { Text("Target Value") },
-                            placeholder = { Text("e.g., 30 books, 10kg, daily") }
+                            placeholder = { Text("e.g., 30 books, 10kg, daily") },
+                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(
+                                onDone = { focusManager.clearFocus() }
+                            )
                         )
 
                         // 上位目標選択
@@ -415,4 +438,3 @@ fun GoalEditForm(
         }
     }
 }
-
