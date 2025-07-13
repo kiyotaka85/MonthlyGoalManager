@@ -283,7 +283,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                 modifier = Modifier.padding(innerPadding)
             )
         } else {
-            // レビューが未完了の場合：目標リストを poo poo poo poo. Poo. Poo. Poo. Poo poo poo. Poo. Poo.表示
+            // レビューが未完了の場合：目標リストを表示
             GoalListContent(
                 filteredGoals = filteredGoals,
                 isTipsHidden = isTipsHidden.value,
