@@ -253,8 +253,8 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
         floatingActionButton = {
             // レビューが完了している場合は何も表示しない
             if (!hasReviewState.value) {
-                // Add Goal FABのみ表示
-                ExtendedFloatingActionButton(
+                // Add Goal FABをシンプルな+ボタンに変更
+                FloatingActionButton(
                     onClick = {
                         val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
                         navController.navigate("edit?targetMonth=$targetMonth")
@@ -264,11 +264,8 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                 ) {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        contentDescription = "Add Goal"
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Add Goal")
                 }
             }
         }
