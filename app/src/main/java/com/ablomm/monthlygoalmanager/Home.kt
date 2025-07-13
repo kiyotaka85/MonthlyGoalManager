@@ -253,44 +253,22 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
         floatingActionButton = {
             // レビューが完了している場合は何も表示しない
             if (!hasReviewState.value) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.End
+                // Add Goal FABのみ表示
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
+                        navController.navigate("edit?targetMonth=$targetMonth")
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    // Create Review FAB
-                    ExtendedFloatingActionButton(
-                        onClick = {
-                            navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
-                        },
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Conduct Month End Review")
-                    }
-                    
-                    // Add Goal FAB
-                    ExtendedFloatingActionButton(
-                        onClick = {
-                            val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
-                            navController.navigate("edit?targetMonth=$targetMonth")
-                        },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ) {
-                        Icon(
-                            Icons.Default.Add, 
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Add Goal")
-                    }
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Add Goal")
                 }
             }
         }
@@ -305,7 +283,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                 modifier = Modifier.padding(innerPadding)
             )
         } else {
-            // レビューが未完了の場合：目標リストを表示
+            // レビューが未完了の場合：目標リストを poo poo poo poo. Poo. Poo. Poo. Poo poo poo. Poo. Poo.表示
             GoalListContent(
                 filteredGoals = filteredGoals,
                 isTipsHidden = isTipsHidden.value,
