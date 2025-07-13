@@ -1,5 +1,6 @@
 package com.ablomm.monthlygoalmanager
 
+import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -89,33 +91,159 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Previous month button
-                        IconButton(
-                            onClick = { 
-                                viewModel.setCurrentYearMonth(currentYearMonth.minusMonths(1))
-                            }
+                        // 年月移動ボタンを左寄せ
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            IconButton(
+                                onClick = {
+                                    viewModel.setCurrentYearMonth(currentYearMonth.minusMonths(1))
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.KeyboardArrowLeft,
+                                    contentDescription = "Previous Month"
+                                )
+                            }
+
+                            Text(
+                                text = monthYearText,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            IconButton(
+                                onClick = {
+                                    viewModel.setCurrentYearMonth(currentYearMonth.plusMonths(1))
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.KeyboardArrowRight,
+                                    contentDescription = "Next Month"
+                                )
+                            }
+                        }
+                    }
+                },
+                actions = {
+                    // メニューアイコンを右端に配置
+                    var showTopBarMenu by remember { mutableStateOf(false) }
+                    var showDisplaySettingsMenu by remember { mutableStateOf(false) }
+
+                    Box {
+                        IconButton(onClick = { showTopBarMenu = true }) {
                             Icon(
-                                Icons.Default.KeyboardArrowLeft, 
-                                contentDescription = "Previous Month"
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Menu"
                             )
                         }
-                        
-                        // Month and year title
-                        Text(
-                            text = monthYearText,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        
-                        // Next month button
-                        IconButton(
-                            onClick = { 
-                                viewModel.setCurrentYearMonth(currentYearMonth.plusMonths(1))
-                            }
+
+                        // メインメニュー
+                        DropdownMenu(
+                            expanded = showTopBarMenu,
+                            onDismissRequest = { showTopBarMenu = false }
                         ) {
-                            Icon(
-                                Icons.Default.KeyboardArrowRight, 
-                                contentDescription = "Next Month"
+                            // 月次レビューの開始
+                            if (!hasReviewState.value) {
+                                DropdownMenuItem(
+                                    text = { Text("月次レビューの開始") },
+                                    onClick = {
+                                        navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
+                                        showTopBarMenu = false
+                                    }
+                                )
+                                HorizontalDivider()
+                            }
+
+                            // 表示設定
+                            DropdownMenuItem(
+                                text = { Text("表示設定") },
+                                onClick = {
+                                    showTopBarMenu = false
+                                    showDisplaySettingsMenu = true
+                                }
+                            )
+
+                            // PDF書き出し
+                            if (!hasReviewState.value) {
+                                DropdownMenuItem(
+                                    text = { Text("PDF書き出し") },
+                                    onClick = {
+                                        val pdfExporter = PdfExporter(context)
+                                        val intent = pdfExporter.exportGoalsToPdf(
+                                            goals = filteredGoals,
+                                            higherGoals = higherGoals.value,
+                                            yearMonth = monthYearText
+                                        )
+                                        intent?.let {
+                                            context.startActivity(Intent.createChooser(it, "Share Goals PDF"))
+                                        }
+                                        showTopBarMenu = false
+                                    }
+                                )
+                            }
+
+                            HorizontalDivider()
+
+                            // 詳細設定
+                            DropdownMenuItem(
+                                text = { Text("詳細設定") },
+                                onClick = {
+                                    navController.navigate("settings")
+                                    showTopBarMenu = false
+                                }
+                            )
+                        }
+
+                        // 表示設定のサブメニュー
+                        DropdownMenu(
+                            expanded = showDisplaySettingsMenu,
+                            onDismissRequest = { showDisplaySettingsMenu = false }
+                        ) {
+                            // ソート機能
+                            Text(
+                                text = "ソート機能",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("デフォルト順") },
+                                onClick = {
+                                    sortMode = SortMode.DEFAULT
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("優先度順 (高→低)") },
+                                onClick = {
+                                    sortMode = SortMode.PRIORITY
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("進捗順 (高→低)") },
+                                onClick = {
+                                    sortMode = SortMode.PROGRESS
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+
+                            HorizontalDivider()
+
+                            // 完了済み目標の表示/非表示
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (isHideCompletedGoals.value) "完了済み目標を表示" else "完了済み目標を非表示"
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.setHideCompletedGoals(!isHideCompletedGoals.value)
+                                    showDisplaySettingsMenu = false
+                                }
                             )
                         }
                     }
