@@ -1,7 +1,6 @@
 package com.ablomm.monthlygoalmanager
 
 import android.content.Intent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,91 +29,53 @@ fun GoalCard(
     modifier: Modifier = Modifier,
     navController: NavHostController
 ) {
-    Card(
+    // カード形式からシンプルなリストアイテムに変更
+    Surface(
         modifier = modifier
-            .padding(16.dp)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(6.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            .fillMaxWidth()
+            .clickable {
+                navController.navigate("edit/${goalItem.id}")
+            },
+        color = MaterialTheme.colorScheme.surface
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.CenterStart
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    GoalTextArea(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { 
-                                navController.navigate("edit/${goalItem.id}")
-                            },
-                        title = goalItem.title,
-                        description = goalItem.detailedDescription
-                    )
-                    GoalStatusArea(
-                        modifier = Modifier
-                            .width(64.dp)
-                            .clickable {
-                                navController.navigate("checkin/${goalItem.id}")
-                            },
-                        statusEmoji = when (goalItem.currentProgress) {
-                            0 -> "🆕"
-                            100 -> "✅"
-                            else -> "⏳"
-                        },
-                        progress = goalItem.currentProgress
-                    )
-                }
+            // タイトルのみ表示（説明は削除）
+            Text(
+                text = goalItem.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+
+            // 進捗とステータス
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "${goalItem.currentProgress}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = when (goalItem.currentProgress) {
+                        0 -> "🆕"
+                        100 -> "✅"
+                        else -> "⏳"
+                    },
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         }
-    }
-}
-
-@Composable
-fun GoalTextArea(
-    modifier: Modifier = Modifier,
-    title: String,
-    description: String?
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = title,
-            fontWeight = FontWeight.Bold
-        )
-        if (!description.isNullOrBlank()) {
-            Text(
-                text = description,
-                fontSize = MaterialTheme.typography.bodySmall.fontSize
-            )
-        }
-    }
-}
-
-@Composable
-fun GoalStatusArea(
-    modifier: Modifier = Modifier,
-    statusEmoji: String = "🆕",
-    progress: Int = 0
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = statusEmoji, fontSize = 18.sp)
-        Spacer(modifier = Modifier.height(3.dp))
-        Text(
-            text = "$progress %",
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
     }
 }
 
@@ -247,44 +208,52 @@ fun GoalListContent(
                             else -> Color.Transparent
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .background(color, shape = RoundedCornerShape(6.dp)),
-                            contentAlignment = when (dismissState.targetValue) {
-                                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                else -> Alignment.Center
-                            }
+                        // スワイプ背景をリスト形式に合わせて調整
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = color
                         ) {
-                            when (dismissState.targetValue) {
-                                SwipeToDismissBoxValue.StartToEnd -> {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.padding(start = 16.dp)
-                                    ) {
-                                        Text("📊", fontSize = 24.sp)
-                                        Text("Check-in", color = Color.White, fontWeight = FontWeight.Bold)
-                                    }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                    else -> Alignment.Center
                                 }
-                                SwipeToDismissBoxValue.EndToStart -> {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.padding(end = 16.dp)
-                                    ) {
-                                        Text("Edit", color = Color.White, fontWeight = FontWeight.Bold)
-                                        Text("✏️", fontSize = 24.sp)
+                            ) {
+                                when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text("📊", fontSize = 20.sp)
+                                            Text("Check-in", color = Color.White, fontWeight = FontWeight.Medium)
+                                        }
                                     }
+                                    SwipeToDismissBoxValue.EndToStart -> {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text("Edit", color = Color.White, fontWeight = FontWeight.Medium)
+                                            Text("✏️", fontSize = 20.sp)
+                                        }
+                                    }
+                                    else -> {}
                                 }
-                                else -> {}
                             }
                         }
                     }
                 ) {
                     GoalCard(goalItem = goalItem, navController = navController)
+                    // リスト間の区切り線を追加
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 16.dp),
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                    )
                 }
             }
         }
