@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,7 +35,8 @@ data class FinalCheckInState(
     val finalProgress: String = "",
     val achievements: String = "",
     val challenges: String = "",
-    val learnings: String = ""
+    val learnings: String = "",
+    val satisfactionRating: Int = 3 // 満足度評価（1-5の星評価）
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -245,7 +248,8 @@ fun MonthlyReviewWizard(
                                                 finalProgress = checkInState.finalProgress.toIntOrNull() ?: 0,
                                                 achievements = checkInState.achievements,
                                                 challenges = checkInState.challenges,
-                                                learnings = checkInState.learnings
+                                                learnings = checkInState.learnings,
+                                                satisfactionRating = checkInState.satisfactionRating
                                             )
                                             viewModel.insertFinalCheckIn(finalCheckIn)
                                             
@@ -398,6 +402,67 @@ fun FinalCheckInStep(
             maxLines = 4,
             modifier = Modifier.fillMaxWidth()
         )
+
+        // 満足度評価（星5つ）
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "満足度評価",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "この目標への取り組みにどの程度満足していますか？",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    (1..5).forEach { star ->
+                        IconButton(
+                            onClick = {
+                                onUpdate(checkInState.copy(satisfactionRating = star))
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (star <= checkInState.satisfactionRating)
+                                    Icons.Default.Star else Icons.Default.StarBorder,
+                                contentDescription = "$star 星",
+                                tint = if (star <= checkInState.satisfactionRating)
+                                    MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = "${checkInState.satisfactionRating}/5 - ${
+                        when(checkInState.satisfactionRating) {
+                            1 -> "非常に不満"
+                            2 -> "不満"
+                            3 -> "普通"
+                            4 -> "満足"
+                            5 -> "非常に満足"
+                            else -> "未評価"
+                        }
+                    }",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
     }
     
     // チェックイン履歴がない場合のダイアログ
