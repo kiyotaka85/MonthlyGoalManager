@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -44,11 +46,19 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+
+    // Compose Core
+    implementation("androidx.compose.ui:ui:1.8.3")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.8.3")
+    implementation(libs.androidx.material.icons.extended)
+    debugImplementation("androidx.compose.ui:ui-tooling:1.8.3")
+
+// Material3 最新
+    implementation("androidx.compose.material3:material3:1.3.2")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -59,4 +69,22 @@ dependencies {
 
     val navVersion = "2.9.1" // 最新のバージョンを確認してください
     implementation("androidx.navigation:navigation-compose:$navVersion")
+
+    // Room
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version") // Coroutinesサポート
+    ksp("androidx.room:room-compiler:$room_version")
+
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
+
+    implementation("androidx.compose.material3:material3:1.2.1")
+
+    // DataStore for preferences
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // PDF generation
+    implementation("com.itextpdf:itext7-core:7.2.5")
 }

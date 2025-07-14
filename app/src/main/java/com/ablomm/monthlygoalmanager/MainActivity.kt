@@ -5,14 +5,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.ablomm.monthlygoalmanager.ui.theme.MonthlyGoalManagerTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             MonthlyGoalManagerTheme {
-                AppNaviagtion()
+                AppNavigation()
                 //GoalEditForm(GoalItem(title = "This is my goal that I really want to achieve."))
             }
         }

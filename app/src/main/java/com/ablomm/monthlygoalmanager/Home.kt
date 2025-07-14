@@ -1,219 +1,301 @@
 package com.ablomm.monthlygoalmanager
 
-import android.media.Image
+import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ProgressIndicatorDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ComposeCompilerApi
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import java.time.format.TextStyle
-import java.util.UUID
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-@Composable
-fun AppNaviagtion() {
-    val navController = rememberNavController()
-    val goalsViewModel: GoalsViewModel = viewModel()
-
-    NavHost(
-        navController = navController,
-        startDestination = "home"
-    ) {
-        composable("home") {
-            Home(navController = navController, viewModel = goalsViewModel)
-        }
-
-        composable(
-            route = "edit/{goalId}",
-            arguments = listOf(navArgument("goalId") {type = NavType.StringType})
-        ) { backStackEntry ->
-            val goalIdString = backStackEntry.arguments?.getString("goalId")
-            val goalId: UUID? = goalIdString?.let {UUID.fromString(it)}
-            
-            GoalEditForm(
-                goalId = goalId,
-                viewModel = goalsViewModel,
-                navController = navController
-            )
-        }
-    }
+enum class SortMode {
+    DEFAULT,
+    PRIORITY,
+    PROGRESS
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
+    val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
+    val isTipsHidden = viewModel.isTipsHidden.collectAsState(initial = false)
+    val isHideCompletedGoals = viewModel.isHideCompletedGoals.collectAsState(initial = false)
+    val higherGoals = viewModel.higherGoalList.collectAsState(initial = emptyList())
+    
+    val context = LocalContext.current
+    
+    // 現在表示中の年月を管理 - ViewModelに保存して状態を保持
+    val currentYearMonth by viewModel.currentYearMonth.collectAsState(initial = YearMonth.now())
+    var sortMode by remember { mutableStateOf(SortMode.DEFAULT) }
+    var showSortMenu by remember { mutableStateOf(false) }
+    
+    // 月次レビューの存在をチェック
+    val hasReviewState = viewModel.hasMonthlyReview(
+        currentYearMonth.year, 
+        currentYearMonth.monthValue
+    ).collectAsState(initial = false)
+    
+    // 現在の年月に基づいてフィルタリング
+    val filteredGoals = goalListState.value.filter { goal ->
+        val goalYearMonth = goal.targetMonth
+        val goalYear = goalYearMonth / 1000
+        val goalMonth = goalYearMonth % 1000
+        currentYearMonth.year == goalYear && currentYearMonth.monthValue == goalMonth
+    }.let { goals ->
+        // 完了済み目標の非表示機能
+        if (isHideCompletedGoals.value) {
+            goals.filter { !it.isCompleted }
+        } else {
+            goals
+        }
+    }.let { goals ->
+        // 並べ替え機能
+        when (sortMode) {
+            SortMode.DEFAULT -> goals.sortedBy { it.displayOrder }
+            SortMode.PRIORITY -> goals.sortedBy { 
+                when (it.priority) {
+                    GoalPriority.High -> 0
+                    GoalPriority.Middle -> 1
+                    GoalPriority.Low -> 2
+                }
+            }
+            SortMode.PROGRESS -> goals.sortedByDescending { it.currentProgress }
+        }
+    }
+    
+    val monthYearText = currentYearMonth.format(
+        DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
+    )
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("My Goals - June 2025") })
-        }
-    ) { innerPadding ->
-
-        LazyColumn(
-            modifier = Modifier.padding(innerPadding).fillMaxSize()
-        ) {
-            items(viewModel.goalList.value) {
-                GoalCard(goalItem = it, navController = navController)
-            }
-
-        }
-    }
-}
-
-@Composable
-fun GoalCard(goalItem: GoalItem,
-             modifier: Modifier = Modifier,
-             navController: NavHostController
-    ) {
-        Card(
-            modifier = modifier
-                .padding(16.dp)
-                .fillMaxWidth()
-                .clickable {
-                    navController.navigate("edit/${goalItem.id.toString()}")
-                },
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White // Post-it風の黄色
-            ),
-            shape = RoundedCornerShape(6.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Column {
+            TopAppBar(
+                title = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // 年月移動ボタンを左寄せ
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    viewModel.setCurrentYearMonth(currentYearMonth.minusMonths(1))
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.KeyboardArrowLeft,
+                                    contentDescription = "Previous Month"
+                                )
+                            }
 
-                        GoalTextArea(
-                            modifier = Modifier
-                                .weight(1f),
-                            title = goalItem.title,
-                            description = goalItem.detailedDescription
-                        )
+                            Text(
+                                text = monthYearText,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
 
-                        GoalStatusArea(
-                            modifier = Modifier
-                                .width(64.dp),
-                            statusEmoji = when (goalItem.currentProgress) {
-                                0 -> "🆕"
-                                100 -> "✅"
-                                else -> "⏳"
-                            },
-                            progress = goalItem.currentProgress,
-                        )
+                            IconButton(
+                                onClick = {
+                                    viewModel.setCurrentYearMonth(currentYearMonth.plusMonths(1))
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.KeyboardArrowRight,
+                                    contentDescription = "Next Month"
+                                )
+                            }
+                        }
                     }
+                },
+                actions = {
+                    // メニューアイコンを右端に配置
+                    var showTopBarMenu by remember { mutableStateOf(false) }
+                    var showDisplaySettingsMenu by remember { mutableStateOf(false) }
 
+                    Box {
+                        IconButton(onClick = { showTopBarMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Menu"
+                            )
+                        }
+
+                        // メインメニュー
+                        DropdownMenu(
+                            expanded = showTopBarMenu,
+                            onDismissRequest = { showTopBarMenu = false }
+                        ) {
+                            // 月次レビューの開始
+                            if (!hasReviewState.value) {
+                                DropdownMenuItem(
+                                    text = { Text("月次レビューの開始") },
+                                    onClick = {
+                                        navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
+                                        showTopBarMenu = false
+                                    }
+                                )
+                                HorizontalDivider()
+                            }
+
+                            // 表示設定
+                            DropdownMenuItem(
+                                text = { Text("表示設定") },
+                                onClick = {
+                                    showTopBarMenu = false
+                                    showDisplaySettingsMenu = true
+                                }
+                            )
+
+                            // PDF書き出し
+                            if (!hasReviewState.value) {
+                                DropdownMenuItem(
+                                    text = { Text("PDF書き出し") },
+                                    onClick = {
+                                        val pdfExporter = PdfExporter(context)
+                                        val intent = pdfExporter.exportGoalsToPdf(
+                                            goals = filteredGoals,
+                                            higherGoals = higherGoals.value,
+                                            yearMonth = monthYearText
+                                        )
+                                        intent?.let {
+                                            context.startActivity(Intent.createChooser(it, "Share Goals PDF"))
+                                        }
+                                        showTopBarMenu = false
+                                    }
+                                )
+                            }
+
+                            HorizontalDivider()
+
+                            // 詳細設定
+                            DropdownMenuItem(
+                                text = { Text("詳細設定") },
+                                onClick = {
+                                    navController.navigate("settings")
+                                    showTopBarMenu = false
+                                }
+                            )
+                        }
+
+                        // 表示設定のサブメニュー
+                        DropdownMenu(
+                            expanded = showDisplaySettingsMenu,
+                            onDismissRequest = { showDisplaySettingsMenu = false }
+                        ) {
+                            // ソート機能
+                            Text(
+                                text = "ソート機能",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("デフォルト順") },
+                                onClick = {
+                                    sortMode = SortMode.DEFAULT
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("優先度順 (高→低)") },
+                                onClick = {
+                                    sortMode = SortMode.PRIORITY
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("進捗順 (高→低)") },
+                                onClick = {
+                                    sortMode = SortMode.PROGRESS
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+
+                            HorizontalDivider()
+
+                            // 完了済み目標の表示/非表示
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (isHideCompletedGoals.value) "完了済み目標を表示" else "完了済み目標を非表示"
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.setHideCompletedGoals(!isHideCompletedGoals.value)
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            // レビューが完了している場合は何も表示しない
+            if (!hasReviewState.value) {
+                // Add Goal FABをシンプルな+ボタンに変更
+                FloatingActionButton(
+                    onClick = {
+                        val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
+                        navController.navigate("edit?targetMonth=$targetMonth")
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add Goal"
+                    )
                 }
             }
         }
-    }
-
-@Preview(showBackground = true)
-@Composable
-fun GoalTextArea(
-    modifier: Modifier = Modifier,
-    title: String = "Sample Goal Title",
-    description: String? = "Sample This goal is to achieve my personal growth and earn profits to support my family"
-) {
-    Column(
-        modifier = modifier
-    ) {
-
-        //Goal Title
-        Text(
-            text = title,
-            fontWeight = FontWeight.Bold
-        )
-
-        //Goal Description
-        if (description != null) {
-            Text(
-                text = description,
-                fontSize = 12.sp
+    ) { innerPadding ->
+        if (hasReviewState.value) {
+            // レビューが完了している場合：サマリーを表示
+            MonthlyReviewSummaryContent(
+                year = currentYearMonth.year,
+                month = currentYearMonth.monthValue,
+                viewModel = viewModel,
+                navController = navController,
+                modifier = Modifier.padding(innerPadding)
+            )
+        } else {
+            // レビューが未完了の場合：目標リストを表示
+            GoalListContent(
+                filteredGoals = filteredGoals,
+                isTipsHidden = isTipsHidden.value,
+                viewModel = viewModel,
+                navController = navController,
+                sortMode = sortMode,
+                setSortMode = { sortMode = it },
+                showSortMenu = showSortMenu,
+                setShowSortMenu = { showSortMenu = it },
+                isHideCompletedGoals = isHideCompletedGoals.value,
+                higherGoals = higherGoals.value,
+                monthYearText = monthYearText,
+                context = context,
+                modifier = Modifier.padding(innerPadding)
             )
         }
-
-    }
-}
-
-
-@Composable
-fun GoalStatusArea(
-    modifier: Modifier = Modifier,
-    statusEmoji: String = "🆕",
-    progress: Int = 0
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = statusEmoji,
-            fontSize = 18.sp
-        )
-
-        Spacer(
-            modifier = Modifier.height(3.dp)
-        )
-
-        Text(
-            text = "$progress %",
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
     }
 }

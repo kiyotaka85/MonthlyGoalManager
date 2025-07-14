@@ -1,28 +1,107 @@
 package com.ablomm.monthlygoalmanager
 
-import android.media.Image
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import java.util.UUID
-import kotlin.uuid.Uuid
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverter
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import java.time.YearMonth
+import android.os.Build
+import androidx.annotation.RequiresApi
 
+@Entity(tableName = "higher_goals")
+data class HigherGoal(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val title: String,
+    val description: String? = null,
+    val color: String = "#2196F3", // デフォルト色
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+// Action Step for goals
+@Entity(tableName = "action_steps")
+data class ActionStep(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val goalId: UUID,
+    val title: String,
+    val isCompleted: Boolean = false,
+    val order: Int = 0
+)
+
+@Entity(tableName = "goals")
 data class GoalItem(
+    @PrimaryKey
     val id: UUID = UUID.randomUUID(),
     val title: String,
     val detailedDescription: String? = null,
-    val icon: Int = R.drawable.ic_launcher_background,
     val targetMonth: Int = 2025005,
-    val targetValue: String = "0",
+    val goalType: GoalType = GoalType.SIMPLE, // 目標タイプ
+    val targetValue: String = "0", // シンプル目標用
+    val targetNumericValue: Double? = null, // 数値目標の目標値
+    val currentNumericValue: Double? = null, // 数値目標の現在値
+    val unit: String? = null, // 数値目標の単位
     val currentProgress: Int = 0,
     val priority: GoalPriority = GoalPriority.Middle,
     val isCompleted: Boolean = false,
-    val associatedMissionItem: MissionItem? = null
+    val displayOrder: Int = 0,
+    val higherGoalId: UUID? = null, // 上位目標への参照
+    val celebration: String? = null // ご褒美
+    //val associatedMissionItem: MissionItem? = null
 )
 
     //ToDo var checkInLogs: List<CheckInItem>
     //ToDo var actionPlan: List<ActionStepItem>
+
+@Entity(tableName = "check_ins")
+data class CheckInItem(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val goalId: UUID,
+    val progressPercent: Int,
+    val comment: String,
+    val checkInDate: Long = System.currentTimeMillis() // Timestamp
+)
+
+class Converters {
+    @TypeConverter
+    fun fromUUID(uuid: UUID?): String? {
+        return uuid?.toString()
+    }
+
+    @TypeConverter
+    fun toUUID(uuid: String?): UUID? {
+        return uuid?.let { UUID.fromString(it) }
+    }
+
+    @TypeConverter
+    fun fromGoalPriority(priority: GoalPriority): String {
+        return priority.name
+    }
+
+    @TypeConverter
+    fun toGoalPriority(priority: String): GoalPriority {
+        return GoalPriority.valueOf(priority)
+    }
+
+    @TypeConverter
+    fun fromGoalType(goalType: GoalType): String {
+        return goalType.name
+    }
+
+    @TypeConverter
+    fun toGoalType(goalType: String): GoalType {
+        return GoalType.valueOf(goalType)
+    }
+}
 
 data class MissionItem(
     val title: String
@@ -33,32 +112,214 @@ enum class GoalPriority{
     High, Middle, Low
 }
 
-class GoalsViewModel: ViewModel() {
-    private val _goalList = mutableStateOf(julyGoals)
-    val goalList: State<List<GoalItem>> = _goalList
+enum class GoalType {
+    NUMERIC,    // 数値目標
+    SIMPLE      // シンプル目標
+}
 
-    fun getGoalById(id: UUID) : GoalItem? {
-        return _goalList.value.find { it.id == id}
+@HiltViewModel
+class GoalsViewModel @Inject constructor(
+    private val repository: GoalsRepository,
+    private val preferencesManager: PreferencesManager
+): ViewModel() {
+    val goalList: Flow<List<GoalItem>> = repository.allGoals
+    
+    // Preferences関連
+    val isTipsHidden: Flow<Boolean> = preferencesManager.isTipsHidden
+    val isHideCompletedGoals: Flow<Boolean> = preferencesManager.isHideCompletedGoals
+    
+    // 現在表示中の年月を管理
+    @RequiresApi(Build.VERSION_CODES.O)
+    private val _currentYearMonth = MutableStateFlow(YearMonth.now())
+    @RequiresApi(Build.VERSION_CODES.O)
+    val currentYearMonth: StateFlow<YearMonth> = _currentYearMonth
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun setCurrentYearMonth(yearMonth: YearMonth) {
+        _currentYearMonth.value = yearMonth
     }
-
-    fun updateGoalItem(updatedGoalItem: GoalItem) {
-        // 現在のリストを取得
-        val currentList = _goalList.value
-
-        // mapを使って新しいリストを作成する
-        _goalList.value = currentList.map { existingGoal ->
-            // もしリスト内のアイテムのIDが、更新したいアイテムのIDと一致したら
-            if (existingGoal.id == updatedGoalItem.id) {
-                // 更新されたアイテムを返す
-                updatedGoalItem
-            } else {
-                // IDが違う場合は、元のアイテムをそのまま返す
-                existingGoal
+    
+    fun setTipsHidden(hidden: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setTipsHidden(hidden)
+        }
+    }
+    
+    fun setHideCompletedGoals(hide: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setHideCompletedGoals(hide)
+        }
+    }
+    
+    // 並べ替え機能
+    fun updateGoalOrder(goalId: UUID, newOrder: Int) {
+        viewModelScope.launch {
+            val goal = repository.getGoalById(goalId)
+            goal?.let {
+                repository.updateGoal(it.copy(displayOrder = newOrder))
+            }
+        }
+    }
+    
+    fun reorderGoals(goals: List<GoalItem>) {
+        viewModelScope.launch {
+            goals.forEachIndexed { index, goal ->
+                repository.updateGoal(goal.copy(displayOrder = index))
             }
         }
     }
 
+    suspend fun getGoalById(id: UUID) : GoalItem? {
+        return repository.getGoalById(id)
+    }
+
+    fun updateGoalItem(updatedGoalItem: GoalItem) {
+        viewModelScope.launch {
+            repository.updateGoal(updatedGoalItem)
+        }
+    }
+
+    fun addGoalItem(newGoalItem: GoalItem) {
+        viewModelScope.launch {
+            repository.addGoal(newGoalItem)
+        }
+    }
+
+    fun deleteGoalItem(goalItem: GoalItem) {
+        viewModelScope.launch {
+            repository.deleteGoal(goalItem) // Repositoryのdeleteを呼び出す
+        }
+    }
+
+    // CheckIn関連のメソッド
+    fun getCheckInsForGoal(goalId: UUID): Flow<List<CheckInItem>> {
+        return repository.getCheckInsForGoal(goalId)
+    }
+    
+    fun addCheckIn(checkIn: CheckInItem) {
+        viewModelScope.launch {
+            repository.addCheckIn(checkIn)
+        }
+    }
+    
+    fun updateCheckIn(checkIn: CheckInItem) {
+        viewModelScope.launch {
+            repository.updateCheckIn(checkIn)
+        }
+    }
+    
+    fun deleteCheckIn(checkIn: CheckInItem) {
+        viewModelScope.launch {
+            repository.deleteCheckIn(checkIn)
+        }
+    }
+    
+    // MonthlyReview関連のメソッド
+    suspend fun getMonthlyReview(year: Int, month: Int): MonthlyReview? {
+        return repository.getMonthlyReview(year, month)
+    }
+    
+    fun hasMonthlyReview(year: Int, month: Int): Flow<Boolean> {
+        return repository.hasMonthlyReview(year, month)
+    }
+    
+    val allMonthlyReviews: Flow<List<MonthlyReview>> = repository.allMonthlyReviews
+    
+    fun insertMonthlyReview(review: MonthlyReview) {
+        viewModelScope.launch {
+            repository.insertMonthlyReview(review)
+        }
+    }
+    
+    fun updateMonthlyReview(review: MonthlyReview) {
+        viewModelScope.launch {
+            repository.updateMonthlyReview(review)
+        }
+    }
+    
+    // FinalCheckIn関連のメソッド
+    fun getFinalCheckInsForReview(reviewId: UUID): Flow<List<FinalCheckIn>> {
+        return repository.getFinalCheckInsForReview(reviewId)
+    }
+    
+    fun insertFinalCheckIn(checkIn: FinalCheckIn) {
+        viewModelScope.launch {
+            repository.insertFinalCheckIn(checkIn)
+        }
+    }
+    
+    fun updateFinalCheckIn(checkIn: FinalCheckIn) {
+        viewModelScope.launch {
+            repository.updateFinalCheckIn(checkIn)
+        }
+    }
+    
+    suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn? {
+        return repository.getFinalCheckInForGoal(goalId, reviewId)
+    }
+    
+    // HigherGoal関連
+    val higherGoalList: Flow<List<HigherGoal>> = repository.allHigherGoals
+    
+    fun addHigherGoal(higherGoal: HigherGoal) {
+        viewModelScope.launch {
+            repository.addHigherGoal(higherGoal)
+        }
+    }
+    
+    fun updateHigherGoal(higherGoal: HigherGoal) {
+        viewModelScope.launch {
+            repository.updateHigherGoal(higherGoal)
+        }
+    }
+    
+    fun deleteHigherGoal(higherGoal: HigherGoal) {
+        viewModelScope.launch {
+            repository.deleteHigherGoal(higherGoal)
+        }
+    }
+    
+    suspend fun getHigherGoalById(id: UUID): HigherGoal? {
+        return repository.getHigherGoalById(id)
+    }
+
+    // ActionStep関連のメソッド
+    fun getActionStepsForGoal(goalId: UUID): Flow<List<ActionStep>> {
+        return repository.getActionStepsForGoal(goalId)
+    }
+
+    fun addActionStep(actionStep: ActionStep) {
+        viewModelScope.launch {
+            repository.addActionStep(actionStep)
+        }
+    }
+
+    fun updateActionStep(actionStep: ActionStep) {
+        viewModelScope.launch {
+            repository.updateActionStep(actionStep)
+        }
+    }
+
+    fun deleteActionStep(actionStep: ActionStep) {
+        viewModelScope.launch {
+            repository.deleteActionStep(actionStep)
+        }
+    }
+
+    // 編集中GoalItemの状態管理
+    private val _editingGoalItem = MutableStateFlow<GoalItem?>(null)
+    val editingGoalItem: StateFlow<GoalItem?> = _editingGoalItem
+
+    fun setEditingGoalItem(goal: GoalItem?) {
+        _editingGoalItem.value = goal
+    }
+
+    fun updateEditingGoalItem(update: (GoalItem) -> GoalItem) {
+        _editingGoalItem.value = _editingGoalItem.value?.let(update)
+    }
 }
+
+
 
 val juneGoals = listOf(
     GoalItem(
@@ -67,42 +328,48 @@ val juneGoals = listOf(
         targetMonth = 2025006,
         targetValue = "100%", // 完了目標
         currentProgress = 100,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 0
     ),
     GoalItem(
         title = "CS 2203 を6月末までに完了する",
         targetMonth = 2025006,
         targetValue = "100%",
         currentProgress = 5,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 1
     ),
     GoalItem(
         title = "目標入力フォーム画面を完成させる",
         targetMonth = 2025006,
         targetValue = "UI完成+ViewModel連携",
         currentProgress = 50,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 2
     ),
     GoalItem(
         title = "チェックイン画面のUIを仮実装する",
         targetMonth = 2025006,
         targetValue = "進捗入力+保存動作確認",
         currentProgress = 10,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 3
     ),
     GoalItem(
         title = "Plan 2028 のチェックリスト2項目を深掘りする",
         targetMonth = 2025006,
         targetValue = "第4・5項目の自己分析完了",
         currentProgress = 80,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 4
     ),
     GoalItem(
         title = "週1回の自己内省ジャーナルを書く",
         targetMonth = 2025006,
         targetValue = "4回分",
         currentProgress = 0,
-        priority = GoalPriority.Low
+        priority = GoalPriority.Low,
+        displayOrder = 5
     )
 )
 
@@ -113,7 +380,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "基本画面と保存処理の実装",
         currentProgress = 20,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 0
     ),
     GoalItem(
         title = "Sophia Database教材のPDFをすべて事前学習する",
@@ -121,7 +389,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "Database教材1周＋要点まとめ",
         currentProgress = 10,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 1
     ),
     GoalItem(
         title = "人生設計とキャリア・学位計画をブラッシュアップする",
@@ -129,14 +398,16 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "文書化された設計書の完成",
         currentProgress = 30,
-        priority = GoalPriority.High
+        priority = GoalPriority.High,
+        displayOrder = 2
     ),
     GoalItem(
         title = "Jetpack Composeチュートリアル Unit3〜4 を完了する",
         targetMonth = 2025007,
         targetValue = "Unit3とUnit4を完了",
         currentProgress = 20,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 3
     ),
     GoalItem(
         title = "運動習慣を週1回以上継続する",
@@ -144,7 +415,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "月4回の運動実施",
         currentProgress = 0,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 4
     ),
     GoalItem(
         title = "ベトナム語を毎日1フレーズ＋週末に実践する",
@@ -152,7 +424,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "毎日継続＋週末実践4回",
         currentProgress = 0,
-        priority = GoalPriority.Low
+        priority = GoalPriority.Low,
+        displayOrder = 5
     ),
     GoalItem(
         title = "育児を家族と分担し信頼を築く",
@@ -160,7 +433,8 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "週5日以上ミルク＋沐浴参加",
         currentProgress = 0,
-        priority = GoalPriority.Middle
+        priority = GoalPriority.Middle,
+        displayOrder = 6
     ),
     GoalItem(
         title = "Grabで1人でTime Cityのジムに行く",
@@ -168,6 +442,31 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetValue = "1回成功体験を積む",
         currentProgress = 0,
-        priority = GoalPriority.Low
+        priority = GoalPriority.Low,
+        displayOrder = 7
     )
 )
+
+@Entity(tableName = "monthly_reviews")
+data class MonthlyReview(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val year: Int,
+    val month: Int,
+    val overallReflection: String,
+    val createdDate: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "final_checkins")
+data class FinalCheckIn(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val goalId: UUID,
+    val monthlyReviewId: UUID,
+    val finalProgress: Int,
+    val achievements: String, // 達成したこと
+    val challenges: String,   // 困難だったこと
+    val learnings: String,    // 学んだこと
+    val satisfactionRating: Int = 3 // 満足度評価（1-5の星評価）
+)
+
