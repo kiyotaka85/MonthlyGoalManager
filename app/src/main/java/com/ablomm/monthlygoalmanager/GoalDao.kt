@@ -97,3 +97,18 @@ interface HigherGoalDao {
     @Delete
     suspend fun deleteHigherGoal(higherGoal: HigherGoal)
 }
+
+@Dao
+interface ActionStepDao {
+    @Query("SELECT * FROM action_steps WHERE goalId = :goalId ORDER BY `order` ASC")
+    fun getActionStepsForGoal(goalId: UUID): Flow<List<ActionStep>>
+
+    @Insert
+    suspend fun insertActionStep(actionStep: ActionStep)
+
+    @Update
+    suspend fun updateActionStep(actionStep: ActionStep)
+
+    @Delete
+    suspend fun deleteActionStep(actionStep: ActionStep)
+}

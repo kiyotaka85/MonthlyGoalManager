@@ -54,6 +54,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.focus.focusRequester
 import java.util.UUID
+import androidx.compose.material3.Checkbox
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,6 +193,27 @@ fun GoalEditForm(
                     onPriorityChanged = { priority ->
                         viewModel.setEditingGoalItem(editingGoalItem!!.copy(priority = priority))
                     }
+                )
+
+                // ご褒美（Celebration）
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = editingGoalItem!!.celebration ?: "",
+                    onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(celebration = it)) },
+                    label = { Text("ご褒美") },
+                    placeholder = { Text("目標達成時の自分へのご褒美を入力してください") },
+                    minLines = 2,
+                    maxLines = 3,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.clearFocus() }
+                    )
+                )
+
+                // Action Steps
+                ActionStepsSection(
+                    goalId = editingGoalItem!!.id,
+                    viewModel = viewModel
                 )
 
                 // 目標の詳細説明
@@ -554,6 +578,113 @@ fun SaveDeleteButtons(
                         }
                     }
                 )
+            }
+        }
+    }
+}
+
+// Action Stepsセクション
+@Composable
+fun ActionStepsSection(
+    goalId: UUID,
+    viewModel: GoalsViewModel
+) {
+    val actionSteps by viewModel.getActionStepsForGoal(goalId).collectAsState(initial = emptyList())
+    var newStepTitle by remember { mutableStateOf("") }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Action Steps",
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+
+        // 既存のAction Steps
+        actionSteps.sortedBy { it.order }.forEach { step ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Checkbox(
+                    checked = step.isCompleted,
+                    onCheckedChange = { isChecked ->
+                        viewModel.updateActionStep(step.copy(isCompleted = isChecked))
+                    }
+                )
+
+                OutlinedTextField(
+                    modifier = Modifier.weight(1f),
+                    value = step.title,
+                    onValueChange = { newTitle ->
+                        viewModel.updateActionStep(step.copy(title = newTitle))
+                    },
+                    label = { Text("ステップ") },
+                    placeholder = { Text("例：関連書籍を読む") },
+                    singleLine = true
+                )
+
+                IconButton(
+                    onClick = { viewModel.deleteActionStep(step) }
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "ステップを削除",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+
+        // 新しいステップを追加するためのフィールド
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                modifier = Modifier.weight(1f),
+                value = newStepTitle,
+                onValueChange = { newStepTitle = it },
+                label = { Text("新しいステップ") },
+                placeholder = { Text("例：毎朝30分間勉強する") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (newStepTitle.isNotBlank()) {
+                            val nextOrder = (actionSteps.maxOfOrNull { it.order } ?: -1) + 1
+                            viewModel.addActionStep(
+                                ActionStep(
+                                    goalId = goalId,
+                                    title = newStepTitle,
+                                    order = nextOrder
+                                )
+                            )
+                            newStepTitle = ""
+                        }
+                    }
+                )
+            )
+
+            Button(
+                onClick = {
+                    if (newStepTitle.isNotBlank()) {
+                        val nextOrder = (actionSteps.maxOfOrNull { it.order } ?: -1) + 1
+                        viewModel.addActionStep(
+                            ActionStep(
+                                goalId = goalId,
+                                title = newStepTitle,
+                                order = nextOrder
+                            )
+                        )
+                        newStepTitle = ""
+                    }
+                }
+            ) {
+                Text("追加")
             }
         }
     }

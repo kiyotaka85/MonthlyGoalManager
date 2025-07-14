@@ -26,6 +26,17 @@ data class HigherGoal(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+// Action Step for goals
+@Entity(tableName = "action_steps")
+data class ActionStep(
+    @PrimaryKey
+    val id: UUID = UUID.randomUUID(),
+    val goalId: UUID,
+    val title: String,
+    val isCompleted: Boolean = false,
+    val order: Int = 0
+)
+
 @Entity(tableName = "goals")
 data class GoalItem(
     @PrimaryKey
@@ -42,7 +53,8 @@ data class GoalItem(
     val priority: GoalPriority = GoalPriority.Middle,
     val isCompleted: Boolean = false,
     val displayOrder: Int = 0,
-    val higherGoalId: UUID? = null // 上位目標への参照
+    val higherGoalId: UUID? = null, // 上位目標への参照
+    val celebration: String? = null // ご褒美
     //val associatedMissionItem: MissionItem? = null
 )
 
@@ -271,6 +283,29 @@ class GoalsViewModel @Inject constructor(
         return repository.getHigherGoalById(id)
     }
 
+    // ActionStep関連のメソッド
+    fun getActionStepsForGoal(goalId: UUID): Flow<List<ActionStep>> {
+        return repository.getActionStepsForGoal(goalId)
+    }
+
+    fun addActionStep(actionStep: ActionStep) {
+        viewModelScope.launch {
+            repository.addActionStep(actionStep)
+        }
+    }
+
+    fun updateActionStep(actionStep: ActionStep) {
+        viewModelScope.launch {
+            repository.updateActionStep(actionStep)
+        }
+    }
+
+    fun deleteActionStep(actionStep: ActionStep) {
+        viewModelScope.launch {
+            repository.deleteActionStep(actionStep)
+        }
+    }
+
     // 編集中GoalItemの状態管理
     private val _editingGoalItem = MutableStateFlow<GoalItem?>(null)
     val editingGoalItem: StateFlow<GoalItem?> = _editingGoalItem
@@ -431,6 +466,7 @@ data class FinalCheckIn(
     val finalProgress: Int,
     val achievements: String, // 達成したこと
     val challenges: String,   // 困難だったこと
-    val learnings: String     // 学んだこと
+    val learnings: String,    // 学んだこと
+    val satisfactionRating: Int = 3 // 満足度評価（1-5の星評価）
 )
 

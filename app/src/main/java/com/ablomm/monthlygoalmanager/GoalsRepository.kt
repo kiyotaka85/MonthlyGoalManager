@@ -9,7 +9,8 @@ class GoalsRepository(
     private val checkInDao: CheckInDao,
     private val monthlyReviewDao: MonthlyReviewDao,
     private val finalCheckInDao: FinalCheckInDao,
-    private val higherGoalDao: HigherGoalDao
+    private val higherGoalDao: HigherGoalDao,
+    private val actionStepDao: ActionStepDao
 ) {
     val allGoals: Flow<List<GoalItem>> = goalDao.getAllGoals()
 
@@ -101,5 +102,22 @@ class GoalsRepository(
 
     suspend fun deleteHigherGoal(higherGoal: HigherGoal) {
         higherGoalDao.deleteHigherGoal(higherGoal)
+    }
+
+    // ActionStep関連のメソッド
+    fun getActionStepsForGoal(goalId: UUID): Flow<List<ActionStep>> {
+        return actionStepDao.getActionStepsForGoal(goalId)
+    }
+
+    suspend fun addActionStep(actionStep: ActionStep) {
+        actionStepDao.insertActionStep(actionStep)
+    }
+
+    suspend fun updateActionStep(actionStep: ActionStep) {
+        actionStepDao.updateActionStep(actionStep)
+    }
+
+    suspend fun deleteActionStep(actionStep: ActionStep) {
+        actionStepDao.deleteActionStep(actionStep)
     }
 }
