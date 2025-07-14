@@ -68,22 +68,65 @@ fun MonthlyReviewWizard(
     
     LaunchedEffect(monthGoals) {
         if (monthGoals.isNotEmpty()) {
-            finalCheckIns = monthGoals.map { goal ->
-                FinalCheckInState(
-                    goalId = goal.id,
-                    goalTitle = goal.title,
-                    finalProgress = goal.currentProgress.toString()
-                )
+            // 既存の月次レビューがあるかチェック
+            monthlyReview = viewModel.getMonthlyReview(year, month)
+            
+            if (monthlyReview != null) {
+                // 編集モード：既存のFinalCheckInを読み込み
+                overallReflection = monthlyReview!!.overallReflection
+                
+                // 初期値を設定
+                finalCheckIns = monthGoals.map { goal ->
+                    FinalCheckInState(
+                        goalId = goal.id,
+                        goalTitle = goal.title,
+                        finalProgress = goal.currentProgress.toString()
+                    )
+                }
+            } else {
+                // 新規作成モード：デフォルト値を設定
+                finalCheckIns = monthGoals.map { goal ->
+                    FinalCheckInState(
+                        goalId = goal.id,
+                        goalTitle = goal.title,
+                        finalProgress = goal.currentProgress.toString()
+                    )
+                }
             }
         }
         
-        // 既存の月次レビューがあるかチェック
-        monthlyReview = viewModel.getMonthlyReview(year, month)
-        monthlyReview?.let { review ->
-            overallReflection = review.overallReflection
-        }
-        
         isLoading = false
+    }
+    
+    // 既存のFinalCheckInを読み込み（編集モード時のみ）
+    val existingFinalCheckIns = monthlyReview?.let { review ->
+        viewModel.getFinalCheckInsForReview(review.id).collectAsState(initial = emptyList())
+    }
+    
+    // 既存のFinalCheckInが読み込まれたら、FinalCheckInStateを更新
+    LaunchedEffect(existingFinalCheckIns?.value) {
+        if (monthlyReview != null && existingFinalCheckIns?.value?.isNotEmpty() == true) {
+            finalCheckIns = monthGoals.map { goal ->
+                val existingCheckIn = existingFinalCheckIns.value.find { it.goalId == goal.id }
+                if (existingCheckIn != null) {
+                    FinalCheckInState(
+                        goalId = goal.id,
+                        goalTitle = goal.title,
+                        finalProgress = existingCheckIn.finalProgress.toString(),
+                        achievements = existingCheckIn.achievements,
+                        challenges = existingCheckIn.challenges,
+                        learnings = existingCheckIn.learnings,
+                        satisfactionRating = existingCheckIn.satisfactionRating
+                    )
+                } else {
+                    FinalCheckInState(
+                        goalId = goal.id,
+                        goalTitle = goal.title,
+                        finalProgress = goal.currentProgress.toString()
+                    )
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -230,37 +273,68 @@ fun MonthlyReviewWizard(
                                 Button(
                                     onClick = {
                                         // Save monthly review
-                                        val review = monthlyReview?.copy(
-                                            overallReflection = overallReflection
-                                        ) ?: MonthlyReview(
-                                            year = year,
-                                            month = month,
-                                            overallReflection = overallReflection
-                                        )
-                                        
-                                        viewModel.insertMonthlyReview(review)
-                                        
-                                        // Save final check-ins
-                                        finalCheckIns.forEach { checkInState ->
-                                            val finalCheckIn = FinalCheckIn(
-                                                goalId = checkInState.goalId,
-                                                monthlyReviewId = review.id,
-                                                finalProgress = checkInState.finalProgress.toIntOrNull() ?: 0,
-                                                achievements = checkInState.achievements,
-                                                challenges = checkInState.challenges,
-                                                learnings = checkInState.learnings,
-                                                satisfactionRating = checkInState.satisfactionRating
+                                        if (monthlyReview != null) {
+                                            // Update existing review
+                                            val updatedReview = monthlyReview!!.copy(
+                                                overallReflection = overallReflection
                                             )
-                                            viewModel.insertFinalCheckIn(finalCheckIn)
+                                            viewModel.updateMonthlyReview(updatedReview)
                                             
-                                            // Update goal progress
-                                            val goal = monthGoals.find { it.id == checkInState.goalId }
-                                            goal?.let {
-                                                val updatedGoal = it.copy(
-                                                    currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
-                                                    isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
+                                            // Save final check-ins (we'll always insert/update them)
+                                            finalCheckIns.forEach { checkInState ->
+                                                val finalCheckIn = FinalCheckIn(
+                                                    goalId = checkInState.goalId,
+                                                    monthlyReviewId = updatedReview.id,
+                                                    finalProgress = checkInState.finalProgress.toIntOrNull() ?: 0,
+                                                    achievements = checkInState.achievements,
+                                                    challenges = checkInState.challenges,
+                                                    learnings = checkInState.learnings,
+                                                    satisfactionRating = checkInState.satisfactionRating
                                                 )
-                                                viewModel.updateGoalItem(updatedGoal)
+                                                viewModel.insertFinalCheckIn(finalCheckIn)
+                                                
+                                                // Update goal progress
+                                                val goal = monthGoals.find { it.id == checkInState.goalId }
+                                                goal?.let {
+                                                    val updatedGoal = it.copy(
+                                                        currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
+                                                        isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
+                                                    )
+                                                    viewModel.updateGoalItem(updatedGoal)
+                                                }
+                                            }
+                                        } else {
+                                            // Create new review
+                                            val review = MonthlyReview(
+                                                year = year,
+                                                month = month,
+                                                overallReflection = overallReflection
+                                            )
+                                            
+                                            viewModel.insertMonthlyReview(review)
+                                            
+                                            // Save final check-ins
+                                            finalCheckIns.forEach { checkInState ->
+                                                val finalCheckIn = FinalCheckIn(
+                                                    goalId = checkInState.goalId,
+                                                    monthlyReviewId = review.id,
+                                                    finalProgress = checkInState.finalProgress.toIntOrNull() ?: 0,
+                                                    achievements = checkInState.achievements,
+                                                    challenges = checkInState.challenges,
+                                                    learnings = checkInState.learnings,
+                                                    satisfactionRating = checkInState.satisfactionRating
+                                                )
+                                                viewModel.insertFinalCheckIn(finalCheckIn)
+                                                
+                                                // Update goal progress
+                                                val goal = monthGoals.find { it.id == checkInState.goalId }
+                                                goal?.let {
+                                                    val updatedGoal = it.copy(
+                                                        currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
+                                                        isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
+                                                    )
+                                                    viewModel.updateGoalItem(updatedGoal)
+                                                }
                                             }
                                         }
                                         

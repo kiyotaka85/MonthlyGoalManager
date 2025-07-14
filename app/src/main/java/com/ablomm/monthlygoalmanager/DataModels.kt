@@ -237,6 +237,12 @@ class GoalsViewModel @Inject constructor(
         }
     }
     
+    fun deleteMonthlyReview(review: MonthlyReview) {
+        viewModelScope.launch {
+            repository.deleteMonthlyReview(review)
+        }
+    }
+    
     // FinalCheckIn関連のメソッド
     fun getFinalCheckInsForReview(reviewId: UUID): Flow<List<FinalCheckIn>> {
         return repository.getFinalCheckInsForReview(reviewId)
@@ -251,6 +257,12 @@ class GoalsViewModel @Inject constructor(
     fun updateFinalCheckIn(checkIn: FinalCheckIn) {
         viewModelScope.launch {
             repository.updateFinalCheckIn(checkIn)
+        }
+    }
+    
+    fun deleteFinalCheckIn(checkIn: FinalCheckIn) {
+        viewModelScope.launch {
+            repository.deleteFinalCheckIn(checkIn)
         }
     }
     

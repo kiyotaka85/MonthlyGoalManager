@@ -67,6 +67,13 @@ class GoalsRepository(
     suspend fun updateMonthlyReview(review: MonthlyReview) {
         monthlyReviewDao.updateMonthlyReview(review)
     }
+    
+    suspend fun deleteMonthlyReview(review: MonthlyReview) {
+        // First delete all related final check-ins
+        finalCheckInDao.deleteFinalCheckInsByReviewId(review.id)
+        // Then delete the review itself
+        monthlyReviewDao.deleteMonthlyReview(review)
+    }
 
     // FinalCheckIn関連のメソッド
     fun getFinalCheckInsForReview(reviewId: UUID): Flow<List<FinalCheckIn>> {
@@ -79,6 +86,10 @@ class GoalsRepository(
 
     suspend fun updateFinalCheckIn(checkIn: FinalCheckIn) {
         finalCheckInDao.updateFinalCheckIn(checkIn)
+    }
+    
+    suspend fun deleteFinalCheckIn(checkIn: FinalCheckIn) {
+        finalCheckInDao.deleteFinalCheckIn(checkIn)
     }
 
     suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn? {

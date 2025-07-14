@@ -28,6 +28,7 @@ fun MonthlyReviewSummaryContent(
 ) {
     var monthlyReview by remember { mutableStateOf<MonthlyReview?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     
     val yearMonth = YearMonth.of(year, month)
     val monthYearText = yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
@@ -246,7 +247,7 @@ fun MonthlyReviewSummaryContent(
                             
                             OutlinedButton(
                                 onClick = {
-                                    // TODO: 削除機能を実装
+                                    showDeleteConfirmation = true
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.outlinedButtonColors(
@@ -266,5 +267,36 @@ fun MonthlyReviewSummaryContent(
                 }
             }
         }
+    }
+    
+    // Delete confirmation dialog
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Monthly Review") },
+            text = { 
+                Text("Are you sure you want to delete this monthly review for $monthYearText? This action cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        monthlyReview?.let { review ->
+                            viewModel.deleteMonthlyReview(review)
+                            showDeleteConfirmation = false
+                            navController.popBackStack()
+                        }
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmation = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

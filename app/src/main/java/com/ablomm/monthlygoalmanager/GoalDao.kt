@@ -63,6 +63,9 @@ interface MonthlyReviewDao {
     
     @Update
     suspend fun updateMonthlyReview(review: MonthlyReview)
+    
+    @Delete
+    suspend fun deleteMonthlyReview(review: MonthlyReview)
 }
 
 @Dao
@@ -78,6 +81,12 @@ interface FinalCheckInDao {
     
     @Query("SELECT * FROM final_checkins WHERE goalId = :goalId AND monthlyReviewId = :reviewId")
     suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn?
+    
+    @Delete
+    suspend fun deleteFinalCheckIn(checkIn: FinalCheckIn)
+    
+    @Query("DELETE FROM final_checkins WHERE monthlyReviewId = :reviewId")
+    suspend fun deleteFinalCheckInsByReviewId(reviewId: UUID)
 }
 
 @Dao
