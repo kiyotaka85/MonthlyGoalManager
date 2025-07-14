@@ -33,7 +33,11 @@ data class GoalItem(
     val title: String,
     val detailedDescription: String? = null,
     val targetMonth: Int = 2025005,
-    val targetValue: String = "0",
+    val goalType: GoalType = GoalType.SIMPLE, // 目標タイプ
+    val targetValue: String = "0", // シンプル目標用
+    val targetNumericValue: Double? = null, // 数値目標の目標値
+    val currentNumericValue: Double? = null, // 数値目標の現在値
+    val unit: String? = null, // 数値目標の単位
     val currentProgress: Int = 0,
     val priority: GoalPriority = GoalPriority.Middle,
     val isCompleted: Boolean = false,
@@ -75,6 +79,16 @@ class Converters {
     fun toGoalPriority(priority: String): GoalPriority {
         return GoalPriority.valueOf(priority)
     }
+
+    @TypeConverter
+    fun fromGoalType(goalType: GoalType): String {
+        return goalType.name
+    }
+
+    @TypeConverter
+    fun toGoalType(goalType: String): GoalType {
+        return GoalType.valueOf(goalType)
+    }
 }
 
 data class MissionItem(
@@ -84,6 +98,11 @@ data class MissionItem(
 
 enum class GoalPriority{
     High, Middle, Low
+}
+
+enum class GoalType {
+    NUMERIC,    // 数値目標
+    SIMPLE      // シンプル目標
 }
 
 @HiltViewModel

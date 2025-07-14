@@ -14,18 +14,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -82,8 +77,12 @@ fun GoalEditForm(
                 id = UUID.randomUUID(),
                 title = "",
                 detailedDescription = "",
-                targetMonth = targetMonth ?: 2025007, // デフォルトは現在月
+                targetMonth = targetMonth ?: 2025007,
+                goalType = GoalType.SIMPLE,
                 targetValue = "",
+                targetNumericValue = null,
+                currentNumericValue = null,
+                unit = null,
                 currentProgress = 0,
                 priority = GoalPriority.Middle,
                 isCompleted = false,
@@ -111,8 +110,8 @@ fun GoalEditForm(
         }
     }
 
-    var dropMenuExpanded by remember { mutableStateOf(false) }
     val scrollPosition = rememberScrollState()
+    val focusManager = LocalFocusManager.current
 
     Scaffold(
         topBar = {
@@ -136,328 +135,430 @@ fun GoalEditForm(
                 CircularProgressIndicator()
             }
         } else if (editingGoalItem != null) {
-            val focusManager = LocalFocusManager.current
-            var titleFieldFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
-            var descFieldFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
-            var targetValueFieldFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
             Column(
                 modifier = Modifier
                     .padding(paddingValues)
                     .verticalScroll(scrollPosition)
                     .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        //Text(
-                        //    text = "Basic Information",
-                        //    style = MaterialTheme.typography.titleMedium,
-                        //    modifier = Modifier.padding(bottom = 16.dp)
-                        //)
+                // 目標
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = editingGoalItem!!.title,
+                    onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(title = it)) },
+                    label = { Text("目標 *") },
+                    placeholder = { Text("例：毎日30分読書する") },
+                    maxLines = 3,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.clearFocus() }
+                    )
+                )
 
-                        OutlinedTextField(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp)
-                                .focusRequester(titleFieldFocusRequester),
-                            value = editingGoalItem!!.title,
-                            onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(title = it)) },
-                            label = { Text("Goal Title") },
-                            placeholder = { Text("e.g., Read 30 minutes daily") },
-                            minLines = 2,
-                            maxLines = 3,
-                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                            keyboardActions = KeyboardActions(
-                                onNext = { descFieldFocusRequester.requestFocus() }
-                            )
-                        )
-
-                        OutlinedTextField(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp)
-                                .focusRequester(descFieldFocusRequester),
-                            value = editingGoalItem!!.detailedDescription ?: "",
-                            onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(detailedDescription = it)) },
-                            label = { Text("Detailed Description (Optional)") },
-                            placeholder = { Text("Enter details or background of your goal") },
-                            minLines = 3,
-                            maxLines = 5,
-                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                            keyboardActions = KeyboardActions(
-                                onNext = { targetValueFieldFocusRequester.requestFocus() }
-                            )
-                        )
-
-                        OutlinedTextField(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp)
-                                .focusRequester(targetValueFieldFocusRequester),
-                            value = editingGoalItem!!.targetValue,
-                            onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(targetValue = it)) },
-                            label = { Text("Target Value") },
-                            placeholder = { Text("e.g., 30 books, 10kg, daily") },
-                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(
-                                onDone = { focusManager.clearFocus() }
-                            )
-                        )
-
-                        // 上位目標選択
-                        if (higherGoals.isNotEmpty()) {
-                            Text(
-                                text = "Higher Goal (Optional)",
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                            
-                            val selectedHigherGoal = higherGoals.find { it.id == editingGoalItem!!.higherGoalId }
-
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 16.dp)
-                                    .clickable {
-                                        // 編集中の目標IDを渡して選択モードで上位目標画面に遷移
-                                        navController.navigate("higherGoals/${editingGoalItem!!.id}")
-                                    },
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp)
-                                ) {
-                                    if (selectedHigherGoal != null) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(12.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color(android.graphics.Color.parseColor(selectedHigherGoal.color)))
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = selectedHigherGoal.title,
-                                                style = MaterialTheme.typography.bodyMedium
-                                            )
-                                        }
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.End
-                                        ) {
-                                            TextButton(
-                                                onClick = {
-                                                    viewModel.setEditingGoalItem(editingGoalItem!!.copy(higherGoalId = null))
-                                                }
-                                            ) {
-                                                Text("Remove", color = MaterialTheme.colorScheme.error)
-                                            }
-                                        }
-                                    } else {
-                                        Text(
-                                            text = "No higher goal selected",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Tap to manage higher goals",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        OutlinedTextField(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            value = editingGoalItem!!.currentProgress.toString(),
-                            onValueChange = { text ->
-                                val progress = text.toIntOrNull() ?: 0
-                                val clampedProgress = progress.coerceIn(0, 100)
-                                viewModel.setEditingGoalItem(editingGoalItem!!.copy(currentProgress = clampedProgress))
-                            },
-                            label = { Text("Current Progress (%)") },
-                            placeholder = { Text("Enter value between 0-100") },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = { focusManager.clearFocus() }
-                            )
-                        )
-
-                        ExposedDropdownMenuBox(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            expanded = dropMenuExpanded,
-                            onExpandedChange = { dropMenuExpanded = !dropMenuExpanded }
-                        ) {
-                            OutlinedTextField(
-                                modifier = Modifier
-                                    .menuAnchor(
-                                        type = MenuAnchorType.PrimaryEditable,
-                                        enabled = true
-                                    )
-                                    .fillMaxWidth(),
-                                value = when (editingGoalItem!!.priority) {
-                                    GoalPriority.Low -> "Low"
-                                    GoalPriority.Middle -> "Medium"
-                                    GoalPriority.High -> "High"
-                                },
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Priority") },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropMenuExpanded)
-                                }
-                            )
-                            DropdownMenu(
-                                expanded = dropMenuExpanded,
-                                onDismissRequest = { dropMenuExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("High") },
-                                    onClick = {
-                                        viewModel.setEditingGoalItem(editingGoalItem!!.copy(priority = GoalPriority.High))
-                                        dropMenuExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Medium") },
-                                    onClick = {
-                                        viewModel.setEditingGoalItem(editingGoalItem!!.copy(priority = GoalPriority.Middle))
-                                        dropMenuExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Low") },
-                                    onClick = {
-                                        viewModel.setEditingGoalItem(editingGoalItem!!.copy(priority = GoalPriority.Low))
-                                        dropMenuExpanded = false
-                                    }
-                                )
-                            }
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = editingGoalItem!!.isCompleted,
-                                onCheckedChange = { isChecked ->
-                                    viewModel.setEditingGoalItem(
-                                        editingGoalItem!!.copy(
-                                            isCompleted = isChecked,
-                                            currentProgress = if (isChecked) 100 else editingGoalItem!!.currentProgress
-                                        )
-                                    )
-                                }
-                            )
-                            Text(
-                                text = "Completed",
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        }
+                // 目標タイプ選択（トグルタブ）
+                GoalTypeToggle(
+                    selectedType = editingGoalItem!!.goalType,
+                    onTypeChanged = { newType ->
+                        viewModel.setEditingGoalItem(editingGoalItem!!.copy(goalType = newType))
                     }
+                )
+
+                // 数値目標選択時の追加フィールド
+                if (editingGoalItem!!.goalType == GoalType.NUMERIC) {
+                    NumericGoalFields(
+                        targetValue = editingGoalItem!!.targetNumericValue ?: 0.0,
+                        currentValue = editingGoalItem!!.currentNumericValue ?: 0.0,
+                        unit = editingGoalItem!!.unit ?: "",
+                        onTargetValueChanged = { value ->
+                            viewModel.setEditingGoalItem(editingGoalItem!!.copy(targetNumericValue = value))
+                        },
+                        onCurrentValueChanged = { value ->
+                            viewModel.setEditingGoalItem(editingGoalItem!!.copy(currentNumericValue = value))
+                        },
+                        onUnitChanged = { unit ->
+                            viewModel.setEditingGoalItem(editingGoalItem!!.copy(unit = unit))
+                        }
+                    )
                 }
 
-                // 保存ボタン
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                editingGoalItem?.let { currentGoal ->
-                                    if (goalId == null) {
-                                        viewModel.addGoalItem(currentGoal)
-                                    } else {
-                                        viewModel.updateGoalItem(currentGoal)
-                                    }
-                                    navController.popBackStack()
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = editingGoalItem!!.title.isNotBlank()
-                        ) {
-                            Text(if (goalId == null) "Add Goal" else "Save Changes")
-                        }
-                        
-                        // 削除ボタン (編集モード時のみ表示)
-                        if (goalId != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            var showDeleteDialog by remember { mutableStateOf(false) }
-                            
-                            Button(
-                                onClick = { showDeleteDialog = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Text("Delete Goal", color = Color.White)
-                            }
-                            
-                            // 削除確認ダイアログ
-                            if (showDeleteDialog) {
-                                AlertDialog(
-                                    onDismissRequest = { showDeleteDialog = false },
-                                    title = { Text("Delete Goal") },
-                                    text = { Text("Are you sure you want to delete this goal? This action cannot be undone.") },
-                                    confirmButton = {
-                                        TextButton(
-                                            onClick = {
-                                                editingGoalItem?.let { currentGoal ->
-                                                    viewModel.deleteGoalItem(currentGoal)
-                                                    navController.popBackStack()
-                                                }
-                                            }
-                                        ) {
-                                            Text("Delete", color = MaterialTheme.colorScheme.error)
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showDeleteDialog = false }) {
-                                            Text("Cancel")
-                                        }
-                                    }
-                                )
-                            }
-                        }
+                // 優先度
+                PrioritySelector(
+                    selectedPriority = editingGoalItem!!.priority,
+                    onPriorityChanged = { priority ->
+                        viewModel.setEditingGoalItem(editingGoalItem!!.copy(priority = priority))
                     }
+                )
+
+                // 目標の詳細説明
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = editingGoalItem!!.detailedDescription ?: "",
+                    onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(detailedDescription = it)) },
+                    label = { Text("目標の詳細説明") },
+                    placeholder = { Text("目標の背景や詳細を記入してください") },
+                    minLines = 3,
+                    maxLines = 5,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { focusManager.clearFocus() }
+                    )
+                )
+
+                // 上位目標関連付け
+                HigherGoalAssociation(
+                    higherGoals = higherGoals,
+                    selectedHigherGoalId = editingGoalItem!!.higherGoalId,
+                    onSelectHigherGoal = {
+                        navController.navigate("higherGoals/${editingGoalItem!!.id}")
+                    },
+                    onRemoveHigherGoal = {
+                        viewModel.setEditingGoalItem(editingGoalItem!!.copy(higherGoalId = null))
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 保存・削除ボタン
+                SaveDeleteButtons(
+                    goalId = goalId,
+                    editingGoalItem = editingGoalItem!!,
+                    viewModel = viewModel,
+                    navController = navController
+                )
+            }
+        }
+    }
+}
+
+// 目標タイプ選択のトグルタブ
+@Composable
+fun GoalTypeToggle(
+    selectedType: GoalType,
+    onTypeChanged: (GoalType) -> Unit
+) {
+    var showInfoDialog by remember { mutableStateOf(false) }
+
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Text(
+                text = "目標タイプ *",
+                style = MaterialTheme.typography.labelMedium
+            )
+
+            Icon(
+                Icons.Default.Info,
+                contentDescription = "目標タイプの説明",
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable { showInfoDialog = true }
+                    .clip(CircleShape)
+                    .padding(2.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // 数値目標タブ
+            Button(
+                onClick = { onTypeChanged(GoalType.NUMERIC) },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedType == GoalType.NUMERIC)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Text("数値目標")
+            }
+
+            // シンプル目標タブ
+            Button(
+                onClick = { onTypeChanged(GoalType.SIMPLE) },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedType == GoalType.SIMPLE)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Text("シンプル目標")
+            }
+        }
+
+        // 目標タイプの説明ダイアログ
+        if (showInfoDialog) {
+            AlertDialog(
+                onDismissRequest = { showInfoDialog = false },
+                title = { Text("目標タイプについて") },
+                text = {
+                    Column {
+                        Text(
+                            text = "数値目標",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "具体的な数値で進捗を測定します（売上、体重、読書数など）",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        Text(
+                            text = "シンプル目標",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "完了・未完了や取り組み度合いで評価します",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { showInfoDialog = false }
+                    ) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+    }
+}
+
+// 数値目標用のフィールド
+@Composable
+fun NumericGoalFields(
+    targetValue: Double,
+    currentValue: Double,
+    unit: String,
+    onTargetValueChanged: (Double) -> Unit,
+    onCurrentValueChanged: (Double) -> Unit,
+    onUnitChanged: (String) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // 目標値
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            OutlinedTextField(
+                modifier = Modifier.weight(2f),
+                value = if (targetValue == 0.0) "" else targetValue.toString(),
+                onValueChange = {
+                    val value = it.toDoubleOrNull() ?: 0.0
+                    onTargetValueChanged(value)
+                },
+                label = { Text("目標値") },
+                placeholder = { Text("100") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
+            OutlinedTextField(
+                modifier = Modifier.weight(1f),
+                value = unit,
+                onValueChange = onUnitChanged,
+                label = { Text("単位") },
+                placeholder = { Text("万円") }
+            )
+        }
+
+        // 現在値
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            OutlinedTextField(
+                modifier = Modifier.weight(2f),
+                value = if (currentValue == 0.0) "" else currentValue.toString(),
+                onValueChange = {
+                    val value = it.toDoubleOrNull() ?: 0.0
+                    onCurrentValueChanged(value)
+                },
+                label = { Text("現在値") },
+                placeholder = { Text("10") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
+            Text(
+                text = unit,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 16.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// 優先度選択
+@Composable
+fun PrioritySelector(
+    selectedPriority: GoalPriority,
+    onPriorityChanged: (GoalPriority) -> Unit
+) {
+    Column {
+        Text(
+            text = "優先度",
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            GoalPriority.values().forEach { priority ->
+                val isSelected = selectedPriority == priority
+                Button(
+                    onClick = { onPriorityChanged(priority) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSelected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Text(
+                        when (priority) {
+                            GoalPriority.High -> "High"
+                            GoalPriority.Middle -> "Medium"
+                            GoalPriority.Low -> "Low"
+                        }
+                    )
                 }
             }
+        }
+    }
+}
+
+// 上位目標関連付け
+@Composable
+fun HigherGoalAssociation(
+    higherGoals: List<HigherGoal>,
+    selectedHigherGoalId: UUID?,
+    onSelectHigherGoal: () -> Unit,
+    onRemoveHigherGoal: () -> Unit
+) {
+    Column {
+        Text(
+            text = "上位目標関連付け",
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        if (higherGoals.isNotEmpty()) {
+            val selectedHigherGoal = higherGoals.find { it.id == selectedHigherGoalId }
+
+            OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelectHigherGoal() },
+                value = selectedHigherGoal?.title ?: "",
+                onValueChange = { },
+                enabled = false,
+                label = { Text("選択された上位目標") },
+                placeholder = { Text("上位目標を選択してください") },
+                trailingIcon = {
+                    if (selectedHigherGoalId != null) {
+                        IconButton(onClick = onRemoveHigherGoal) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "上位目標を解除"
+                            )
+                        }
+                    }
+                }
+            )
         } else {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            Text(
+                text = "上位目標が設定されていません",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// 保存・削除ボタン
+@Composable
+fun SaveDeleteButtons(
+    goalId: UUID?,
+    editingGoalItem: GoalItem,
+    viewModel: GoalsViewModel,
+    navController: NavHostController
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Button(
+            onClick = {
+                if (goalId == null) {
+                    viewModel.addGoalItem(editingGoalItem)
+                } else {
+                    viewModel.updateGoalItem(editingGoalItem)
+                }
+                navController.popBackStack()
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = editingGoalItem.title.isNotBlank()
+        ) {
+            Text(if (goalId == null) "目標を追加" else "変更を保存")
+        }
+
+        // 削除ボタン (編集モード時のみ表示)
+        if (goalId != null) {
+            var showDeleteDialog by remember { mutableStateOf(false) }
+
+            Button(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
             ) {
-                Text("An error occurred")
+                Text("目標を削除", color = Color.White)
+            }
+
+            // 削除確認ダイアログ
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = { Text("目標を削除") },
+                    text = { Text("この目標を削除してもよろしいですか？この操作は取り消せません。") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.deleteGoalItem(editingGoalItem)
+                                navController.popBackStack()
+                            }
+                        ) {
+                            Text("削除", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog = false }) {
+                            Text("キャンセル")
+                        }
+                    }
+                )
             }
         }
     }
