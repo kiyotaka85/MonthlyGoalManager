@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -251,6 +252,9 @@ fun GoalSummaryCard(goal: GoalItem, finalCheckIn: FinalCheckIn) {
             
             Spacer(modifier = Modifier.height(12.dp))
             
+            // 満足度評価（星評価）を表示
+            SatisfactionRatingDisplay(rating = finalCheckIn.satisfactionRating)
+
             if (finalCheckIn.achievements.isNotBlank()) {
                 SummarySection(
                     title = "✅ Achievements",
@@ -314,6 +318,59 @@ fun OverallReflectionCard(reflection: String) {
                 style = MaterialTheme.typography.bodyMedium
             )
         }
+    }
+}
+
+@Composable
+fun SatisfactionRatingDisplay(rating: Int) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "⭐ 満足度評価",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // 星評価を表示
+            repeat(5) { index ->
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = if (index < rating)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // 評価テキスト
+            Text(
+                text = "${rating}/5 - ${
+                    when(rating) {
+                        1 -> "非常に不満"
+                        2 -> "不満"
+                        3 -> "普通"
+                        4 -> "満足"
+                        5 -> "非常に満足"
+                        else -> "未評価"
+                    }
+                }",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
