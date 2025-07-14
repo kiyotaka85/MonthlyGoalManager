@@ -1,5 +1,6 @@
 package com.ablomm.monthlygoalmanager
 
+import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
@@ -11,7 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-// ...existing code...
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,7 +42,10 @@ fun CheckInScreen(
     var progressPercent by remember { mutableStateOf("") }
     var comment by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
-    
+    var showCompletionDialog by remember { mutableStateOf(false) }
+    var savedCheckIn by remember { mutableStateOf<CheckInItem?>(null) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
     val checkInsState = viewModel.getCheckInsForGoal(goalId).collectAsState(initial = emptyList())
 
     LaunchedEffect(goalId) {
@@ -172,7 +176,9 @@ fun CheckInScreen(
                                     viewModel.updateGoalItem(updatedGoal)
                                 }
                                 
-                                navController.popBackStack()
+                                // Show completion dialog for all check-ins
+                                savedCheckIn = checkIn
+                                showCompletionDialog = true
                             },
                             enabled = progressPercent.isNotBlank() && comment.isNotBlank(),
                             modifier = Modifier.fillMaxWidth()
@@ -215,6 +221,28 @@ fun CheckInScreen(
                 }
             }
         }
+    }
+
+    // Check-in Completion Dialog
+    if (showCompletionDialog && savedCheckIn != null && goalItemState != null) {
+        CheckInCompletionDialog(
+            goal = goalItemState!!,
+            checkIn = savedCheckIn!!,
+            onShare = { shareText ->
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    type = "text/plain"
+                }
+                context.startActivity(Intent.createChooser(shareIntent, "進捗を共有"))
+                showCompletionDialog = false
+                navController.popBackStack()
+            },
+            onDismiss = {
+                showCompletionDialog = false
+                navController.popBackStack()
+            }
+        )
     }
 }
 
@@ -259,4 +287,120 @@ fun CheckInHistoryItem(checkIn: CheckInItem) {
             }
         }
     }
+}
+
+@Composable
+fun CheckInCompletionDialog(
+    goal: GoalItem,
+    checkIn: CheckInItem,
+    onShare: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val isGoalCompleted = checkIn.progressPercent >= 100
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = if (isGoalCompleted) "🎉 目標達成！" else "✅ チェックイン完了",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = if (isGoalCompleted)
+                        "おめでとうございます！目標を達成しました！"
+                    else
+                        "チェックインが完了しました。",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 記入内容の表示
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "記入内容",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("目標:")
+                            Text(goal.title, fontWeight = FontWeight.Medium)
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("進捗:")
+                            Text("${checkIn.progressPercent}%", fontWeight = FontWeight.Medium)
+                        }
+
+                        if (checkIn.comment.isNotBlank()) {
+                            Column {
+                                Text("コメント:", style = MaterialTheme.typography.labelSmall)
+                                Text(
+                                    text = checkIn.comment,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("閉じる")
+                }
+
+                Button(
+                    onClick = {
+                        val shareText = buildString {
+                            if (isGoalCompleted) {
+                                appendLine("🎉 目標達成しました！")
+                            } else {
+                                appendLine("📈 進捗更新")
+                            }
+                            appendLine()
+                            appendLine("目標: ${goal.title}")
+                            appendLine("進捗: ${checkIn.progressPercent}%")
+                            if (checkIn.comment.isNotBlank()) {
+                                appendLine()
+                                appendLine("💭 ${checkIn.comment}")
+                            }
+                            appendLine()
+                            appendLine("#目標達成 #進捗 #モチベーション")
+                        }
+                        onShare(shareText)
+                    }
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("共有")
+                }
+            }
+        }
+    )
 }

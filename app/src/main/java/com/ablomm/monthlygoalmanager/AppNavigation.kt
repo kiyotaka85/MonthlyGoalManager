@@ -19,7 +19,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import java.util.UUID
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -37,7 +36,24 @@ fun AppNavigation() {
         }
 
         composable(
-            route = "edit/{goalId}",
+            route = "goalDetail/{goalId}",
+            arguments = listOf(navArgument("goalId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
+            val goalIdString = backStackEntry.arguments?.getString("goalId")
+            val goalId: UUID? = goalIdString?.let { UUID.fromString(it) }
+
+            goalId?.let {
+                GoalDetailScreen(
+                    goalId = it,
+                    viewModel = goalsViewModel,
+                    navController = navController
+                )
+            }
+        }
+
+        composable(
+            route = "goalEdit/{goalId}",
             arguments = listOf(navArgument("goalId") { type = NavType.StringType })
         ) { backStackEntry ->
             val goalsViewModel: GoalsViewModel = hiltViewModel()
@@ -80,7 +96,7 @@ fun AppNavigation() {
         }
 
         composable(
-            route = "checkin/{goalId}",
+            route = "checkIn/{goalId}",
             arguments = listOf(navArgument("goalId") { type = NavType.StringType })
         ) { backStackEntry ->
             val goalsViewModel: GoalsViewModel = hiltViewModel()

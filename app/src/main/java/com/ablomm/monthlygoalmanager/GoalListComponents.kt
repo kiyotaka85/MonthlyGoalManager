@@ -29,53 +29,76 @@ fun GoalCard(
     modifier: Modifier = Modifier,
     navController: NavHostController
 ) {
-    // カード形式からシンプルなリストアイテムに変更
-    Surface(
+    // コンパクトなシャドウカードデザイン
+    Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable {
-                navController.navigate("edit/${goalItem.id}")
+                navController.navigate("goalDetail/${goalItem.id}")
             },
-        color = MaterialTheme.colorScheme.surface
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(12.dp)
         ) {
-            // タイトルのみ表示（説明は削除）
+            // 1行目：目標名（左寄せ）
             Text(
                 text = goalItem.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.weight(1f),
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            // 進捗とステータス
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "${goalItem.currentProgress}%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Spacer(modifier = Modifier.height(4.dp))
 
-                Text(
-                    text = when (goalItem.currentProgress) {
-                        0 -> "🆕"
-                        100 -> "✅"
-                        else -> "⏳"
-                    },
-                    style = MaterialTheme.typography.bodyLarge
-                )
+            // 2行目：数値情報（右寄せ）
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (goalItem.goalType == GoalType.NUMERIC) {
+                    // 数値目標の場合: [現在値] / [目標値] [単位] [完了率]
+                    val currentValue = goalItem.currentNumericValue?.toInt() ?: 0
+                    val targetValue = goalItem.targetNumericValue?.toInt() ?: 1
+                    val unit = goalItem.unit ?: ""
+
+                    Text(
+                        text = "$currentValue / $targetValue $unit ${goalItem.currentProgress}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    // シンプル目標の場合: 完了率のみ
+                    Text(
+                        text = "${goalItem.currentProgress}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
+
+        // カード底部の細いプログレスバー
+        LinearProgressIndicator(
+            progress = goalItem.currentProgress / 100f,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp),
+            color = when {
+                goalItem.currentProgress >= 100 -> Color(0xFF4CAF50)
+                goalItem.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
+                goalItem.currentProgress >= 50 -> Color(0xFFFF9800)
+                else -> Color(0xFFF44336)
+            },
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     }
 }
 
@@ -177,7 +200,7 @@ fun GoalListContent(
                 }
             }
             
-            // 目標カードリスト（制御バーを削除）
+            // 目標カードリスト（8px間隔で配置）
             items(
                 items = filteredGoals,
                 key = { it.id }
@@ -187,11 +210,11 @@ fun GoalListContent(
                     confirmValueChange = { dismissValue ->
                         when (dismissValue) {
                             SwipeToDismissBoxValue.StartToEnd -> {
-                                navController.navigate("checkin/${goalItem.id}")
+                                navController.navigate("checkIn/${goalItem.id}")
                                 false
                             }
                             SwipeToDismissBoxValue.EndToStart -> {
-                                navController.navigate("edit/${goalItem.id}")
+                                navController.navigate("goalEdit/${goalItem.id}")
                                 false
                             }
                             else -> false
@@ -208,7 +231,6 @@ fun GoalListContent(
                             else -> Color.Transparent
                         }
 
-                        // スワイプ背景をリスト形式に合わせて調整
                         Surface(
                             modifier = Modifier.fillMaxSize(),
                             color = color
@@ -248,13 +270,17 @@ fun GoalListContent(
                         }
                     }
                 ) {
-                    GoalCard(goalItem = goalItem, navController = navController)
-                    // リスト間の区切り線を追加
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 16.dp),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                    GoalCard(
+                        goalItem = goalItem,
+                        navController = navController,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
+            }
+
+            // 最後にスペースを追加
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
