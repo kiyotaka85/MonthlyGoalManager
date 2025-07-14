@@ -150,6 +150,7 @@ fun GoalEditForm(
                     onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(title = it)) },
                     label = { Text("目標 *") },
                     placeholder = { Text("例：毎日30分読書する") },
+                    minLines = 3,
                     maxLines = 3,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
@@ -437,11 +438,13 @@ fun PrioritySelector(
                     )
                 ) {
                     Text(
-                        when (priority) {
+                        text = when (priority) {
                             GoalPriority.High -> "High"
                             GoalPriority.Middle -> "Medium"
                             GoalPriority.Low -> "Low"
-                        }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1
                     )
                 }
             }
@@ -464,36 +467,28 @@ fun HigherGoalAssociation(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        if (higherGoals.isNotEmpty()) {
-            val selectedHigherGoal = higherGoals.find { it.id == selectedHigherGoalId }
+        val selectedHigherGoal = higherGoals.find { it.id == selectedHigherGoalId }
 
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSelectHigherGoal() },
-                value = selectedHigherGoal?.title ?: "",
-                onValueChange = { },
-                enabled = false,
-                label = { Text("選択された上位目標") },
-                placeholder = { Text("上位目標を選択してください") },
-                trailingIcon = {
-                    if (selectedHigherGoalId != null) {
-                        IconButton(onClick = onRemoveHigherGoal) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "上位目標を解除"
-                            )
-                        }
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onSelectHigherGoal() },
+            value = selectedHigherGoal?.title ?: "",
+            onValueChange = { },
+            enabled = false,
+            label = { Text("選択された上位目標") },
+            placeholder = { Text("上位目標を選択してください") },
+            trailingIcon = {
+                if (selectedHigherGoalId != null) {
+                    IconButton(onClick = onRemoveHigherGoal) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "上位目標を解除"
+                        )
                     }
                 }
-            )
-        } else {
-            Text(
-                text = "上位目標が設定されていません",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+            }
+        )
     }
 }
 
