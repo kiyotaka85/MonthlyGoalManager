@@ -60,7 +60,7 @@ fun GoalCard(
             // 2行目：数値情報（左寄せ）
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (goalItem.goalType == GoalType.NUMERIC) {
