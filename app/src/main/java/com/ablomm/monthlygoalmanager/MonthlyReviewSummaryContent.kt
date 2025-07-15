@@ -185,11 +185,9 @@ fun MonthlyReviewSummaryContent(
                         
                         goals.forEach { goal ->
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(vertical = 4.dp)
                             ) {
                                 Text(
                                     text = goal.title,
@@ -206,62 +204,91 @@ fun MonthlyReviewSummaryContent(
                     }
                 }
             }
-            
+
             // 編集・削除ボタン
-            item {
-                Card(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+            monthlyReview?.let { review ->
+                item {
+                    var showDeleteDialog by remember { mutableStateOf(false) }
+
+                    Card(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Text(
-                            text = "⚙️ Actions",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Column(
+                            modifier = Modifier.padding(16.dp)
                         ) {
-                            OutlinedButton(
-                                onClick = {
-                                    navController.navigate("monthlyReview/$year/$month")
-                                },
-                                modifier = Modifier.weight(1f)
+                            Text(
+                                text = "⚙️ Actions",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit Review")
-                            }
-                            
-                            OutlinedButton(
-                                onClick = {
-                                    // TODO: 削除機能を実装
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Delete")
+                                OutlinedButton(
+                                    onClick = {
+                                        navController.navigate("monthlyReview/$year/$month")
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Edit Review")
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        showDeleteDialog = true
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Delete")
+                                }
                             }
                         }
+                    }
+
+                    // 削除確認ダイアログ
+                    if (showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteDialog = false },
+                            title = { Text("月次レビューを削除") },
+                            text = { Text("この月次レビューを削除してもよろしいですか？関連するすべての評価データも削除されます。この操作は取り消せません。") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        viewModel.deleteMonthlyReview(review)
+                                        showDeleteDialog = false
+                                        navController.popBackStack()
+                                    }
+                                ) {
+                                    Text("削除", color = MaterialTheme.colorScheme.error)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteDialog = false }) {
+                                    Text("キャンセル")
+                                }
+                            }
+                        )
                     }
                 }
             }

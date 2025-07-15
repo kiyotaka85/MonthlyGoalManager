@@ -51,7 +51,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.ui.focus.focusRequester
 import java.util.UUID
 import androidx.compose.material3.Checkbox

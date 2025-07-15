@@ -22,7 +22,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-
 @Composable
 fun GoalCard(
     goalItem: GoalItem,
@@ -99,6 +98,71 @@ fun GoalCard(
             },
             trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
+    }
+}
+
+@Composable
+fun GoalListItem(
+    goalItem: GoalItem,
+    modifier: Modifier = Modifier,
+    navController: NavHostController
+) {
+    // シンプルなリストアイテムデザイン
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable {
+                navController.navigate("goalDetail/${goalItem.id}")
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 左側：目標名
+        Text(
+            text = goalItem.title,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+
+        // 右側：進捗
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (goalItem.goalType == GoalType.NUMERIC) {
+                // 数値目標の場合: [現在値] / [目標値] [単位]
+                val currentValue = goalItem.currentNumericValue?.toInt() ?: 0
+                val targetValue = goalItem.targetNumericValue?.toInt() ?: 1
+                val unit = goalItem.unit ?: ""
+
+                Text(
+                    text = "$currentValue / $targetValue $unit",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                // シンプル目標の場合: 完了率のみ
+                Text(
+                    text = "${goalItem.currentProgress}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // 完了マーク
+            if (goalItem.isCompleted) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = "完了",
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
     }
 }
 
@@ -200,80 +264,23 @@ fun GoalListContent(
                 }
             }
             
-            // 目標カードリスト（8px間隔で配置）
+            // 目標リスト（シンプルなリスト形式）
             items(
                 items = filteredGoals,
                 key = { it.id }
             ) { goalItem ->
-                val dismissState = rememberSwipeToDismissBoxState(
-                    positionalThreshold = { it * 0.25f },
-                    confirmValueChange = { dismissValue ->
-                        when (dismissValue) {
-                            SwipeToDismissBoxValue.StartToEnd -> {
-                                navController.navigate("checkIn/${goalItem.id}")
-                                false
-                            }
-                            SwipeToDismissBoxValue.EndToStart -> {
-                                navController.navigate("goalEdit/${goalItem.id}")
-                                false
-                            }
-                            else -> false
-                        }
-                    }
+                GoalListItem(
+                    goalItem = goalItem,
+                    navController = navController,
+                    modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp)
                 )
 
-                SwipeToDismissBox(
-                    state = dismissState,
-                    backgroundContent = {
-                        val color = when (dismissState.targetValue) {
-                            SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50).copy(alpha = 0.8f)
-                            SwipeToDismissBoxValue.EndToStart -> Color(0xFF2196F3).copy(alpha = 0.8f)
-                            else -> Color.Transparent
-                        }
-
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = color
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 16.dp),
-                                contentAlignment = when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                    else -> Alignment.Center
-                                }
-                            ) {
-                                when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Text("📊", fontSize = 20.sp)
-                                            Text("Check-in", color = Color.White, fontWeight = FontWeight.Medium)
-                                        }
-                                    }
-                                    SwipeToDismissBoxValue.EndToStart -> {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Text("Edit", color = Color.White, fontWeight = FontWeight.Medium)
-                                            Text("✏️", fontSize = 20.sp)
-                                        }
-                                    }
-                                    else -> {}
-                                }
-                            }
-                        }
-                    }
-                ) {
-                    GoalCard(
-                        goalItem = goalItem,
-                        navController = navController,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                // 区切り線
+                if (goalItem != filteredGoals.last()) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
                     )
                 }
             }
