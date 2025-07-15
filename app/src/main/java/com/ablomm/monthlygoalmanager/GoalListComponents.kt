@@ -28,21 +28,22 @@ fun GoalCard(
     modifier: Modifier = Modifier,
     navController: NavHostController
 ) {
-    // コンパクトなシャドウカードデザイン
+    // 軽いシャドウカードデザイン
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .padding(vertical = 4.dp) // カード間隔8px（上下4dpずつ）
             .clickable {
                 navController.navigate("goalDetail/${goalItem.id}")
             },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp), // 軽いシャドウ
+        shape = RoundedCornerShape(4.dp), // 角丸4px
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding(12.dp) // カード内余白12px
         ) {
             // 1行目：目標名（左寄せ）
             Text(
@@ -56,14 +57,14 @@ fun GoalCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // 2行目：数値情報（右寄せ）
+            // 2行目：数値情報（左寄せ）
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (goalItem.goalType == GoalType.NUMERIC) {
-                    // 数値目標の場合: [現在値] / [目標値] [単位] [完了率]
+                    // 数値目標の場合: [現在値] / [目標値] [単位] [進捗率]%
                     val currentValue = goalItem.currentNumericValue?.toInt() ?: 0
                     val targetValue = goalItem.targetNumericValue?.toInt() ?: 1
                     val unit = goalItem.unit ?: ""
@@ -74,12 +75,31 @@ fun GoalCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
-                    // シンプル目標の場合: 完了率のみ
-                    Text(
-                        text = "${goalItem.currentProgress}%",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    // シンプル目標の場合: 完了状態のみ表示
+                    if (goalItem.currentProgress >= 100) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "完了",
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "完了",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF4CAF50)
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "未完了",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -263,20 +283,12 @@ fun GoalListContent(
                 items = filteredGoals,
                 key = { it.id }
             ) { goalItem ->
-                GoalListItem(
+                GoalCard(
                     goalItem = goalItem,
                     navController = navController,
-                    modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
 
-                // 区切り線
-                if (goalItem != filteredGoals.last()) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant
-                    )
-                }
             }
 
             // 最後にスペースを追加
