@@ -70,7 +70,7 @@ fun GoalCard(
                     val unit = goalItem.unit ?: ""
 
                     Text(
-                        text = "$currentValue / $targetValue $unit ${goalItem.currentProgress}%",
+                        text = "$currentValue / $targetValue $unit  ${goalItem.currentProgress}%",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
