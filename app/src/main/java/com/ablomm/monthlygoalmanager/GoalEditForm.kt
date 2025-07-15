@@ -9,18 +9,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,6 +36,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -39,20 +50,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.focus.focusRequester
 import java.util.UUID
 import androidx.compose.material3.Checkbox
 import androidx.compose.material.icons.filled.Star
@@ -196,18 +204,27 @@ fun GoalEditForm(
                 )
 
                 // ご褒美（Celebration）
-                OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = editingGoalItem!!.celebration ?: "",
-                    onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(celebration = it)) },
-                    label = { Text("ご褒美") },
-                    placeholder = { Text("目標達成時の自分へのご褒美を入力してください") },
-                    minLines = 1,
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(
-                        onNext = { focusManager.clearFocus() }
+                Column {
+                    Text(
+                        text = "この目標を達成したときのご褒美を記入しましょう",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
-                )
+
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = editingGoalItem!!.celebration ?: "",
+                        onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(celebration = it)) },
+                        label = { Text("ご褒美") },
+                        placeholder = { Text("目標達成時の自分へのご褒美を入力してください") },
+                        minLines = 1,
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.clearFocus() }
+                        )
+                    )
+                }
 
                 // Action Steps
                 ActionStepsSection(
@@ -431,7 +448,7 @@ fun NumericGoalFields(
     }
 }
 
-// 優先度選択
+// 優先度選択（カラーバッジ風）
 @Composable
 fun PrioritySelector(
     selectedPriority: GoalPriority,
@@ -450,15 +467,28 @@ fun PrioritySelector(
         ) {
             GoalPriority.values().forEach { priority ->
                 val isSelected = selectedPriority == priority
+                val (color, textColor) = when (priority) {
+                    GoalPriority.High -> if (isSelected)
+                        Color(0xFFF44336) to Color.White
+                    else
+                        Color(0xFFFFEBEE) to Color(0xFFF44336)
+                    GoalPriority.Middle -> if (isSelected)
+                        Color(0xFF2196F3) to Color.White
+                    else
+                        Color(0xFFE3F2FD) to Color(0xFF2196F3)
+                    GoalPriority.Low -> if (isSelected)
+                        Color(0xFF4CAF50) to Color.White
+                    else
+                        Color(0xFFE8F5E8) to Color(0xFF4CAF50)
+                }
+
                 Button(
                     onClick = { onPriorityChanged(priority) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSelected)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.surfaceVariant
-                    )
+                        containerColor = color
+                    ),
+                    shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(
                         text = when (priority) {
@@ -467,7 +497,9 @@ fun PrioritySelector(
                             GoalPriority.Low -> "Low"
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1
+                        maxLines = 1,
+                        color = textColor,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
