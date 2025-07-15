@@ -310,10 +310,24 @@ fun GoalTypeStep(
                     currentValue = editingGoalItem.currentNumericValue ?: 0.0,
                     unit = editingGoalItem.unit ?: "",
                     onTargetValueChanged = { value ->
-                        viewModel.setEditingGoalItem(editingGoalItem.copy(targetNumericValue = value))
+                        val updatedGoal = editingGoalItem.copy(targetNumericValue = value)
+                        // 進捗率も同時に更新
+                        val progress = if (value > 0) {
+                            ((editingGoalItem.currentNumericValue ?: 0.0) / value * 100).coerceIn(0.0, 100.0).toInt()
+                        } else {
+                            0
+                        }
+                        viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
                     },
                     onCurrentValueChanged = { value ->
-                        viewModel.setEditingGoalItem(editingGoalItem.copy(currentNumericValue = value))
+                        val updatedGoal = editingGoalItem.copy(currentNumericValue = value)
+                        // 進捗率も同時に更新
+                        val progress = if ((editingGoalItem.targetNumericValue ?: 0.0) > 0) {
+                            (value / (editingGoalItem.targetNumericValue ?: 1.0) * 100).coerceIn(0.0, 100.0).toInt()
+                        } else {
+                            0
+                        }
+                        viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
                     },
                     onUnitChanged = { unit ->
                         viewModel.setEditingGoalItem(editingGoalItem.copy(unit = unit))
@@ -634,6 +648,16 @@ fun NumericGoalFields(
     onCurrentValueChanged: (Double) -> Unit,
     onUnitChanged: (String) -> Unit
 ) {
+    // 進捗率を自動計算
+    val calculateProgress = { current: Double, target: Double ->
+        if (target > 0) {
+            val progress = (current / target * 100).coerceIn(0.0, 100.0)
+            progress.toInt()
+        } else {
+            0
+        }
+    }
+
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -690,6 +714,54 @@ fun NumericGoalFields(
                     .padding(vertical = 16.dp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+
+        // 進捗率の表示
+        if (targetValue > 0) {
+            val progress = calculateProgress(currentValue, targetValue)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "進捗率",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Text(
+                        text = "${progress}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            progress >= 100 -> Color(0xFF4CAF50)
+                            progress >= 75 -> MaterialTheme.colorScheme.primary
+                            progress >= 50 -> Color(0xFFFF9800)
+                            else -> Color(0xFFF44336)
+                        }
+                    )
+                }
+
+                LinearProgressIndicator(
+                    progress = progress / 100f,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = when {
+                        progress >= 100 -> Color(0xFF4CAF50)
+                        progress >= 75 -> MaterialTheme.colorScheme.primary
+                        progress >= 50 -> Color(0xFFFF9800)
+                        else -> Color(0xFFF44336)
+                    },
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            }
         }
     }
 }
