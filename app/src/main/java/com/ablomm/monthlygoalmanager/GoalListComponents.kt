@@ -144,14 +144,8 @@ fun GoalListItem(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            } else {
-                // シンプル目標の場合: 完了率のみ
-                Text(
-                    text = "${goalItem.currentProgress}%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
+            // シンプル目標の場合: 完了マークのみ（%表示なし）
 
             // 完了マーク
             if (goalItem.isCompleted) {

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -184,20 +185,92 @@ fun MonthlyReviewSummaryContent(
                         Spacer(modifier = Modifier.height(12.dp))
                         
                         goals.forEach { goal ->
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(vertical = 4.dp)
+                            val finalCheckIn by viewModel.getFinalCheckInsForReview(monthlyReview?.id ?: UUID.randomUUID()).collectAsState(initial = emptyList())
+                            val goalFinalCheckIn = finalCheckIn.find { it.goalId == goal.id }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
                             ) {
-                                Text(
-                                    text = goal.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = if (goal.isCompleted) "✅" else "${goal.currentProgress}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = goal.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // 数値目標の場合のみ進捗率を表示
+                                        if (goal.goalType == GoalType.NUMERIC) {
+                                            Text(
+                                                text = "${goal.currentProgress}%",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        // シンプル目標の場合は完了マークのみ（%表示なし）
+                                        if (goal.isCompleted) {
+                                            Text(
+                                                text = "✅",
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                        // 自己評価の星表示
+                                        goalFinalCheckIn?.let { checkIn ->
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                            ) {
+                                                repeat(5) { index ->
+                                                    Text(
+                                                        text = if (index < checkIn.satisfactionRating) "⭐" else "☆",
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 達成したこと、困難、学びを表示
+                                goalFinalCheckIn?.let { checkIn ->
+                                    if (checkIn.achievements.isNotBlank()) {
+                                        Text(
+                                            text = "✅ ${checkIn.achievements}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    }
+                                    if (checkIn.challenges.isNotBlank()) {
+                                        Text(
+                                            text = "⚠️ ${checkIn.challenges}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                    if (checkIn.learnings.isNotBlank()) {
+                                        Text(
+                                            text = "💡 ${checkIn.learnings}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (goal != goals.last()) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    thickness = 0.5.dp
                                 )
                             }
                         }
