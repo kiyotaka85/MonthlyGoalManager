@@ -57,6 +57,7 @@ import java.util.UUID
 import androidx.compose.material3.Checkbox
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.TextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,7 +144,7 @@ fun GoalEditForm(
                     .padding(paddingValues)
                     .verticalScroll(scrollPosition)
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // 目標
@@ -151,10 +152,9 @@ fun GoalEditForm(
                     modifier = Modifier.fillMaxWidth(),
                     value = editingGoalItem!!.title,
                     onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(title = it)) },
-                    label = { Text("目標 *") },
+                    label = { Text("目標") },
                     placeholder = { Text("例：毎日30分読書する") },
-                    minLines = 3,
-                    maxLines = 3,
+                    minLines = 2,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.clearFocus() }
@@ -202,8 +202,7 @@ fun GoalEditForm(
                     onValueChange = { viewModel.setEditingGoalItem(editingGoalItem!!.copy(celebration = it)) },
                     label = { Text("ご褒美") },
                     placeholder = { Text("目標達成時の自分へのご褒美を入力してください") },
-                    minLines = 2,
-                    maxLines = 3,
+                    minLines = 1,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.clearFocus() }
@@ -663,33 +662,6 @@ fun ActionStepsSection(
             }
         }
 
-        // アイテムがない場合またはプレースホルダー
-        if (actionSteps.isEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { /* フォーカスを新規追加フィールドに移す */ },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE0E0E0)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // 空の円
-                }
-
-                Text(
-                    text = "ステップを追加...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF9E9E9E),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
 
         // 新しいステップを追加するためのフィールド
         Row(
@@ -712,7 +684,7 @@ fun ActionStepsSection(
                 )
             }
 
-            OutlinedTextField(
+            TextField(
                 modifier = Modifier.weight(1f),
                 value = newStepTitle,
                 onValueChange = { newStepTitle = it },
