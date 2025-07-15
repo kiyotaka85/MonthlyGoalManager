@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -75,6 +76,8 @@ fun MonthlyReviewSummary(
                     }
                 },
                 actions = {
+                    var showDropdownMenu by remember { mutableStateOf(false) }
+
                     IconButton(
                         onClick = {
                             val shareText = generateShareText(monthYearText, goals, finalCheckIns, monthlyReview?.overallReflection ?: "")
@@ -87,6 +90,33 @@ fun MonthlyReviewSummary(
                         }
                     ) {
                         Icon(Icons.Default.Share, contentDescription = "Share")
+                    }
+
+                    IconButton(onClick = { showDropdownMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    }
+
+                    DropdownMenu(
+                        expanded = showDropdownMenu,
+                        onDismissRequest = { showDropdownMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit Review") },
+                            onClick = {
+                                showDropdownMenu = false
+                                navController.navigate("monthlyReviewWizard/$year/$month")
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                showDropdownMenu = false
+                                monthlyReview?.let { review ->
+                                    viewModel.deleteMonthlyReview(review)
+                                    navController.popBackStack()
+                                }
+                            }
+                        )
                     }
                 }
             )
@@ -127,6 +157,7 @@ fun MonthlyReviewSummary(
                     }
                 }
                 
+                // Monthly Reflectionを一番下に移動
                 item {
                     OverallReflectionCard(reflection = monthlyReview?.overallReflection ?: "")
                 }

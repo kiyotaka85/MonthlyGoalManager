@@ -236,9 +236,9 @@ fun CheckInScreen(
                             },
                             enabled = goalItemState?.let { goal ->
                                 if (goal.goalType == GoalType.NUMERIC) {
-                                    numericValue.isNotBlank() && comment.isNotBlank()
+                                    numericValue.isNotBlank() // コメント必須を削除
                                 } else {
-                                    progressPercent.isNotBlank() && comment.isNotBlank()
+                                    progressPercent.isNotBlank() // コメント必須を削除
                                 }
                             } ?: false,
                             modifier = Modifier.fillMaxWidth()
@@ -362,7 +362,7 @@ fun CheckInCompletionDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (isGoalCompleted) "🎉 目標達成！" else "✅ チェックイン完了！ 今日も一歩前進🥳",
+                text = if (isGoalCompleted) "🎉 目標達成！" else "✅ チェックイン完了！ 今日も一歩前進??",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )

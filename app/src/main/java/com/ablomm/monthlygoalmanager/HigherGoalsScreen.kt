@@ -3,12 +3,14 @@ package com.ablomm.monthlygoalmanager
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -21,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -239,7 +242,10 @@ fun AddHigherGoalDialog(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Title *") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences
+                    )
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -250,7 +256,10 @@ fun AddHigherGoalDialog(
                     label = { Text("Description (Optional)") },
                     minLines = 2,
                     maxLines = 3,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences
+                    )
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -270,7 +279,11 @@ fun AddHigherGoalDialog(
                                 .clickable { selectedColor = color }
                                 .then(
                                     if (selectedColor == color) {
-                                        Modifier.padding(2.dp)
+                                        Modifier.border(
+                                            width = 3.dp,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            shape = CircleShape
+                                        )
                                     } else Modifier
                                 )
                         )
