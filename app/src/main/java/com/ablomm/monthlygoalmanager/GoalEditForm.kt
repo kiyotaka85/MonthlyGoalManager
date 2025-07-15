@@ -13,7 +13,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
@@ -24,7 +26,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -80,7 +81,7 @@ fun GoalEditForm(
                 title = "",
                 detailedDescription = "",
                 targetMonth = targetMonth ?: 2025007,
-                goalType = GoalType.SIMPLE,
+                goalType = GoalType.NUMERIC, // デフォルトを数値目標に変更
                 targetValue = "",
                 targetNumericValue = null,
                 currentNumericValue = null,
@@ -605,50 +606,117 @@ fun ActionStepsSection(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Checkbox(
-                    checked = step.isCompleted,
-                    onCheckedChange = { isChecked ->
-                        viewModel.updateActionStep(step.copy(isCompleted = isChecked))
+                // 丸いチェックマーク
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (step.isCompleted)
+                                Color(0xFF4CAF50) // 緑色
+                            else
+                                Color(0xFFE0E0E0) // グレー
+                        )
+                        .clickable {
+                            viewModel.updateActionStep(step.copy(isCompleted = !step.isCompleted))
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (step.isCompleted) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "完了",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
+                }
+
+                // テキスト（枠なし）
+                Text(
+                    text = step.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (step.isCompleted)
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    else
+                        MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            // テキスト編集機能は後で実装
+                        }
                 )
 
-                OutlinedTextField(
-                    modifier = Modifier.weight(1f),
-                    value = step.title,
-                    onValueChange = { newTitle ->
-                        viewModel.updateActionStep(step.copy(title = newTitle))
-                    },
-                    label = { Text("ステップ") },
-                    placeholder = { Text("例：関連書籍を読む") },
-                    singleLine = true
-                )
-
+                // 削除ボタン
                 IconButton(
                     onClick = { viewModel.deleteActionStep(step) }
                 ) {
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "ステップを削除",
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
+            }
+        }
+
+        // アイテムがない場合またはプレースホルダー
+        if (actionSteps.isEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { /* フォーカスを新規追加フィールドに移す */ },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE0E0E0)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // 空の円
+                }
+
+                Text(
+                    text = "ステップを追加...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF9E9E9E),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
         // 新しいステップを追加するためのフィールド
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE0E0E0)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "追加",
+                    tint = Color(0xFF9E9E9E),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
             OutlinedTextField(
                 modifier = Modifier.weight(1f),
                 value = newStepTitle,
                 onValueChange = { newStepTitle = it },
-                label = { Text("新しいステップ") },
-                placeholder = { Text("例：毎朝30分間勉強する") },
+                placeholder = { Text("新しいステップを追加...") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
@@ -667,24 +735,6 @@ fun ActionStepsSection(
                     }
                 )
             )
-
-            Button(
-                onClick = {
-                    if (newStepTitle.isNotBlank()) {
-                        val nextOrder = (actionSteps.maxOfOrNull { it.order } ?: -1) + 1
-                        viewModel.addActionStep(
-                            ActionStep(
-                                goalId = goalId,
-                                title = newStepTitle,
-                                order = nextOrder
-                            )
-                        )
-                        newStepTitle = ""
-                    }
-                }
-            ) {
-                Text("追加")
-            }
         }
     }
 }

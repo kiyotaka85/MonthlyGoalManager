@@ -463,7 +463,7 @@ fun FinalCheckInStep(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "満足度評価",
+                    text = "自己評価",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
