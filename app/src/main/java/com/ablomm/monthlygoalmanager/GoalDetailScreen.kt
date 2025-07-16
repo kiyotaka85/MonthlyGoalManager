@@ -155,33 +155,28 @@ fun GoalBasicInfoCard(
             ) {
                 Text("タイプ:", fontWeight = FontWeight.Medium)
                 Text(
-                    text = when (goal.goalType) {
-                        GoalType.NUMERIC -> "数値目標"
-                        GoalType.SIMPLE -> "シンプル目標"
-                    }
+                    text = "数値目標"
                 )
             }
 
-            // 数値目標の場合の詳細
-            if (goal.goalType == GoalType.NUMERIC) {
-                goal.targetNumericValue?.let { target ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("目標値:", fontWeight = FontWeight.Medium)
-                        Text("${target.toInt()} ${goal.unit ?: ""}")
-                    }
+            // 数値目標の詳細
+            goal.targetNumericValue?.let { target ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("目標値:", fontWeight = FontWeight.Medium)
+                    Text("${target.toInt()} ${goal.unit ?: ""}")
                 }
+            }
 
-                goal.currentNumericValue?.let { current ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("現在値:", fontWeight = FontWeight.Medium)
-                        Text("${current.toInt()} ${goal.unit ?: ""}")
-                    }
+            goal.currentNumericValue?.let { current ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("現在値:", fontWeight = FontWeight.Medium)
+                    Text("${current.toInt()} ${goal.unit ?: ""}")
                 }
             }
 

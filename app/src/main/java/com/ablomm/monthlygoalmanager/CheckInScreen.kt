@@ -100,20 +100,12 @@ fun CheckInScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // 数値目標とシンプル目標で表示を分ける
-                            if (goal.goalType == GoalType.NUMERIC) {
-                                Text(
-                                    text = "現在の進捗: ${goal.currentNumericValue?.toInt() ?: 0} / ${goal.targetNumericValue?.toInt() ?: 0} ${goal.unit ?: ""} (${goal.currentProgress}%)",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.Gray
-                                )
-                            } else {
-                                Text(
-                                    text = "現在の進捗: ${goal.currentProgress}%",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.Gray
-                                )
-                            }
+                            // すべての目標は数値目標
+                            Text(
+                                text = "現在の進捗: ${goal.currentNumericValue?.toInt() ?: 0} / ${goal.targetNumericValue?.toInt() ?: 0} ${goal.unit ?: ""} (${goal.currentProgress}%)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray
+                            )
 
                             LinearProgressIndicator(
                                 progress = goal.currentProgress / 100f,
@@ -143,37 +135,20 @@ fun CheckInScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         goalItemState?.let { goal ->
-                            if (goal.goalType == GoalType.NUMERIC) {
-                                // 数値目標の場合：単位付きの数値入力
-                                OutlinedTextField(
-                                    value = numericValue,
-                                    onValueChange = { text ->
-                                        val value = text.toDoubleOrNull()
-                                        if (value == null && text.isNotEmpty()) return@OutlinedTextField
-                                        if (value != null && value < 0) return@OutlinedTextField
-                                        numericValue = text
-                                    },
-                                    label = { Text("現在の数値 (${goal.unit ?: ""})") },
-                                    placeholder = { Text("例：${goal.targetNumericValue?.toInt() ?: 100}") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            } else {
-                                // シンプル目標の場合：進捗率入力
-                                OutlinedTextField(
-                                    value = progressPercent,
-                                    onValueChange = { text ->
-                                        val progress = text.toIntOrNull()
-                                        if (progress == null && text.isNotEmpty()) return@OutlinedTextField
-                                        if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
-                                        progressPercent = text
-                                    },
-                                    label = { Text("Progress (%)") },
-                                    placeholder = { Text("Enter progress percentage (0-100)") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                            // すべての目標は数値目標：単位付きの数値入力
+                            OutlinedTextField(
+                                value = numericValue,
+                                onValueChange = { text ->
+                                    val value = text.toDoubleOrNull()
+                                    if (value == null && text.isNotEmpty()) return@OutlinedTextField
+                                    if (value != null && value < 0) return@OutlinedTextField
+                                    numericValue = text
+                                },
+                                label = { Text("現在の数値 (${goal.unit ?: ""})") },
+                                placeholder = { Text("例：${goal.targetNumericValue?.toInt() ?: 100}") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -193,18 +168,13 @@ fun CheckInScreen(
                         Button(
                             onClick = {
                                 goalItemState?.let { goal ->
-                                    val progress = if (goal.goalType == GoalType.NUMERIC) {
-                                        // 数値目標の場合：入力値から進捗率を計算
-                                        val currentValue = numericValue.toDoubleOrNull() ?: 0.0
-                                        val targetValue = goal.targetNumericValue ?: 1.0
-                                        if (targetValue > 0) {
-                                            ((currentValue / targetValue) * 100).coerceIn(0.0, 100.0).toInt()
-                                        } else {
-                                            0
-                                        }
+                                    // すべての目標は数値目標：入力値から進捗率を計算
+                                    val currentValue = numericValue.toDoubleOrNull() ?: 0.0
+                                    val targetValue = goal.targetNumericValue ?: 1.0
+                                    val progress = if (targetValue > 0) {
+                                        ((currentValue / targetValue) * 100).coerceIn(0.0, 100.0).toInt()
                                     } else {
-                                        // シンプル目標の場合：直接進捗率を使用
-                                        progressPercent.toIntOrNull() ?: 0
+                                        0
                                     }
 
                                     val checkIn = CheckInItem(
@@ -215,18 +185,11 @@ fun CheckInScreen(
                                     viewModel.addCheckIn(checkIn)
 
                                     // Update goal progress
-                                    val updatedGoal = if (goal.goalType == GoalType.NUMERIC) {
-                                        goal.copy(
-                                            currentNumericValue = numericValue.toDoubleOrNull() ?: 0.0,
-                                            currentProgress = progress,
-                                            isCompleted = progress >= 100
-                                        )
-                                    } else {
-                                        goal.copy(
-                                            currentProgress = progress,
-                                            isCompleted = progress >= 100
-                                        )
-                                    }
+                                    val updatedGoal = goal.copy(
+                                        currentNumericValue = currentValue,
+                                        currentProgress = progress,
+                                        isCompleted = progress >= 100
+                                    )
                                     viewModel.updateGoalItem(updatedGoal)
 
                                     // Show completion dialog for all check-ins
@@ -235,11 +198,7 @@ fun CheckInScreen(
                                 }
                             },
                             enabled = goalItemState?.let { goal ->
-                                if (goal.goalType == GoalType.NUMERIC) {
-                                    numericValue.isNotBlank() // コメント必須を削除
-                                } else {
-                                    progressPercent.isNotBlank() // コメント必須を削除
-                                }
+                                numericValue.isNotBlank() // すべての目標は数値目標
                             } ?: false,
                             modifier = Modifier.fillMaxWidth()
                         ) {

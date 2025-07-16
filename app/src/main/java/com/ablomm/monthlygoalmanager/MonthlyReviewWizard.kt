@@ -32,9 +32,9 @@ import java.util.*
 data class FinalCheckInState(
     val goalId: UUID,
     val goalTitle: String,
-    val goalType: GoalType, // 目標タイプを追加
+    val goalType: GoalType, // 目標タイプ（すべて数値目標）
     val finalProgress: String = "",
-    val isCompleted: Boolean = false, // シンプル目標用の完了フラグ
+    val isCompleted: Boolean = false, // 完了フラグ
     val achievements: String = "",
     val challenges: String = "",
     val learnings: String = "",
@@ -219,13 +219,9 @@ fun MonthlyReviewWizard(
                                 Button(
                                     onClick = { currentStep++ },
                                     enabled = finalCheckIns[currentStep].let { checkIn ->
-                                        // シンプル目標の場合は進捗率チェック不要
-                                        if (checkIn.goalType == GoalType.SIMPLE) {
-                                            checkIn.achievements.isNotBlank()
-                                        } else {
-                                            checkIn.finalProgress.isNotBlank() &&
-                                            checkIn.achievements.isNotBlank()
-                                        }
+                                        // すべての目標は数値目標なので進捗率と成果の両方をチェック
+                                        checkIn.finalProgress.isNotBlank() &&
+                                        checkIn.achievements.isNotBlank()
                                     }
                                 ) {
                                     Text("Next")
@@ -261,22 +257,13 @@ fun MonthlyReviewWizard(
                                             )
                                             viewModel.insertFinalCheckIn(finalCheckIn)
                                             
-                                            // Update goal progress - シンプル目標と数値目標で分けて処理
+                                            // Update goal progress - すべての目標は数値目標
                                             val goal = monthGoals.find { it.id == checkInState.goalId }
                                             goal?.let {
-                                                val updatedGoal = if (checkInState.goalType == GoalType.SIMPLE) {
-                                                    // シンプル目標の場合：isCompletedフラグを使用
-                                                    it.copy(
-                                                        currentProgress = if (checkInState.isCompleted) 100 else 0,
-                                                        isCompleted = checkInState.isCompleted
-                                                    )
-                                                } else {
-                                                    // 数値目標の場合：従来通り進捗率を使用
-                                                    it.copy(
-                                                        currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
-                                                        isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
-                                                    )
-                                                }
+                                                val updatedGoal = it.copy(
+                                                    currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
+                                                    isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
+                                                )
                                                 viewModel.updateGoalItem(updatedGoal)
                                             }
                                         }
@@ -374,54 +361,22 @@ fun FinalCheckInStep(
             Spacer(modifier = Modifier.height(16.dp))
         }
         
-        // 進捗入力部分 - 目標タイプに応じて表示を変更
-        if (checkInState.goalType == GoalType.NUMERIC) {
-            // 数値目標の場合：進捗率入力
-            OutlinedTextField(
-                value = checkInState.finalProgress,
-                onValueChange = { text ->
-                    val progress = text.toIntOrNull()
-                    if (progress == null && text.isNotEmpty()) return@OutlinedTextField
-                    if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
-                    onUpdate(checkInState.copy(finalProgress = text))
-                },
-                label = { Text("Final Progress (%) *") },
-                placeholder = { Text("Enter final progress percentage") },
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
-            // シンプル目標の場合：完了/未完了のチェックボックス
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = checkInState.isCompleted,
-                        onCheckedChange = { completed ->
-                            onUpdate(checkInState.copy(
-                                isCompleted = completed,
-                                finalProgress = if (completed) "100" else "0"
-                            ))
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "この目標を完了しましたか？",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
+        // 進捗入力部分 - すべての目標は数値目標なので進捗率入力
+        OutlinedTextField(
+            value = checkInState.finalProgress,
+            onValueChange = { text ->
+                val progress = text.toIntOrNull()
+                if (progress == null && text.isNotEmpty()) return@OutlinedTextField
+                if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
+                onUpdate(checkInState.copy(finalProgress = text))
+            },
+            label = { Text("Final Progress (%) *") },
+            placeholder = { Text("Enter final progress percentage") },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
 
         OutlinedTextField(
             value = checkInState.achievements,

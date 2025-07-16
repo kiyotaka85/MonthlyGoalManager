@@ -80,7 +80,7 @@ fun GoalEditForm(
     val editingGoalItem by viewModel.editingGoalItem.collectAsState()
     var isLoading by remember { mutableStateOf(true) }
     var currentStep by remember { mutableStateOf(0) }
-    val totalSteps = 5
+    val totalSteps = 4
 
     // 上位目標のリストを取得
     val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
@@ -94,7 +94,7 @@ fun GoalEditForm(
                 title = "",
                 detailedDescription = "",
                 targetMonth = targetMonth ?: 2025007,
-                goalType = GoalType.NUMERIC, // デフォルトを数値目標に変更
+                goalType = GoalType.NUMERIC, // すべての月次目標は数値目標
                 targetValue = "",
                 targetNumericValue = null,
                 currentNumericValue = null,
@@ -179,28 +179,23 @@ fun GoalEditForm(
                         .verticalScroll(scrollPosition)
                 ) {
                     when (currentStep) {
-                        0 -> BasicInfoStep(
+                        0 -> BasicInfoAndNumericStep(
                             editingGoalItem = editingGoalItem!!,
                             higherGoals = higherGoals,
                             viewModel = viewModel,
                             navController = navController,
                             focusManager = focusManager
                         )
-                        1 -> GoalTypeStep(
-                            editingGoalItem = editingGoalItem!!,
-                            viewModel = viewModel,
-                            focusManager = focusManager
-                        )
-                        2 -> ActionStepsStep(
+                        1 -> ActionStepsStep(
                             goalId = editingGoalItem!!.id,
                             viewModel = viewModel
                         )
-                        3 -> RewardStep(
+                        2 -> RewardStep(
                             editingGoalItem = editingGoalItem!!,
                             viewModel = viewModel,
                             focusManager = focusManager
                         )
-                        4 -> NotesStep(
+                        3 -> NotesStep(
                             editingGoalItem = editingGoalItem!!,
                             viewModel = viewModel,
                             focusManager = focusManager
@@ -224,9 +219,9 @@ fun GoalEditForm(
     }
 }
 
-// 基本情報ステップ
+// 基本情報と数値目標設定ステップ（統合版）
 @Composable
-fun BasicInfoStep(
+fun BasicInfoAndNumericStep(
     editingGoalItem: GoalItem,
     higherGoals: List<HigherGoal>,
     viewModel: GoalsViewModel,
@@ -236,34 +231,19 @@ fun BasicInfoStep(
     Column(
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // セクション1: 目標の基本情報
-        SectionHeader(title = "目標の基本情報")
-
+        // セクション1: 上位目標関連付け（最初に表示）
+        SectionHeader(title = "上位目標との関連付け")
+        
         Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 目標
-            OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = editingGoalItem.title,
-                onValueChange = { viewModel.setEditingGoalItem(editingGoalItem.copy(title = it)) },
-                label = { Text("目標") },
-                placeholder = { Text("例：毎日30分読書する") },
-                minLines = 3,
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.clearFocus() }
-                )
+            Text(
+                text = "月次目標は、具体的で測定可能な数値目標として設定します。定性的な目標（「Java試験に合格する」など）は上位目標として設定してください。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
-
-            // 優先度
-            PrioritySelector(
-                selectedPriority = editingGoalItem.priority,
-                onPriorityChanged = { priority ->
-                    viewModel.setEditingGoalItem(editingGoalItem.copy(priority = priority))
-                }
-            )
-
+            
             // 上位目標関連付け
             HigherGoalAssociation(
                 higherGoals = higherGoals,
@@ -276,64 +256,64 @@ fun BasicInfoStep(
                 }
             )
         }
-    }
-}
 
-// 目標タイプステップ
-@Composable
-fun GoalTypeStep(
-    editingGoalItem: GoalItem,
-    viewModel: GoalsViewModel,
-    focusManager: FocusManager
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        // セクション2: 目標タイプと数値設定
-        SectionHeader(title = "目標タイプと数値設定")
+        // セクション2: 目標の基本情報
+        SectionHeader(title = "数値目標の設定")
 
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 目標タイプ選択（トグルタブ）
-            GoalTypeToggle(
-                selectedType = editingGoalItem.goalType,
-                onTypeChanged = { newType ->
-                    viewModel.setEditingGoalItem(editingGoalItem.copy(goalType = newType))
+            // 目標タイトル
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = editingGoalItem.title,
+                onValueChange = { viewModel.setEditingGoalItem(editingGoalItem.copy(title = it)) },
+                label = { Text("目標") },
+                placeholder = { Text("例：毎日30分読書する、月に10冊本を読む") },
+                minLines = 2,
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.clearFocus() }
+                )
+            )
+
+            // 数値目標の設定
+            NumericGoalFields(
+                targetValue = editingGoalItem.targetNumericValue ?: 0.0,
+                currentValue = editingGoalItem.currentNumericValue ?: 0.0,
+                unit = editingGoalItem.unit ?: "",
+                onTargetValueChanged = { value ->
+                    val updatedGoal = editingGoalItem.copy(targetNumericValue = value)
+                    // 進捗率も同時に更新
+                    val progress = if (value > 0) {
+                        ((editingGoalItem.currentNumericValue ?: 0.0) / value * 100).coerceIn(0.0, 100.0).toInt()
+                    } else {
+                        0
+                    }
+                    viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
+                },
+                onCurrentValueChanged = { value ->
+                    val updatedGoal = editingGoalItem.copy(currentNumericValue = value)
+                    // 進捗率も同時に更新
+                    val progress = if ((editingGoalItem.targetNumericValue ?: 0.0) > 0) {
+                        (value / (editingGoalItem.targetNumericValue ?: 1.0) * 100).coerceIn(0.0, 100.0).toInt()
+                    } else {
+                        0
+                    }
+                    viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
+                },
+                onUnitChanged = { unit ->
+                    viewModel.setEditingGoalItem(editingGoalItem.copy(unit = unit))
                 }
             )
 
-            // 数値目標選択時の追加フィールド
-            if (editingGoalItem.goalType == GoalType.NUMERIC) {
-                NumericGoalFields(
-                    targetValue = editingGoalItem.targetNumericValue ?: 0.0,
-                    currentValue = editingGoalItem.currentNumericValue ?: 0.0,
-                    unit = editingGoalItem.unit ?: "",
-                    onTargetValueChanged = { value ->
-                        val updatedGoal = editingGoalItem.copy(targetNumericValue = value)
-                        // 進捗率も同時に更新
-                        val progress = if (value > 0) {
-                            ((editingGoalItem.currentNumericValue ?: 0.0) / value * 100).coerceIn(0.0, 100.0).toInt()
-                        } else {
-                            0
-                        }
-                        viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
-                    },
-                    onCurrentValueChanged = { value ->
-                        val updatedGoal = editingGoalItem.copy(currentNumericValue = value)
-                        // 進捗率も同時に更新
-                        val progress = if ((editingGoalItem.targetNumericValue ?: 0.0) > 0) {
-                            (value / (editingGoalItem.targetNumericValue ?: 1.0) * 100).coerceIn(0.0, 100.0).toInt()
-                        } else {
-                            0
-                        }
-                        viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
-                    },
-                    onUnitChanged = { unit ->
-                        viewModel.setEditingGoalItem(editingGoalItem.copy(unit = unit))
-                    }
-                )
-            }
+            // 優先度
+            PrioritySelector(
+                selectedPriority = editingGoalItem.priority,
+                onPriorityChanged = { priority ->
+                    viewModel.setEditingGoalItem(editingGoalItem.copy(priority = priority))
+                }
+            )
         }
     }
 }
@@ -533,111 +513,6 @@ fun NotesStep(
     }
 }
 
-// 目標タイプ選択のトグルタブ
-@Composable
-fun GoalTypeToggle(
-    selectedType: GoalType,
-    onTypeChanged: (GoalType) -> Unit
-) {
-    var showInfoDialog by remember { mutableStateOf(false) }
-
-    Column {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(bottom = 8.dp)
-        ) {
-            Text(
-                text = "目標タイプ *",
-                style = MaterialTheme.typography.labelMedium
-            )
-
-            Icon(
-                Icons.Default.Info,
-                contentDescription = "目標タイプの説明",
-                modifier = Modifier
-                    .size(16.dp)
-                    .clickable { showInfoDialog = true }
-                    .clip(CircleShape)
-                    .padding(2.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 数値目標タブ
-            Button(
-                onClick = { onTypeChanged(GoalType.NUMERIC) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedType == GoalType.NUMERIC)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text("数値目標")
-            }
-
-            // シンプル目標タブ
-            Button(
-                onClick = { onTypeChanged(GoalType.SIMPLE) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedType == GoalType.SIMPLE)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text("シンプル目標")
-            }
-        }
-
-        // 目標タイプの説明ダイアログ
-        if (showInfoDialog) {
-            AlertDialog(
-                onDismissRequest = { showInfoDialog = false },
-                title = { Text("目標タイプについて") },
-                text = {
-                    Column {
-                        Text(
-                            text = "数値目標",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "具体的な数値で進捗を測定します（売上、体重、読書数など）",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-
-                        Text(
-                            text = "シンプル目標",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "完了・未完了や取り組み度合いで評価します",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = { showInfoDialog = false }
-                    ) {
-                        Text("OK")
-                    }
-                }
-            )
-        }
-    }
-}
-
 // 数値目標用のフィールド
 @Composable
 fun NumericGoalFields(
@@ -825,7 +700,7 @@ fun PrioritySelector(
     }
 }
 
-// 上位目標関連付け
+// 上位目標関連付け（強化版）
 @Composable
 fun HigherGoalAssociation(
     higherGoals: List<HigherGoal>,
@@ -842,26 +717,76 @@ fun HigherGoalAssociation(
 
         val selectedHigherGoal = higherGoals.find { it.id == selectedHigherGoalId }
 
-        OutlinedTextField(
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onSelectHigherGoal() },
-            value = selectedHigherGoal?.title ?: "",
-            onValueChange = { },
-            enabled = false,
-            label = { Text("選択された上位目標") },
-            placeholder = { Text("上位目標を選択してください") },
-            trailingIcon = {
-                if (selectedHigherGoalId != null) {
-                    IconButton(onClick = onRemoveHigherGoal) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "上位目標を解除"
+            colors = CardDefaults.cardColors(
+                containerColor = if (selectedHigherGoal != null) 
+                    MaterialTheme.colorScheme.primaryContainer 
+                else 
+                    MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                if (selectedHigherGoal != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = selectedHigherGoal.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (!selectedHigherGoal.description.isNullOrBlank()) {
+                                Text(
+                                    text = selectedHigherGoal.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        IconButton(onClick = onRemoveHigherGoal) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "上位目標を解除",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    Column {
+                        Text(
+                            text = "上位目標を選択してください",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "この数値目標がどの上位目標（大きな目的）に貢献するかを選択します",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
-        )
+        }
+        
+        if (selectedHigherGoal == null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "💡 上位目標がない場合は、まず「上位目標」画面で定性的な目標を設定してください",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
     }
 }
 
