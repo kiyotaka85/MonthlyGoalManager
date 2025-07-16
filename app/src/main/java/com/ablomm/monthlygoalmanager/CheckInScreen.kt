@@ -40,6 +40,7 @@ fun CheckInScreen(
 ) {
     var goalItemState by remember { mutableStateOf<GoalItem?>(null) }
     var progressPercent by remember { mutableStateOf("") }
+    var numericValue by remember { mutableStateOf("") }
     var comment by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var showCompletionDialog by remember { mutableStateOf(false) }
@@ -51,6 +52,7 @@ fun CheckInScreen(
     LaunchedEffect(goalId) {
         goalItemState = viewModel.getGoalById(goalId)
         progressPercent = goalItemState?.currentProgress?.toString() ?: "0"
+        numericValue = goalItemState?.currentNumericValue?.toString() ?: ""
         isLoading = false
     }
 
@@ -97,11 +99,22 @@ fun CheckInScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Current Progress: ${goal.currentProgress}%",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Gray
-                            )
+
+                            // 数値目標とシンプル目標で表示を分ける
+                            if (goal.goalType == GoalType.NUMERIC) {
+                                Text(
+                                    text = "現在の進捗: ${goal.currentNumericValue?.toInt() ?: 0} / ${goal.targetNumericValue?.toInt() ?: 0} ${goal.unit ?: ""} (${goal.currentProgress}%)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray
+                                )
+                            } else {
+                                Text(
+                                    text = "現在の進捗: ${goal.currentProgress}%",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray
+                                )
+                            }
+
                             LinearProgressIndicator(
                                 progress = goal.currentProgress / 100f,
                                 modifier = Modifier
@@ -129,19 +142,39 @@ fun CheckInScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        OutlinedTextField(
-                            value = progressPercent,
-                            onValueChange = { text ->
-                                val progress = text.toIntOrNull()
-                                if (progress == null && text.isNotEmpty()) return@OutlinedTextField
-                                if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
-                                progressPercent = text
-                            },
-                            label = { Text("Progress (%)") },
-                            placeholder = { Text("Enter progress percentage (0-100)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        goalItemState?.let { goal ->
+                            if (goal.goalType == GoalType.NUMERIC) {
+                                // 数値目標の場合：単位付きの数値入力
+                                OutlinedTextField(
+                                    value = numericValue,
+                                    onValueChange = { text ->
+                                        val value = text.toDoubleOrNull()
+                                        if (value == null && text.isNotEmpty()) return@OutlinedTextField
+                                        if (value != null && value < 0) return@OutlinedTextField
+                                        numericValue = text
+                                    },
+                                    label = { Text("現在の数値 (${goal.unit ?: ""})") },
+                                    placeholder = { Text("例：${goal.targetNumericValue?.toInt() ?: 100}") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                // シンプル目標の場合：進捗率入力
+                                OutlinedTextField(
+                                    value = progressPercent,
+                                    onValueChange = { text ->
+                                        val progress = text.toIntOrNull()
+                                        if (progress == null && text.isNotEmpty()) return@OutlinedTextField
+                                        if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
+                                        progressPercent = text
+                                    },
+                                    label = { Text("Progress (%)") },
+                                    placeholder = { Text("Enter progress percentage (0-100)") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -159,28 +192,55 @@ fun CheckInScreen(
 
                         Button(
                             onClick = {
-                                val progress = progressPercent.toIntOrNull() ?: 0
-                                val checkIn = CheckInItem(
-                                    goalId = goalId,
-                                    progressPercent = progress,
-                                    comment = comment.trim()
-                                )
-                                viewModel.addCheckIn(checkIn)
-                                
-                                // Update goal progress
                                 goalItemState?.let { goal ->
-                                    val updatedGoal = goal.copy(
-                                        currentProgress = progress,
-                                        isCompleted = progress >= 100
+                                    val progress = if (goal.goalType == GoalType.NUMERIC) {
+                                        // 数値目標の場合：入力値から進捗率を計算
+                                        val currentValue = numericValue.toDoubleOrNull() ?: 0.0
+                                        val targetValue = goal.targetNumericValue ?: 1.0
+                                        if (targetValue > 0) {
+                                            ((currentValue / targetValue) * 100).coerceIn(0.0, 100.0).toInt()
+                                        } else {
+                                            0
+                                        }
+                                    } else {
+                                        // シンプル目標の場合：直接進捗率を使用
+                                        progressPercent.toIntOrNull() ?: 0
+                                    }
+
+                                    val checkIn = CheckInItem(
+                                        goalId = goalId,
+                                        progressPercent = progress,
+                                        comment = comment.trim()
                                     )
+                                    viewModel.addCheckIn(checkIn)
+
+                                    // Update goal progress
+                                    val updatedGoal = if (goal.goalType == GoalType.NUMERIC) {
+                                        goal.copy(
+                                            currentNumericValue = numericValue.toDoubleOrNull() ?: 0.0,
+                                            currentProgress = progress,
+                                            isCompleted = progress >= 100
+                                        )
+                                    } else {
+                                        goal.copy(
+                                            currentProgress = progress,
+                                            isCompleted = progress >= 100
+                                        )
+                                    }
                                     viewModel.updateGoalItem(updatedGoal)
+
+                                    // Show completion dialog for all check-ins
+                                    savedCheckIn = checkIn
+                                    showCompletionDialog = true
                                 }
-                                
-                                // Show completion dialog for all check-ins
-                                savedCheckIn = checkIn
-                                showCompletionDialog = true
                             },
-                            enabled = progressPercent.isNotBlank() && comment.isNotBlank(),
+                            enabled = goalItemState?.let { goal ->
+                                if (goal.goalType == GoalType.NUMERIC) {
+                                    numericValue.isNotBlank() // コメント必須を削除
+                                } else {
+                                    progressPercent.isNotBlank() // コメント必須を削除
+                                }
+                            } ?: false,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null)
@@ -302,7 +362,7 @@ fun CheckInCompletionDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (isGoalCompleted) "🎉 目標達成！" else "✅ チェックイン完了",
+                text = if (isGoalCompleted) "🎉 目標達成！" else "✅ チェックイン完了！ 今日も一歩前進??",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )

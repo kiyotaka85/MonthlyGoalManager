@@ -63,6 +63,10 @@ interface MonthlyReviewDao {
     
     @Update
     suspend fun updateMonthlyReview(review: MonthlyReview)
+
+    // 月次レビュー削除メソッドを追加
+    @Delete
+    suspend fun deleteMonthlyReview(review: MonthlyReview)
 }
 
 @Dao
@@ -78,6 +82,10 @@ interface FinalCheckInDao {
     
     @Query("SELECT * FROM final_checkins WHERE goalId = :goalId AND monthlyReviewId = :reviewId")
     suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn?
+
+    // 月次レビューに関連するFinalCheckInを一括削除するメソッドを追加
+    @Query("DELETE FROM final_checkins WHERE monthlyReviewId = :reviewId")
+    suspend fun deleteFinalCheckInsForReview(reviewId: UUID)
 }
 
 @Dao

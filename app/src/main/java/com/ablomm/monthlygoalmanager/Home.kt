@@ -17,7 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -38,7 +40,8 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     val higherGoals = viewModel.higherGoalList.collectAsState(initial = emptyList())
     
     val context = LocalContext.current
-    
+    val coroutineScope = rememberCoroutineScope()
+
     // 現在表示中の年月を管理 - ViewModelに保存して状態を保持
     val currentYearMonth by viewModel.currentYearMonth.collectAsState(initial = YearMonth.now())
     var sortMode by remember { mutableStateOf(SortMode.DEFAULT) }
@@ -144,8 +147,31 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                             expanded = showTopBarMenu,
                             onDismissRequest = { showTopBarMenu = false }
                         ) {
-                            // 月次レビューの開始
-                            if (!hasReviewState.value) {
+                            if (hasReviewState.value) {
+                                // レビューが完了している場合：Edit ReviewとDeleteのみ表示
+                                DropdownMenuItem(
+                                    text = { Text("Edit Review") },
+                                    onClick = {
+                                        navController.navigate("monthlyReviewWizard/${currentYearMonth.year}/${currentYearMonth.monthValue}")
+                                        showTopBarMenu = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Delete") },
+                                    onClick = {
+                                        // 年月から月次レビューを取得してから削除
+                                        viewModel.viewModelScope.launch {
+                                            val review = viewModel.getMonthlyReview(currentYearMonth.year, currentYearMonth.monthValue)
+                                            review?.let {
+                                                viewModel.deleteMonthlyReview(it)
+                                            }
+                                        }
+                                        showTopBarMenu = false
+                                    }
+                                )
+                            } else {
+                                // レビューが未完了の場合：従来のメニュー
+                                // 月次レビューの開始
                                 DropdownMenuItem(
                                     text = { Text("月次レビューの開始") },
                                     onClick = {
@@ -154,19 +180,17 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                                     }
                                 )
                                 HorizontalDivider()
-                            }
 
-                            // 表示設定
-                            DropdownMenuItem(
-                                text = { Text("表示設定") },
-                                onClick = {
-                                    showTopBarMenu = false
-                                    showDisplaySettingsMenu = true
-                                }
-                            )
+                                // 表示設定
+                                DropdownMenuItem(
+                                    text = { Text("表示設定") },
+                                    onClick = {
+                                        showTopBarMenu = false
+                                        showDisplaySettingsMenu = true
+                                    }
+                                )
 
-                            // PDF書き出し
-                            if (!hasReviewState.value) {
+                                // PDF書き出し
                                 DropdownMenuItem(
                                     text = { Text("PDF書き出し") },
                                     onClick = {
@@ -182,18 +206,18 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                                         showTopBarMenu = false
                                     }
                                 )
+
+                                HorizontalDivider()
+
+                                // 詳細設定
+                                DropdownMenuItem(
+                                    text = { Text("詳細設定") },
+                                    onClick = {
+                                        navController.navigate("settings")
+                                        showTopBarMenu = false
+                                    }
+                                )
                             }
-
-                            HorizontalDivider()
-
-                            // 詳細設定
-                            DropdownMenuItem(
-                                text = { Text("詳細設定") },
-                                onClick = {
-                                    navController.navigate("settings")
-                                    showTopBarMenu = false
-                                }
-                            )
                         }
 
                         // 表示設定のサブメニュー

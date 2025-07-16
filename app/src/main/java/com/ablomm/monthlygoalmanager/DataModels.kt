@@ -306,6 +306,13 @@ class GoalsViewModel @Inject constructor(
         }
     }
 
+    // 月次レビュー削除機能を追加
+    fun deleteMonthlyReview(review: MonthlyReview) {
+        viewModelScope.launch {
+            repository.deleteMonthlyReview(review)
+        }
+    }
+
     // 編集中GoalItemの状態管理
     private val _editingGoalItem = MutableStateFlow<GoalItem?>(null)
     val editingGoalItem: StateFlow<GoalItem?> = _editingGoalItem

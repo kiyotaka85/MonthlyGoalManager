@@ -104,6 +104,14 @@ class GoalsRepository(
         higherGoalDao.deleteHigherGoal(higherGoal)
     }
 
+    // 月次レビュー削除機能を追加
+    suspend fun deleteMonthlyReview(review: MonthlyReview) {
+        // まず関連するFinalCheckInを削除
+        finalCheckInDao.deleteFinalCheckInsForReview(review.id)
+        // その後、月次レビューを削除
+        monthlyReviewDao.deleteMonthlyReview(review)
+    }
+
     // ActionStep関連のメソッド
     fun getActionStepsForGoal(goalId: UUID): Flow<List<ActionStep>> {
         return actionStepDao.getActionStepsForGoal(goalId)

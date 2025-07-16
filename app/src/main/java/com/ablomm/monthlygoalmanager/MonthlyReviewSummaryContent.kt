@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -184,84 +185,183 @@ fun MonthlyReviewSummaryContent(
                         Spacer(modifier = Modifier.height(12.dp))
                         
                         goals.forEach { goal ->
-                            Row(
+                            val finalCheckIn by viewModel.getFinalCheckInsForReview(monthlyReview?.id ?: UUID.randomUUID()).collectAsState(initial = emptyList())
+                            val goalFinalCheckIn = finalCheckIn.find { it.goalId == goal.id }
+
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(vertical = 8.dp)
                             ) {
-                                Text(
-                                    text = goal.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = if (goal.isCompleted) "✅" else "${goal.currentProgress}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = goal.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // 数値目標の場合のみ進捗率を表示
+                                        if (goal.goalType == GoalType.NUMERIC) {
+                                            Text(
+                                                text = "${goal.currentProgress}%",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        // シンプル目標の場合は完了マークのみ（%表示なし）
+                                        if (goal.isCompleted) {
+                                            Text(
+                                                text = "✅",
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                        // 自己評価の星表示
+                                        goalFinalCheckIn?.let { checkIn ->
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                            ) {
+                                                repeat(5) { index ->
+                                                    Text(
+                                                        text = if (index < checkIn.satisfactionRating) "⭐" else "☆",
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 達成したこと、困難、学びを表示
+                                goalFinalCheckIn?.let { checkIn ->
+                                    if (checkIn.achievements.isNotBlank()) {
+                                        Text(
+                                            text = "✅ ${checkIn.achievements}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    }
+                                    if (checkIn.challenges.isNotBlank()) {
+                                        Text(
+                                            text = "⚠️ ${checkIn.challenges}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                    if (checkIn.learnings.isNotBlank()) {
+                                        Text(
+                                            text = "💡 ${checkIn.learnings}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (goal != goals.last()) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    thickness = 0.5.dp
                                 )
                             }
                         }
                     }
                 }
             }
-            
+
             // 編集・削除ボタン
-            item {
-                Card(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+            monthlyReview?.let { review ->
+                item {
+                    var showDeleteDialog by remember { mutableStateOf(false) }
+
+                    Card(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Text(
-                            text = "⚙️ Actions",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Column(
+                            modifier = Modifier.padding(16.dp)
                         ) {
-                            OutlinedButton(
-                                onClick = {
-                                    navController.navigate("monthlyReview/$year/$month")
-                                },
-                                modifier = Modifier.weight(1f)
+                            Text(
+                                text = "⚙️ Actions",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit Review")
-                            }
-                            
-                            OutlinedButton(
-                                onClick = {
-                                    // TODO: 削除機能を実装
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Delete")
+                                OutlinedButton(
+                                    onClick = {
+                                        navController.navigate("monthlyReview/$year/$month")
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Edit Review")
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        showDeleteDialog = true
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Delete")
+                                }
                             }
                         }
+                    }
+
+                    // 削除確認ダイアログ
+                    if (showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteDialog = false },
+                            title = { Text("月次レビューを削除") },
+                            text = { Text("この月次レビューを削除してもよろしいですか？関連するすべての評価データも削除されます。この操作は取り消せません。") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        viewModel.deleteMonthlyReview(review)
+                                        showDeleteDialog = false
+                                        navController.popBackStack()
+                                    }
+                                ) {
+                                    Text("削除", color = MaterialTheme.colorScheme.error)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteDialog = false }) {
+                                    Text("キャンセル")
+                                }
+                            }
+                        )
                     }
                 }
             }
