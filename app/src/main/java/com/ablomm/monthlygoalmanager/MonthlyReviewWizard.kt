@@ -32,9 +32,9 @@ import java.util.*
 data class FinalCheckInState(
     val goalId: UUID,
     val goalTitle: String,
-    val goalType: GoalType, // 目標タイプを追加
+    val goalType: GoalType, // 目標タイプ（すべて数値目標）
     val finalProgress: String = "",
-    val isCompleted: Boolean = false, // シンプル目標用の完了フラグ
+    val isCompleted: Boolean = false, // 完了フラグ
     val achievements: String = "",
     val challenges: String = "",
     val learnings: String = "",
@@ -219,13 +219,9 @@ fun MonthlyReviewWizard(
                                 Button(
                                     onClick = { currentStep++ },
                                     enabled = finalCheckIns[currentStep].let { checkIn ->
-                                        // シンプル目標の場合は進捗率チェック不要
-                                        if (checkIn.goalType == GoalType.SIMPLE) {
-                                            checkIn.achievements.isNotBlank()
-                                        } else {
-                                            checkIn.finalProgress.isNotBlank() &&
-                                            checkIn.achievements.isNotBlank()
-                                        }
+                                        // すべての目標は数値目標なので進捗率と成果の両方をチェック
+                                        checkIn.finalProgress.isNotBlank() &&
+                                        checkIn.achievements.isNotBlank()
                                     }
                                 ) {
                                     Text("Next")
@@ -261,22 +257,13 @@ fun MonthlyReviewWizard(
                                             )
                                             viewModel.insertFinalCheckIn(finalCheckIn)
                                             
-                                            // Update goal progress - シンプル目標と数値目標で分けて処理
+                                            // Update goal progress - すべての目標は数値目標
                                             val goal = monthGoals.find { it.id == checkInState.goalId }
                                             goal?.let {
-                                                val updatedGoal = if (checkInState.goalType == GoalType.SIMPLE) {
-                                                    // シンプル目標の場合：isCompletedフラグを使用
-                                                    it.copy(
-                                                        currentProgress = if (checkInState.isCompleted) 100 else 0,
-                                                        isCompleted = checkInState.isCompleted
-                                                    )
-                                                } else {
-                                                    // 数値目標の場合：従来通り進捗率を使用
-                                                    it.copy(
-                                                        currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
-                                                        isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
-                                                    )
-                                                }
+                                                val updatedGoal = it.copy(
+                                                    currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
+                                                    isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
+                                                )
                                                 viewModel.updateGoalItem(updatedGoal)
                                             }
                                         }

@@ -155,10 +155,7 @@ fun GoalBasicInfoCard(
             ) {
                 Text("タイプ:", fontWeight = FontWeight.Medium)
                 Text(
-                    text = when (goal.goalType) {
-                        GoalType.NUMERIC -> "数値目標"
-                        GoalType.SIMPLE -> "シンプル目標"
-                    }
+                    text = "数値目標"
                 )
             }
 

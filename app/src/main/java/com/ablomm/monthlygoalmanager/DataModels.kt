@@ -44,7 +44,7 @@ data class GoalItem(
     val title: String,
     val detailedDescription: String? = null,
     val targetMonth: Int = 2025005,
-    val goalType: GoalType = GoalType.SIMPLE, // 目標タイプ
+    val goalType: GoalType = GoalType.NUMERIC, // すべての月次目標は数値で測定可能
     val targetValue: String = "0", // シンプル目標用
     val targetNumericValue: Double? = null, // 数値目標の目標値
     val currentNumericValue: Double? = null, // 数値目標の現在値
@@ -113,8 +113,7 @@ enum class GoalPriority{
 }
 
 enum class GoalType {
-    NUMERIC,    // 数値目標
-    SIMPLE      // シンプル目標
+    NUMERIC    // 数値目標（月次目標はすべて数値で測定可能である必要がある）
 }
 
 @HiltViewModel
