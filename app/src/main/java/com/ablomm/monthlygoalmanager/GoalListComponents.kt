@@ -63,44 +63,16 @@ fun GoalCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (goalItem.goalType == GoalType.NUMERIC) {
-                    // 数値目標の場合: [現在値] / [目標値] [単位] [進捗率]%
-                    val currentValue = goalItem.currentNumericValue?.toInt() ?: 0
-                    val targetValue = goalItem.targetNumericValue?.toInt() ?: 1
-                    val unit = goalItem.unit ?: ""
+                // すべての目標は数値目標: [現在値] / [目標値] [単位] [進捗率]%
+                val currentValue = goalItem.currentNumericValue?.toInt() ?: 0
+                val targetValue = goalItem.targetNumericValue?.toInt() ?: 1
+                val unit = goalItem.unit ?: ""
 
-                    Text(
-                        text = "$currentValue / $targetValue $unit  ${goalItem.currentProgress}%",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    // シンプル目標の場合: 完了状態のみ表示
-                    if (goalItem.currentProgress >= 100) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = "完了",
-                                tint = Color(0xFF4CAF50),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "完了",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF4CAF50)
-                            )
-                        }
-                    } else {
-                        Text(
-                            text = "未完了",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                Text(
+                    text = "$currentValue / $targetValue $unit  ${goalItem.currentProgress}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
@@ -153,19 +125,16 @@ fun GoalListItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (goalItem.goalType == GoalType.NUMERIC) {
-                // 数値目標の場合: [現在値] / [目標値] [単位]
-                val currentValue = goalItem.currentNumericValue?.toInt() ?: 0
-                val targetValue = goalItem.targetNumericValue?.toInt() ?: 1
-                val unit = goalItem.unit ?: ""
+            // すべての目標は数値目標: [現在値] / [目標値] [単位]
+            val currentValue = goalItem.currentNumericValue?.toInt() ?: 0
+            val targetValue = goalItem.targetNumericValue?.toInt() ?: 1
+            val unit = goalItem.unit ?: ""
 
-                Text(
-                    text = "$currentValue / $targetValue $unit",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            // シンプル目標の場合: 完了マークのみ（%表示なし）
+            Text(
+                text = "$currentValue / $targetValue $unit",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             // 完了マーク
             if (goalItem.isCompleted) {

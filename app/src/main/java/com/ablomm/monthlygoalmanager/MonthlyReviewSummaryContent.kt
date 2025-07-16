@@ -207,15 +207,13 @@ fun MonthlyReviewSummaryContent(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        // 数値目標の場合のみ進捗率を表示
-                                        if (goal.goalType == GoalType.NUMERIC) {
-                                            Text(
-                                                text = "${goal.currentProgress}%",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        // シンプル目標の場合は完了マークのみ（%表示なし）
+                                        // すべての目標は数値目標なので進捗率を表示
+                                        Text(
+                                            text = "${goal.currentProgress}%",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        // 完了マーク
                                         if (goal.isCompleted) {
                                             Text(
                                                 text = "✅",

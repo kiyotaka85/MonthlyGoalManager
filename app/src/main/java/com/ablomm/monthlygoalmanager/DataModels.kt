@@ -45,7 +45,7 @@ data class GoalItem(
     val detailedDescription: String? = null,
     val targetMonth: Int = 2025005,
     val goalType: GoalType = GoalType.NUMERIC, // すべての月次目標は数値で測定可能
-    val targetValue: String = "0", // シンプル目標用
+    val targetValue: String = "0", // 後方互換性のため残す（削除予定）
     val targetNumericValue: Double? = null, // 数値目標の目標値
     val currentNumericValue: Double? = null, // 数値目標の現在値
     val unit: String? = null, // 数値目標の単位

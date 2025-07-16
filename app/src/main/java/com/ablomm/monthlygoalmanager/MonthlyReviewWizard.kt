@@ -361,54 +361,22 @@ fun FinalCheckInStep(
             Spacer(modifier = Modifier.height(16.dp))
         }
         
-        // 進捗入力部分 - 目標タイプに応じて表示を変更
-        if (checkInState.goalType == GoalType.NUMERIC) {
-            // 数値目標の場合：進捗率入力
-            OutlinedTextField(
-                value = checkInState.finalProgress,
-                onValueChange = { text ->
-                    val progress = text.toIntOrNull()
-                    if (progress == null && text.isNotEmpty()) return@OutlinedTextField
-                    if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
-                    onUpdate(checkInState.copy(finalProgress = text))
-                },
-                label = { Text("Final Progress (%) *") },
-                placeholder = { Text("Enter final progress percentage") },
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
-            // シンプル目標の場合：完了/未完了のチェックボックス
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = checkInState.isCompleted,
-                        onCheckedChange = { completed ->
-                            onUpdate(checkInState.copy(
-                                isCompleted = completed,
-                                finalProgress = if (completed) "100" else "0"
-                            ))
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "この目標を完了しましたか？",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
+        // 進捗入力部分 - すべての目標は数値目標なので進捗率入力
+        OutlinedTextField(
+            value = checkInState.finalProgress,
+            onValueChange = { text ->
+                val progress = text.toIntOrNull()
+                if (progress == null && text.isNotEmpty()) return@OutlinedTextField
+                if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
+                onUpdate(checkInState.copy(finalProgress = text))
+            },
+            label = { Text("Final Progress (%) *") },
+            placeholder = { Text("Enter final progress percentage") },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
 
         OutlinedTextField(
             value = checkInState.achievements,
