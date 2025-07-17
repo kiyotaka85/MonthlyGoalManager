@@ -19,16 +19,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,9 +32,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -63,9 +56,6 @@ import androidx.navigation.NavHostController
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.background
 import java.util.UUID
-import androidx.compose.material3.Checkbox
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.TextField
 import androidx.compose.material3.LinearProgressIndicator
 
@@ -94,11 +84,9 @@ fun GoalEditForm(
                 title = "",
                 detailedDescription = "",
                 targetMonth = targetMonth ?: 2025007,
-                goalType = GoalType.NUMERIC, // デフォルトを数値目標に変更
-                targetValue = "",
-                targetNumericValue = null,
-                currentNumericValue = null,
-                unit = null,
+                targetNumericValue = 0.0,
+                currentNumericValue = 0.0,
+                unit = "",
                 currentProgress = 0,
                 priority = GoalPriority.Middle,
                 isCompleted = false,
@@ -144,7 +132,7 @@ fun GoalEditForm(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -279,7 +267,7 @@ fun BasicInfoStep(
     }
 }
 
-// 目標タイプステップ
+// 目標タイプステップ（数値設定のみ）
 @Composable
 fun GoalTypeStep(
     editingGoalItem: GoalItem,
@@ -289,51 +277,41 @@ fun GoalTypeStep(
     Column(
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // セクション2: 目標タイプと数値設定
-        SectionHeader(title = "目標タイプと数値設定")
+        // セクション2: 数値設定
+        SectionHeader(title = "数値設定")
 
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 目標タイプ選択（トグルタブ）
-            GoalTypeToggle(
-                selectedType = editingGoalItem.goalType,
-                onTypeChanged = { newType ->
-                    viewModel.setEditingGoalItem(editingGoalItem.copy(goalType = newType))
+            // 数値目標の入力フィールド（必須）
+            NumericGoalFields(
+                targetValue = editingGoalItem.targetNumericValue,
+                currentValue = editingGoalItem.currentNumericValue,
+                unit = editingGoalItem.unit,
+                onTargetValueChanged = { value ->
+                    val updatedGoal = editingGoalItem.copy(targetNumericValue = value)
+                    // 進捗率も同時に更新
+                    val progress = if (value > 0) {
+                        (editingGoalItem.currentNumericValue / value * 100).coerceIn(0.0, 100.0).toInt()
+                    } else {
+                        0
+                    }
+                    viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
+                },
+                onCurrentValueChanged = { value ->
+                    val updatedGoal = editingGoalItem.copy(currentNumericValue = value)
+                    // 進捗率も同時に更新
+                    val progress = if (editingGoalItem.targetNumericValue > 0) {
+                        (value / editingGoalItem.targetNumericValue * 100).coerceIn(0.0, 100.0).toInt()
+                    } else {
+                        0
+                    }
+                    viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
+                },
+                onUnitChanged = { unit ->
+                    viewModel.setEditingGoalItem(editingGoalItem.copy(unit = unit))
                 }
             )
-
-            // 数値目標選択時の追加フィールド
-            if (editingGoalItem.goalType == GoalType.NUMERIC) {
-                NumericGoalFields(
-                    targetValue = editingGoalItem.targetNumericValue ?: 0.0,
-                    currentValue = editingGoalItem.currentNumericValue ?: 0.0,
-                    unit = editingGoalItem.unit ?: "",
-                    onTargetValueChanged = { value ->
-                        val updatedGoal = editingGoalItem.copy(targetNumericValue = value)
-                        // 進捗率も同時に更新
-                        val progress = if (value > 0) {
-                            ((editingGoalItem.currentNumericValue ?: 0.0) / value * 100).coerceIn(0.0, 100.0).toInt()
-                        } else {
-                            0
-                        }
-                        viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
-                    },
-                    onCurrentValueChanged = { value ->
-                        val updatedGoal = editingGoalItem.copy(currentNumericValue = value)
-                        // 進捗率も同時に更新
-                        val progress = if ((editingGoalItem.targetNumericValue ?: 0.0) > 0) {
-                            (value / (editingGoalItem.targetNumericValue ?: 1.0) * 100).coerceIn(0.0, 100.0).toInt()
-                        } else {
-                            0
-                        }
-                        viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
-                    },
-                    onUnitChanged = { unit ->
-                        viewModel.setEditingGoalItem(editingGoalItem.copy(unit = unit))
-                    }
-                )
-            }
         }
     }
 }
@@ -530,111 +508,6 @@ fun NotesStep(
                 onDone = { focusManager.clearFocus() }
             )
         )
-    }
-}
-
-// 目標タイプ選択のトグルタブ
-@Composable
-fun GoalTypeToggle(
-    selectedType: GoalType,
-    onTypeChanged: (GoalType) -> Unit
-) {
-    var showInfoDialog by remember { mutableStateOf(false) }
-
-    Column {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(bottom = 8.dp)
-        ) {
-            Text(
-                text = "目標タイプ *",
-                style = MaterialTheme.typography.labelMedium
-            )
-
-            Icon(
-                Icons.Default.Info,
-                contentDescription = "目標タイプの説明",
-                modifier = Modifier
-                    .size(16.dp)
-                    .clickable { showInfoDialog = true }
-                    .clip(CircleShape)
-                    .padding(2.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 数値目標タブ
-            Button(
-                onClick = { onTypeChanged(GoalType.NUMERIC) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedType == GoalType.NUMERIC)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text("数値目標")
-            }
-
-            // シンプル目標タブ
-            Button(
-                onClick = { onTypeChanged(GoalType.SIMPLE) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedType == GoalType.SIMPLE)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text("シンプル目標")
-            }
-        }
-
-        // 目標タイプの説明ダイアログ
-        if (showInfoDialog) {
-            AlertDialog(
-                onDismissRequest = { showInfoDialog = false },
-                title = { Text("目標タイプについて") },
-                text = {
-                    Column {
-                        Text(
-                            text = "数値目標",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "具体的な数値で進捗を測定します（売上、体重、読書数など）",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-
-                        Text(
-                            text = "シンプル目標",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "完了・未完了や取り組み度合いで評価します",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = { showInfoDialog = false }
-                    ) {
-                        Text("OK")
-                    }
-                }
-            )
-        }
     }
 }
 

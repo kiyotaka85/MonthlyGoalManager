@@ -109,7 +109,7 @@ class PdfExporter(private val context: Context) {
                 // データ行
                 goalList.forEach { goal ->
                     table.addCell(Paragraph(goal.title))
-                    table.addCell(Paragraph(goal.targetValue))
+                    table.addCell(Paragraph("${goal.targetNumericValue}"))
                     table.addCell(Paragraph("${goal.currentProgress}%"))
                     table.addCell(
                         Paragraph(

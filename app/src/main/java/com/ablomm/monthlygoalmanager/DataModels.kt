@@ -44,11 +44,9 @@ data class GoalItem(
     val title: String,
     val detailedDescription: String? = null,
     val targetMonth: Int = 2025005,
-    val goalType: GoalType = GoalType.SIMPLE, // 目標タイプ
-    val targetValue: String = "0", // シンプル目標用
-    val targetNumericValue: Double? = null, // 数値目標の目標値
-    val currentNumericValue: Double? = null, // 数値目標の現在値
-    val unit: String? = null, // 数値目標の単位
+    val targetNumericValue: Double = 0.0, // 数値目標の目標値（必須）
+    val currentNumericValue: Double = 0.0, // 数値目標の現在値（必須）
+    val unit: String = "", // 数値目標の単位（必須）
     val currentProgress: Int = 0,
     val priority: GoalPriority = GoalPriority.Middle,
     val isCompleted: Boolean = false,
@@ -81,26 +79,6 @@ class Converters {
     fun toUUID(uuid: String?): UUID? {
         return uuid?.let { UUID.fromString(it) }
     }
-
-    @TypeConverter
-    fun fromGoalPriority(priority: GoalPriority): String {
-        return priority.name
-    }
-
-    @TypeConverter
-    fun toGoalPriority(priority: String): GoalPriority {
-        return GoalPriority.valueOf(priority)
-    }
-
-    @TypeConverter
-    fun fromGoalType(goalType: GoalType): String {
-        return goalType.name
-    }
-
-    @TypeConverter
-    fun toGoalType(goalType: String): GoalType {
-        return GoalType.valueOf(goalType)
-    }
 }
 
 data class MissionItem(
@@ -110,11 +88,6 @@ data class MissionItem(
 
 enum class GoalPriority{
     High, Middle, Low
-}
-
-enum class GoalType {
-    NUMERIC,    // 数値目標
-    SIMPLE      // シンプル目標
 }
 
 @HiltViewModel
@@ -333,7 +306,7 @@ val juneGoals = listOf(
         title = "MATH 1201 を6月末までに完了する",
         detailedDescription = "SophiaにてCollege Algebraをスコア90%以上で突破する。",
         targetMonth = 2025006,
-        targetValue = "100%", // 完了目標
+        targetNumericValue = 100.0, // 完了目標
         currentProgress = 100,
         priority = GoalPriority.High,
         displayOrder = 0
@@ -341,7 +314,7 @@ val juneGoals = listOf(
     GoalItem(
         title = "CS 2203 を6月末までに完了する",
         targetMonth = 2025006,
-        targetValue = "100%",
+        targetNumericValue = 100.0,
         currentProgress = 5,
         priority = GoalPriority.High,
         displayOrder = 1
@@ -349,7 +322,7 @@ val juneGoals = listOf(
     GoalItem(
         title = "目標入力フォーム画面を完成させる",
         targetMonth = 2025006,
-        targetValue = "UI完成+ViewModel連携",
+        targetNumericValue = 100.0,
         currentProgress = 50,
         priority = GoalPriority.Middle,
         displayOrder = 2
@@ -357,7 +330,7 @@ val juneGoals = listOf(
     GoalItem(
         title = "チェックイン画面のUIを仮実装する",
         targetMonth = 2025006,
-        targetValue = "進捗入力+保存動作確認",
+        targetNumericValue = 100.0,
         currentProgress = 10,
         priority = GoalPriority.Middle,
         displayOrder = 3
@@ -365,7 +338,7 @@ val juneGoals = listOf(
     GoalItem(
         title = "Plan 2028 のチェックリスト2項目を深掘りする",
         targetMonth = 2025006,
-        targetValue = "第4・5項目の自己分析完了",
+        targetNumericValue = 100.0,
         currentProgress = 80,
         priority = GoalPriority.Middle,
         displayOrder = 4
@@ -373,7 +346,7 @@ val juneGoals = listOf(
     GoalItem(
         title = "週1回の自己内省ジャーナルを書く",
         targetMonth = 2025006,
-        targetValue = "4回分",
+        targetNumericValue = 4.0,
         currentProgress = 0,
         priority = GoalPriority.Low,
         displayOrder = 5
@@ -385,7 +358,7 @@ val julyGoals = listOf(
         title = "月次目標管理アプリのMVPを完成させる",
         detailedDescription = "Jetpack Compose Unit3〜4を進めながら、目標入力・チェックイン・レビューのUIとロジックを最低限実装する。",
         targetMonth = 2025007,
-        targetValue = "基本画面と保存処理の実装",
+        targetNumericValue = 100.0,
         currentProgress = 20,
         priority = GoalPriority.High,
         displayOrder = 0
@@ -394,7 +367,7 @@ val julyGoals = listOf(
         title = "Sophia Database教材のPDFをすべて事前学習する",
         detailedDescription = "サブスク再開前にPDFを1周読み、章末まとめをNotion等に整理する。余力があればEthics教材にも着手。",
         targetMonth = 2025007,
-        targetValue = "Database教材1周＋要点まとめ",
+        targetNumericValue = 100.0,
         currentProgress = 10,
         priority = GoalPriority.High,
         displayOrder = 1
@@ -403,7 +376,7 @@ val julyGoals = listOf(
         title = "人生設計とキャリア・学位計画をブラッシュアップする",
         detailedDescription = "NotionやPDFにて「Plan2028」含むライフ・キャリアビジョンを言語化・更新し、現実解像度を高める。",
         targetMonth = 2025007,
-        targetValue = "文書化された設計書の完成",
+        targetNumericValue = 100.0,
         currentProgress = 30,
         priority = GoalPriority.High,
         displayOrder = 2
@@ -411,7 +384,7 @@ val julyGoals = listOf(
     GoalItem(
         title = "Jetpack Composeチュートリアル Unit3〜4 を完了する",
         targetMonth = 2025007,
-        targetValue = "Unit3とUnit4を完了",
+        targetNumericValue = 100.0,
         currentProgress = 20,
         priority = GoalPriority.Middle,
         displayOrder = 3
@@ -420,7 +393,7 @@ val julyGoals = listOf(
         title = "運動習慣を週1回以上継続する",
         detailedDescription = "ジムまたは外ランニングを週1回以上行う。Grabでジム移動も1回実施する。",
         targetMonth = 2025007,
-        targetValue = "月4回の運動実施",
+        targetNumericValue = 4.0,
         currentProgress = 0,
         priority = GoalPriority.Middle,
         displayOrder = 4
@@ -429,7 +402,7 @@ val julyGoals = listOf(
         title = "ベトナム語を毎日1フレーズ＋週末に実践する",
         detailedDescription = "日々の暮らしで1日1表現を記録し、週末にGrabや買い物などで実践チャレンジする。",
         targetMonth = 2025007,
-        targetValue = "毎日継続＋週末実践4回",
+        targetNumericValue = 7.0,
         currentProgress = 0,
         priority = GoalPriority.Low,
         displayOrder = 5
@@ -438,7 +411,7 @@ val julyGoals = listOf(
         title = "育児を家族と分担し信頼を築く",
         detailedDescription = "朝のミルクと午後の沐浴は可能な限り担当。柔軟に妻をサポートし、家庭の安心感を保つ。",
         targetMonth = 2025007,
-        targetValue = "週5日以上ミルク＋沐浴参加",
+        targetNumericValue = 5.0,
         currentProgress = 0,
         priority = GoalPriority.Middle,
         displayOrder = 6
@@ -447,7 +420,7 @@ val julyGoals = listOf(
         title = "Grabで1人でTime Cityのジムに行く",
         detailedDescription = "道順・語彙・流れを確認し、ベトナム滞在中に自立移動体験を達成する。",
         targetMonth = 2025007,
-        targetValue = "1回成功体験を積む",
+        targetNumericValue = 1.0,
         currentProgress = 0,
         priority = GoalPriority.Low,
         displayOrder = 7
@@ -476,4 +449,3 @@ data class FinalCheckIn(
     val learnings: String,    // 学んだこと
     val satisfactionRating: Int = 3 // 満足度評価（1-5の星評価）
 )
-
