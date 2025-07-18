@@ -3,6 +3,8 @@ package com.ablomm.monthlygoalmanager
 import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -31,6 +34,8 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.math.sin
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -298,6 +303,148 @@ fun CheckInHistoryItem(checkIn: CheckInItem) {
     }
 }
 
+// 紙吹雪の個別要素データクラス
+data class ConfettiPiece(
+    val id: Int,
+    val startX: Float,
+    val startY: Float,
+    val color: Color,
+    val size: Float,
+    val rotation: Float
+)
+
+// 紙吹雪アニメーションコンポーネント
+@Composable
+fun ConfettiAnimation(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "confetti")
+    val confettiCount = 80
+
+    // 明るく、ゴージャスな紙吹雪の色リスト
+    val colors = listOf(
+        Color(0xFFFFD700), // Bright Gold
+        Color(0xFFFFA500), // Bright Orange
+        Color(0xFFFF1493), // Deep Pink
+        Color(0xFF00FFFF), // Cyan
+        Color(0xFFFF69B4), // Hot Pink
+        Color(0xFFFFFF00), // Bright Yellow
+        Color(0xFF32CD32), // Lime Green
+        Color(0xFFFF4500), // Orange Red
+        Color(0xFFDA70D6), // Orchid
+        Color(0xFF00FA9A), // Medium Spring Green
+        Color(0xFFFF6347), // Tomato
+        Color(0xFF9370DB), // Medium Purple
+        Color(0xFFFFB6C1), // Light Pink
+        Color(0xFF98FB98), // Pale Green
+        Color(0xFFFFFFE0), // Light Yellow
+        Color(0xFFFFC0CB)  // Pink
+    )
+
+    // 紙吹雪のピースを生成
+    val confettiPieces = remember {
+        List(confettiCount) { index ->
+            ConfettiPiece(
+                id = index,
+                startX = Random.nextFloat() * 1000f,
+                startY = -Random.nextFloat() * 200f,
+                color = colors.random(),
+                size = Random.nextFloat() * 8f + 6f,
+                rotation = Random.nextFloat() * 360f
+            )
+        }
+    }
+
+    // アニメーション値
+    val animationProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "confetti_progress"
+    )
+
+    Canvas(modifier = modifier.fillMaxSize()) {
+        confettiPieces.forEach { piece ->
+            val progress = (animationProgress + piece.id * 0.08f) % 1f
+            val x = piece.startX + sin(progress * 8f) * 40f
+            val y = piece.startY + progress * (size.height + 200f)
+            val alpha = (1f - progress * 0.7f).coerceIn(0.3f, 1f)
+
+            // 影効果
+            drawCircle(
+                color = Color.Black.copy(alpha = alpha * 0.3f),
+                radius = piece.size + 1f,
+                center = Offset(x + 2f, y + 2f)
+            )
+
+            // メインの紙吹雪
+            drawCircle(
+                color = piece.color.copy(alpha = alpha),
+                radius = piece.size,
+                center = Offset(x, y)
+            )
+
+            // 白い縁取り
+            drawCircle(
+                color = Color.White.copy(alpha = alpha * 0.8f),
+                radius = piece.size,
+                center = Offset(x, y),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+            )
+
+            // 光沢効果
+            drawCircle(
+                color = Color.White.copy(alpha = alpha * 0.6f),
+                radius = piece.size * 0.3f,
+                center = Offset(x - piece.size * 0.3f, y - piece.size * 0.3f)
+            )
+
+            // 追加の装飾的な形状
+            when (piece.id % 4) {
+                0 -> {
+                    // 星型風
+                    drawCircle(
+                        color = piece.color.copy(alpha = alpha * 0.8f),
+                        radius = piece.size * 0.6f,
+                        center = Offset(x, y)
+                    )
+                }
+                1 -> {
+                    // ダイヤモンド型
+                    drawRect(
+                        color = piece.color.copy(alpha = alpha),
+                        topLeft = Offset(x - piece.size * 0.7f, y - piece.size * 0.7f),
+                        size = androidx.compose.ui.geometry.Size(piece.size * 1.4f, piece.size * 1.4f)
+                    )
+                    drawRect(
+                        color = Color.White.copy(alpha = alpha * 0.8f),
+                        topLeft = Offset(x - piece.size * 0.7f, y - piece.size * 0.7f),
+                        size = androidx.compose.ui.geometry.Size(piece.size * 1.4f, piece.size * 1.4f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
+                    )
+                }
+                2 -> {
+                    // ハート型風
+                    drawCircle(
+                        color = piece.color.copy(alpha = alpha),
+                        radius = piece.size * 0.5f,
+                        center = Offset(x - piece.size * 0.3f, y - piece.size * 0.2f)
+                    )
+                    drawCircle(
+                        color = piece.color.copy(alpha = alpha),
+                        radius = piece.size * 0.5f,
+                        center = Offset(x + piece.size * 0.3f, y - piece.size * 0.2f)
+                    )
+                }
+                else -> {
+                    // 通常の円形（既に描画済み）
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun CheckInCompletionDialog(
     goal: GoalItem,
@@ -306,110 +453,131 @@ fun CheckInCompletionDialog(
     onDismiss: () -> Unit
 ) {
     val isGoalCompleted = checkIn.progressPercent >= 100
+    var showConfetti by remember { mutableStateOf(isGoalCompleted) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = if (isGoalCompleted) "🎉 目標達成！" else "✅ チェックイン完了！ 今日も一歩前進??",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = if (isGoalCompleted)
-                        "おめでとうございます！目標を達成しました！"
-                    else
-                        "チェックインが完了しました。",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 記入内容の表示
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "記入内容",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("目標:")
-                            Text(goal.title, fontWeight = FontWeight.Medium)
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("進捗:")
-                            Text("${checkIn.progressPercent}%", fontWeight = FontWeight.Medium)
-                        }
-
-                        if (checkIn.comment.isNotBlank()) {
-                            Column {
-                                Text("コメント:", style = MaterialTheme.typography.labelSmall)
-                                Text(
-                                    text = checkIn.comment,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(top = 2.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text("閉じる")
-                }
-
-                Button(
-                    onClick = {
-                        val shareText = buildString {
-                            if (isGoalCompleted) {
-                                appendLine("🎉 目標達成しました！")
-                            } else {
-                                appendLine("📈 進捗更新")
-                            }
-                            appendLine()
-                            appendLine("目標: ${goal.title}")
-                            appendLine("進捗: ${checkIn.progressPercent}%")
-                            if (checkIn.comment.isNotBlank()) {
-                                appendLine()
-                                appendLine("💭 ${checkIn.comment}")
-                            }
-                            appendLine()
-                            appendLine("#目標達成 #進捗 #モチベーション")
-                        }
-                        onShare(shareText)
-                    }
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("共有")
-                }
-            }
+    // 紙吹雪を数秒後に自動的に停止
+    LaunchedEffect(isGoalCompleted) {
+        if (isGoalCompleted) {
+            showConfetti = true
+            kotlinx.coroutines.delay(5000) // 5秒間表示
+            showConfetti = false
         }
-    )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 紙吹雪アニメーション（目標達成時のみ）
+        if (showConfetti) {
+            ConfettiAnimation(
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Text(
+                    text = if (isGoalCompleted) "🎉 目標達成！" else "✅ チェックイン完了！ 今日も一歩前進??",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = if (isGoalCompleted)
+                            "おめでとうございます！目標を達成しました！"
+                        else
+                            "チェックインが完了しました。",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 記入内容の表示
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "記入内容",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("目標:")
+                                Text(goal.title, fontWeight = FontWeight.Medium)
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("進捗:")
+                                Text("${checkIn.progressPercent}%", fontWeight = FontWeight.Medium)
+                            }
+
+                            if (checkIn.comment.isNotBlank()) {
+                                Column {
+                                    Text("コメント:", style = MaterialTheme.typography.labelSmall)
+                                    Text(
+                                        text = checkIn.comment,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("閉じる")
+                    }
+
+                    Button(
+                        onClick = {
+                            val shareText = buildString {
+                                if (isGoalCompleted) {
+                                    appendLine("🎉 目標達成しました！")
+                                } else {
+                                    appendLine("📈 進捗更新")
+                                }
+                                appendLine()
+                                appendLine("目標: ${goal.title}")
+                                appendLine("進捗: ${checkIn.progressPercent}%")
+                                if (checkIn.comment.isNotBlank()) {
+                                    appendLine()
+                                    appendLine("💭 ${checkIn.comment}")
+                                }
+                                appendLine()
+                                appendLine("#目標達成 #進捗 #モチベーション")
+                            }
+                            onShare(shareText)
+                        }
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("共有")
+                    }
+                }
+            }
+        )
+    }
 }
