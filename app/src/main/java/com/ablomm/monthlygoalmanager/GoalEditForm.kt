@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -71,8 +73,8 @@ fun GoalEditForm(
 ) {
     val editingGoalItem by viewModel.editingGoalItem.collectAsState()
     var isLoading by remember { mutableStateOf(true) }
-    var currentStep by remember { mutableStateOf(0) }
-    val totalSteps = 5
+    var showAdvancedOptions by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     // 上位目標のリストを取得
     val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
@@ -123,19 +125,10 @@ fun GoalEditForm(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Column {
-                        Text(if (goalId == null) "Add New Goal" else "Edit Goal")
-                        Text(
-                            text = "Step ${currentStep + 1} of $totalSteps",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
+                title = { Text(if (goalId == null) "新しい目標" else "目標を編集") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 }
             )
@@ -153,71 +146,69 @@ fun GoalEditForm(
                 modifier = Modifier
                     .padding(paddingValues)
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .verticalScroll(scrollPosition)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // プログレスバー
-                LinearProgressIndicator(
-                    progress = { (currentStep + 1).toFloat() / totalSteps },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp)
+                // 必須項目セクション
+                RequiredFieldsSection(
+                    editingGoalItem = editingGoalItem!!,
+                    higherGoals = higherGoals,
+                    viewModel = viewModel,
+                    navController = navController,
+                    focusManager = focusManager
                 )
 
-                // スクロール可能なコンテンツ
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(scrollPosition)
-                ) {
-                    when (currentStep) {
-                        0 -> BasicInfoStep(
-                            editingGoalItem = editingGoalItem!!,
-                            higherGoals = higherGoals,
-                            viewModel = viewModel,
-                            navController = navController,
-                            focusManager = focusManager
-                        )
-                        1 -> GoalTypeStep(
-                            editingGoalItem = editingGoalItem!!,
-                            viewModel = viewModel,
-                            focusManager = focusManager
-                        )
-                        2 -> ActionStepsStep(
-                            goalId = editingGoalItem!!.id,
-                            viewModel = viewModel
-                        )
-                        3 -> RewardStep(
-                            editingGoalItem = editingGoalItem!!,
-                            viewModel = viewModel,
-                            focusManager = focusManager
-                        )
-                        4 -> NotesStep(
-                            editingGoalItem = editingGoalItem!!,
-                            viewModel = viewModel,
-                            focusManager = focusManager
-                        )
-                    }
-                }
+                // 詳細オプション（折りたたみ式）
+                AdvancedOptionsSection(
+                    editingGoalItem = editingGoalItem!!,
+                    viewModel = viewModel,
+                    navController = navController,
+                    higherGoals = higherGoals,
+                    showAdvancedOptions = showAdvancedOptions,
+                    onToggleAdvancedOptions = { showAdvancedOptions = !showAdvancedOptions },
+                    focusManager = focusManager
+                )
 
-                // ナビゲーションボタン
-                WizardNavigationButtons(
-                    currentStep = currentStep,
-                    totalSteps = totalSteps,
+                // 保存ボタン
+                SaveButton(
                     editingGoalItem = editingGoalItem!!,
                     goalId = goalId,
                     viewModel = viewModel,
-                    navController = navController,
-                    onPrevious = { currentStep = maxOf(0, currentStep - 1) },
-                    onNext = { currentStep = minOf(totalSteps - 1, currentStep + 1) }
+                    onSuccess = { showSuccessDialog = true }
                 )
+
+                // 削除ボタン（編集モード時のみ）
+                if (goalId != null) {
+                    DeleteButton(
+                        editingGoalItem = editingGoalItem!!,
+                        viewModel = viewModel,
+                        navController = navController
+                    )
+                }
             }
         }
     }
+
+    // 成功ダイアログ
+    if (showSuccessDialog) {
+        GoalCreatedSuccessDialog(
+            goalTitle = editingGoalItem?.title ?: "",
+            onContinueEditing = {
+                showSuccessDialog = false
+                showAdvancedOptions = true
+            },
+            onGoHome = {
+                showSuccessDialog = false
+                navController.popBackStack()
+            }
+        )
+    }
 }
 
-// 基本情報ステップ
+// 必須項目セクション
 @Composable
-fun BasicInfoStep(
+fun RequiredFieldsSection(
     editingGoalItem: GoalItem,
     higherGoals: List<HigherGoal>,
     viewModel: GoalsViewModel,
@@ -239,7 +230,7 @@ fun BasicInfoStep(
                 value = editingGoalItem.title,
                 onValueChange = { viewModel.setEditingGoalItem(editingGoalItem.copy(title = it)) },
                 label = { Text("目標") },
-                placeholder = { Text("例：毎日30分読書する") },
+                placeholder = { Text("例：体重を70kgまで減らす") },
                 minLines = 3,
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(
@@ -247,46 +238,7 @@ fun BasicInfoStep(
                 )
             )
 
-            // 優先度
-            PrioritySelector(
-                selectedPriority = editingGoalItem.priority,
-                onPriorityChanged = { priority ->
-                    viewModel.setEditingGoalItem(editingGoalItem.copy(priority = priority))
-                }
-            )
-
-            // 上位目標関連付け
-            HigherGoalAssociation(
-                higherGoals = higherGoals,
-                selectedHigherGoalId = editingGoalItem.higherGoalId,
-                onSelectHigherGoal = {
-                    navController.navigate("higherGoals/${editingGoalItem.id}")
-                },
-                onRemoveHigherGoal = {
-                    viewModel.setEditingGoalItem(editingGoalItem.copy(higherGoalId = null))
-                }
-            )
-        }
-    }
-}
-
-// 目標タイプステップ（数値設定のみ）
-@Composable
-fun GoalTypeStep(
-    editingGoalItem: GoalItem,
-    viewModel: GoalsViewModel,
-    focusManager: FocusManager
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        // セクション2: 数値設定
-        SectionHeader(title = "数値設定")
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // 数値目標の入力フィールド（必須）
+            // 数値設定（必須項目）
             NumericGoalFields(
                 targetValue = editingGoalItem.targetNumericValue ?: 0.0,
                 currentValue = editingGoalItem.currentNumericValue ?: 0.0,
@@ -333,198 +285,122 @@ fun GoalTypeStep(
     }
 }
 
-// アクションステップ
+// 詳細オプションセクション
 @Composable
-fun ActionStepsStep(
-    goalId: UUID,
-    viewModel: GoalsViewModel
+fun AdvancedOptionsSection(
+    editingGoalItem: GoalItem,
+    viewModel: GoalsViewModel,
+    navController: NavHostController,
+    higherGoals: List<HigherGoal>,
+    showAdvancedOptions: Boolean,
+    onToggleAdvancedOptions: () -> Unit,
+    focusManager: FocusManager
 ) {
-    val actionSteps by viewModel.getActionStepsForGoal(goalId).collectAsState(initial = emptyList())
-    var newStepTitle by remember { mutableStateOf("") }
-
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Action Steps",
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(bottom = 4.dp)
-        )
-
-        // 既存のAction Steps
-        actionSteps.sortedBy { it.order }.forEach { step ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // 丸いチェックマーク
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (step.isCompleted)
-                                Color(0xFF4CAF50) // 緑色
-                            else
-                                Color(0xFFE0E0E0) // グレー
-                        )
-                        .clickable {
-                            viewModel.updateActionStep(step.copy(isCompleted = !step.isCompleted))
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (step.isCompleted) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = "完了",
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-
-                // テキスト（枠なし）
-                Text(
-                    text = step.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (step.isCompleted)
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    else
-                        MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
-                            // テキスト編集機能は後で実装
-                        }
-                )
-
-                // 削除ボタン
-                IconButton(
-                    onClick = { viewModel.deleteActionStep(step) }
-                ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "ステップを削除",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        }
-
-
-        // 新しいステップを追加するためのフィールド
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // 詳細オプションのトグルヘッダー
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggleAdvancedOptions() },
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            )
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFE0E0E0)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Text(
+                    text = "詳細オプション",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+
                 Icon(
-                    Icons.Default.Add,
-                    contentDescription = "追加",
-                    tint = Color(0xFF9E9E9E),
-                    modifier = Modifier.size(16.dp)
+                    imageVector = if (showAdvancedOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (showAdvancedOptions) "詳細オプションを閉じる" else "詳細オプションを開く",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
 
-            TextField(
-                modifier = Modifier.weight(1f),
-                value = newStepTitle,
-                onValueChange = { newStepTitle = it },
-                placeholder = { Text("新しいステップを追加...") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (newStepTitle.isNotBlank()) {
-                            val nextOrder = (actionSteps.maxOfOrNull { it.order } ?: -1) + 1
-                            viewModel.addActionStep(
-                                ActionStep(
-                                    goalId = goalId,
-                                    title = newStepTitle,
-                                    order = nextOrder
-                                )
-                            )
-                            newStepTitle = ""
-                        }
+        // 詳細オプションの内容
+        if (showAdvancedOptions) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // 上位目標関連付け（最優先）
+                HigherGoalAssociation(
+                    higherGoals = higherGoals,
+                    selectedHigherGoalId = editingGoalItem.higherGoalId,
+                    onSelectHigherGoal = {
+                        navController.navigate("higherGoals/${editingGoalItem.id}")
+                    },
+                    onRemoveHigherGoal = {
+                        viewModel.setEditingGoalItem(editingGoalItem.copy(higherGoalId = null))
                     }
                 )
-            )
-        }
-    }
-}
 
-// ご褒美ステップ
-@Composable
-fun RewardStep(
-    editingGoalItem: GoalItem,
-    viewModel: GoalsViewModel,
-    focusManager: FocusManager
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        // セクション4: ご褒美
-        SectionHeader(title = "ご褒美")
-
-        Column {
-            Text(
-                text = "この目標を達成したときのご褒美を記入しましょう",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = editingGoalItem.celebration ?: "",
-                onValueChange = { viewModel.setEditingGoalItem(editingGoalItem.copy(celebration = it)) },
-                label = { Text("ご褒美") },
-                placeholder = { Text("目標達成時の自分へのご褒美を入力してください") },
-                minLines = 1,
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.clearFocus() }
+                // 優先度
+                PrioritySelector(
+                    selectedPriority = editingGoalItem.priority,
+                    onPriorityChanged = { priority ->
+                        viewModel.setEditingGoalItem(editingGoalItem.copy(priority = priority))
+                    }
                 )
-            )
+
+                // アクションステップ
+                ActionStepsSection(
+                    goalId = editingGoalItem.id,
+                    viewModel = viewModel
+                )
+
+                // ご褒美
+                Text(
+                    text = "目標達成時のご褒美",
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = editingGoalItem.celebration ?: "",
+                    onValueChange = { viewModel.setEditingGoalItem(editingGoalItem.copy(celebration = it)) },
+                    placeholder = { Text("目標達成時の自分へのご褒美を入力してください") },
+                    minLines = 1,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.clearFocus() }
+                    )
+                )
+
+                // 備考
+
+                Text(
+                    text = "備考",
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = editingGoalItem.detailedDescription ?: "",
+                    onValueChange = { viewModel.setEditingGoalItem(editingGoalItem.copy(detailedDescription = it)) },
+                    placeholder = { Text("目標の背景や詳細を記入してください") },
+                    minLines = 3,
+                    maxLines = 5,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { focusManager.clearFocus() }
+                    )
+                )
+            }
         }
-    }
-}
-
-// 備考ステップ
-@Composable
-fun NotesStep(
-    editingGoalItem: GoalItem,
-    viewModel: GoalsViewModel,
-    focusManager: FocusManager
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        // セクション5: 備考
-        SectionHeader(title = "備考")
-
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = editingGoalItem.detailedDescription ?: "",
-            onValueChange = { viewModel.setEditingGoalItem(editingGoalItem.copy(detailedDescription = it)) },
-            label = { Text("目標の詳細説明") },
-            placeholder = { Text("目標の背景や詳細を記入してください") },
-            minLines = 3,
-            maxLines = 5,
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(
-                onDone = { focusManager.clearFocus() }
-            )
-        )
     }
 }
 
@@ -720,71 +596,100 @@ fun HigherGoalAssociation(
     }
 }
 
-// 保存・削除ボタン
+// 保存ボタン
 @Composable
-fun SaveDeleteButtons(
+fun SaveButton(
+    editingGoalItem: GoalItem,
     goalId: UUID?,
+    viewModel: GoalsViewModel,
+    onSuccess: () -> Unit
+) {
+    Button(
+        onClick = {
+            if (goalId == null) {
+                viewModel.addGoalItem(editingGoalItem)
+            } else {
+                viewModel.updateGoalItem(editingGoalItem)
+            }
+            onSuccess()
+        },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = editingGoalItem.title.isNotBlank()
+    ) {
+        Text(if (goalId == null) "目標を追加" else "変更を保存")
+    }
+}
+
+// 削除ボタン
+@Composable
+fun DeleteButton(
     editingGoalItem: GoalItem,
     viewModel: GoalsViewModel,
     navController: NavHostController
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    Button(
+        onClick = { showDeleteDialog = true },
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.error
+        )
     ) {
-        Button(
-            onClick = {
-                if (goalId == null) {
-                    viewModel.addGoalItem(editingGoalItem)
-                } else {
-                    viewModel.updateGoalItem(editingGoalItem)
-                }
-                navController.popBackStack()
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = editingGoalItem.title.isNotBlank()
-        ) {
-            Text(if (goalId == null) "目標を追加" else "変更を保存")
-        }
-
-        // 削除ボタン (編集モード時のみ表示)
-        if (goalId != null) {
-            var showDeleteDialog by remember { mutableStateOf(false) }
-
-            Button(
-                onClick = { showDeleteDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("目標を削除", color = Color.White)
-            }
-
-            // 削除確認ダイアログ
-            if (showDeleteDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDeleteDialog = false },
-                    title = { Text("目標を削除") },
-                    text = { Text("この目標を削除してもよろしいですか？この操作は取り消せません。") },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                viewModel.deleteGoalItem(editingGoalItem)
-                                navController.popBackStack()
-                            }
-                        ) {
-                            Text("削除", color = MaterialTheme.colorScheme.error)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("キャンセル")
-                        }
-                    }
-                )
-            }
-        }
+        Text("目標を削除", color = Color.White)
     }
+
+    // 削除確認ダイアログ
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("目標を削除") },
+            text = { Text("この目標を削除してもよろしいですか？この操作は取り消せません。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteGoalItem(editingGoalItem)
+                        navController.popBackStack()
+                    }
+                ) {
+                    Text("削除", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("キャンセル")
+                }
+            }
+        )
+    }
+}
+
+// 成功ダイアログ
+@Composable
+fun GoalCreatedSuccessDialog(
+    goalTitle: String,
+    onContinueEditing: () -> Unit,
+    onGoHome: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { onGoHome() },
+        title = { Text("目標の作成に成功しました") },
+        text = { Text("目標「$goalTitle」が正常に作成されました。") },
+        confirmButton = {
+            TextButton(
+                onClick = onContinueEditing
+            ) {
+                Text("編集を続ける")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onGoHome
+            ) {
+                Text("ホームに戻る")
+            }
+        }
+    )
 }
 
 // セクションヘッダー
@@ -797,56 +702,231 @@ fun SectionHeader(title: String) {
     )
 }
 
-// Wizard用ナビゲーションボタン
+// アクションステップセクション
 @Composable
-fun WizardNavigationButtons(
-    currentStep: Int,
-    totalSteps: Int,
-    editingGoalItem: GoalItem,
-    goalId: UUID?,
-    viewModel: GoalsViewModel,
-    navController: NavHostController,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit
+fun ActionStepsSection(
+    goalId: UUID,
+    viewModel: GoalsViewModel
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+    val actionSteps by viewModel.getActionStepsForGoal(goalId).collectAsState(initial = emptyList())
+    var newStepText by remember { mutableStateOf("") }
+    var showAddField by remember { mutableStateOf(false) }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 前のステップへ戻るボタン
-        Button(
-            onClick = onPrevious,
-            enabled = currentStep > 0,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
-            ),
-            modifier = Modifier.weight(1f)
-        ) {
-            Text("戻る")
+        Text(
+            text = "アクションステップ",
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        // 既存のアクションステップリスト
+        if (actionSteps.isNotEmpty()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                actionSteps.forEach { step ->
+                    ActionStepItem(
+                        step = step,
+                        onToggleCompleted = {
+                            viewModel.updateActionStep(step.copy(isCompleted = !step.isCompleted))
+                        },
+                        onDeleteStep = {
+                            viewModel.deleteActionStep(step)
+                        },
+                        onUpdateText = { newText ->
+                            viewModel.updateActionStep(step.copy(title = newText))
+                        }
+                    )
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        // 新しいステップ追加UI
+        if (showAddField) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    modifier = Modifier.weight(1f),
+                    value = newStepText,
+                    onValueChange = { newStepText = it },
+                    placeholder = { Text("新しいステップを入力...") },
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (newStepText.isNotBlank()) {
+                                val newStep = ActionStep(
+                                    id = UUID.randomUUID(),
+                                    goalId = goalId,
+                                    title = newStepText,
+                                    isCompleted = false,
+                                    order = actionSteps.size
+                                )
+                                viewModel.addActionStep(newStep)
+                                newStepText = ""
+                                showAddField = false
+                            }
+                        }
+                    )
+                )
 
-        // 次のステップへ進むボタン または 完了ボタン
-        Button(
-            onClick = {
-                if (currentStep == totalSteps - 1) {
-                    // 最後のステップの場合は保存して戻る
-                    if (goalId == null) {
-                        viewModel.addGoalItem(editingGoalItem)
-                    } else {
-                        viewModel.updateGoalItem(editingGoalItem)
+                IconButton(
+                    onClick = {
+                        if (newStepText.isNotBlank()) {
+                            val newStep = ActionStep(
+                                id = UUID.randomUUID(),
+                                goalId = goalId,
+                                title = newStepText,
+                                isCompleted = false,
+                                order = actionSteps.size
+                            )
+                            viewModel.addActionStep(newStep)
+                            newStepText = ""
+                            showAddField = false
+                        }
                     }
-                    navController.popBackStack()
-                } else {
-                    // 次のステップへ進む
-                    onNext()
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = "追加")
                 }
-            },
-            enabled = editingGoalItem.title.isNotBlank(),
-            modifier = Modifier.weight(1f)
+
+                IconButton(
+                    onClick = {
+                        showAddField = false
+                        newStepText = ""
+                    }
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "キャンセル")
+                }
+            }
+        } else {
+            // ステップ追加ボタン
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showAddField = true },
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "追加",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (actionSteps.isEmpty()) "ステップを追加..." else "新しいステップを追加",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+// 個別のアクションステップアイテム
+@Composable
+fun ActionStepItem(
+    step: ActionStep,
+    onToggleCompleted: () -> Unit,
+    onDeleteStep: () -> Unit,
+    onUpdateText: (String) -> Unit
+) {
+    var isEditing by remember { mutableStateOf(false) }
+    var editText by remember { mutableStateOf(step.title) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // チェックマーク
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(
+                    color = if (step.isCompleted) Color(0xFF4CAF50) else Color.Gray,
+                    shape = CircleShape
+                )
+                .clickable { onToggleCompleted() },
+            contentAlignment = Alignment.Center
         ) {
-            Text(if (currentStep == totalSteps - 1) "完了" else "次へ")
+            if (step.isCompleted) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "完了",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        // テキスト部分
+        if (isEditing) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextField(
+                    modifier = Modifier.weight(1f),
+                    value = editText,
+                    onValueChange = { editText = it },
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            onUpdateText(editText)
+                            isEditing = false
+                        }
+                    )
+                )
+
+                IconButton(
+                    onClick = {
+                        onUpdateText(editText)
+                        isEditing = false
+                    }
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = "保存")
+                }
+
+                IconButton(
+                    onClick = {
+                        editText = step.title
+                        isEditing = false
+                    }
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "キャンセル")
+                }
+            }
+        } else {
+            Text(
+                text = step.title,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        isEditing = true
+                        editText = step.title
+                    },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (step.isCompleted)
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                else
+                    MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
