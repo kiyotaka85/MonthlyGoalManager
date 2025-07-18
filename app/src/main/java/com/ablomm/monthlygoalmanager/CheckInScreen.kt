@@ -495,6 +495,34 @@ fun CheckInCompletionDialog(
                         textAlign = TextAlign.Center
                     )
 
+                    // 目標達成時のお祝いメッセージを表示
+                    if (isGoalCompleted && !goal.celebration.isNullOrBlank()) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Enjoy your celebration: 🥳",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = goal.celebration!!,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // 記入内容の表示
@@ -556,6 +584,9 @@ fun CheckInCompletionDialog(
                             val shareText = buildString {
                                 if (isGoalCompleted) {
                                     appendLine("🎉 目標達成しました！")
+                                    if (!goal.celebration.isNullOrBlank()) {
+                                        appendLine("🥳 ${goal.celebration}")
+                                    }
                                 } else {
                                     appendLine("📈 進捗更新")
                                 }
