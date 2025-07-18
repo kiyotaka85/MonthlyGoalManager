@@ -1,7 +1,11 @@
 package com.ablomm.monthlygoalmanager
 
 import android.content.Intent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,19 +14,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import kotlin.math.abs
 
 @Composable
 fun GoalCard(
@@ -30,37 +37,178 @@ fun GoalCard(
     modifier: Modifier = Modifier,
     navController: NavHostController
 ) {
-    // 軽いシャドウカードデザイン
-    Card(
+    var offsetX by remember { mutableStateOf(0f) }
+    var isSwipeInProgress by remember { mutableStateOf(false) }
+
+    // スワイプアニメーション
+    val animatedOffsetX by animateFloatAsState(
+        targetValue = if (isSwipeInProgress) offsetX else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "swipe_animation"
+    )
+
+    // スワイプしきい値
+    val swipeThreshold = 120f
+    val maxSwipeDistance = 150f
+
+    // カードの実際の高さを計算
+    // パディング(12dp * 2) + タイトル(約24dp) + スペース(8dp) + 進捗コンポーネント(約32dp)
+    val calculatedCardHeight = 88.dp
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp) // カード間隔8px（上下4dpずつ）
-            .clickable {
-                navController.navigate("goalDetail/${goalItem.id}")
-            },
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp), // 軽いシャドウ
-        shape = RoundedCornerShape(4.dp), // 角丸4px
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            .padding(vertical = 4.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp) // カード内余白12px
+        // 背景アクションエリア（カードと完全に同じ高さ）
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(calculatedCardHeight)
+                .background(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(4.dp)
+                )
         ) {
-            // 1行目：目標名（左寄せ）
-            Text(
-                text = goalItem.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
+            // 左側の編集アクション（右スワイプ時に表示）
+            if (animatedOffsetX > 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width((animatedOffsetX * 2).dp.coerceAtMost(maxSwipeDistance.dp))
+                        .background(
+                            color = Color(0xFF2196F3),
+                            shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "編集",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "編集",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // 右側のチェックインアクション（左スワイプ時に表示）
+            if (animatedOffsetX < 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width((abs(animatedOffsetX) * 2).dp.coerceAtMost(maxSwipeDistance.dp))
+                        .align(Alignment.CenterEnd)
+                        .background(
+                            color = Color(0xFF4CAF50),
+                            shape = RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "チェックイン",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "チェックイン",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        // メインカード
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(calculatedCardHeight)
+                .offset(x = animatedOffsetX.dp)
+                .pointerInput(goalItem.id) {
+                    detectHorizontalDragGestures(
+                        onDragStart = {
+                            isSwipeInProgress = true
+                        },
+                        onDragEnd = {
+                            try {
+                                when {
+                                    offsetX > swipeThreshold -> {
+                                        // 右スワイプ → 編集
+                                        navController.navigate("goalEdit/${goalItem.id}")
+                                    }
+                                    offsetX < -swipeThreshold -> {
+                                        // 左スワイプ → チェックイン
+                                        navController.navigate("checkIn/${goalItem.id}")
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                // ナビゲーションエラーをキャッチ
+                                e.printStackTrace()
+                            }
+                            offsetX = 0f
+                            isSwipeInProgress = false
+                        }
+                    ) { _, dragAmount ->
+                        // スワイプ距離を制限
+                        offsetX = (offsetX + dragAmount).coerceIn(-maxSwipeDistance, maxSwipeDistance)
+                    }
+                }
+                .clickable {
+                    if (abs(offsetX) < 10f) { // 小さなドラッグはクリックとして扱う
+                        try {
+                            navController.navigate("goalDetail/${goalItem.id}")
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                },
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = RoundedCornerShape(4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
             )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                // 1行目：目標名（左寄せ）
+                Text(
+                    text = goalItem.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // 新しい進捗表示コンポーネント
-            GoalProgressIndicator(goal = goalItem)
+                // 進捗表示コンポーネント
+                GoalProgressIndicator(goal = goalItem)
+            }
         }
     }
 }
