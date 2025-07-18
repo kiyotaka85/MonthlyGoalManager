@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -15,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -242,24 +244,65 @@ fun GoalProgressCard(
                 fontWeight = FontWeight.Bold
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("現在の進捗:")
-                Text(
-                    text = "${goal.currentProgress}%",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+            // 新しい進捗表示コンポーネント
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // 1. プログレスバー
+                LinearProgressIndicator(
+                    progress = { goal.currentProgress / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = when {
+                        goal.currentProgress >= 100 -> Color(0xFF4CAF50)
+                        goal.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
+                        goal.currentProgress >= 50 -> Color(0xFFFF9800)
+                        else -> Color(0xFFF44336)
+                    },
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-            }
 
-            LinearProgressIndicator(
-                progress = goal.currentProgress / 100f,
-                modifier = Modifier.fillMaxWidth()
-            )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 2. 開始値と目標値のラベル
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${goal.startNumericValue.toInt()} ${goal.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${goal.targetNumericValue.toInt()} ${goal.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 3. 現在値と進捗率
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "現在: ${goal.currentNumericValue.toInt()} ${goal.unit} (${goal.currentProgress}%)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = when {
+                            goal.currentProgress >= 100 -> Color(0xFF4CAF50)
+                            goal.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
+                            goal.currentProgress >= 50 -> Color(0xFFFF9800)
+                            else -> Color(0xFFF44336)
+                        }
+                    )
+                }
+            }
 
             if (goal.isCompleted) {
                 Row(
