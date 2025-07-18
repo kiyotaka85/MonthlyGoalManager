@@ -244,65 +244,8 @@ fun GoalProgressCard(
                 fontWeight = FontWeight.Bold
             )
 
-            // 新しい進捗表示コンポーネント
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // 1. プログレスバー
-                LinearProgressIndicator(
-                    progress = { goal.currentProgress / 100f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = when {
-                        goal.currentProgress >= 100 -> Color(0xFF4CAF50)
-                        goal.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
-                        goal.currentProgress >= 50 -> Color(0xFFFF9800)
-                        else -> Color(0xFFF44336)
-                    },
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // 2. 開始値と目標値のラベル
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "${goal.startNumericValue.toInt()} ${goal.unit}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${goal.targetNumericValue.toInt()} ${goal.unit}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // 3. 現在値と進捗率
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "現在: ${goal.currentNumericValue.toInt()} ${goal.unit} (${goal.currentProgress}%)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = when {
-                            goal.currentProgress >= 100 -> Color(0xFF4CAF50)
-                            goal.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
-                            goal.currentProgress >= 50 -> Color(0xFFFF9800)
-                            else -> Color(0xFFF44336)
-                        }
-                    )
-                }
-            }
+            // 共通の進捗表示コンポーネントを使用
+            GoalProgressIndicator(goal = goal)
 
             if (goal.isCompleted) {
                 Row(
