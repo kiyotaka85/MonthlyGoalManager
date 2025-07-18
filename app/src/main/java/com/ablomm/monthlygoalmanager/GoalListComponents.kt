@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -55,41 +56,68 @@ fun GoalCard(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // 2行目：数値情報（左寄せ）
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 数値目標の表示: [現在値] / [目標値] [単位] [進捗率]%
-                val currentValue = goalItem.currentNumericValue.toInt()
-                val targetValue = goalItem.targetNumericValue.toInt()
-                val unit = goalItem.unit
-
-                Text(
-                    text = "$currentValue / $targetValue $unit  ${goalItem.currentProgress}%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            // 新しい進捗表示コンポーネント
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // 1. プログレスバー
+                LinearProgressIndicator(
+                    progress = { goalItem.currentProgress / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = when {
+                        goalItem.currentProgress >= 100 -> Color(0xFF4CAF50)
+                        goalItem.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
+                        goalItem.currentProgress >= 50 -> Color(0xFFFF9800)
+                        else -> Color(0xFFF44336)
+                    },
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 2. 開始値と目標値のラベル
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${goalItem.startNumericValue.toInt()} ${goalItem.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${goalItem.targetNumericValue.toInt()} ${goalItem.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 3. 現在値と進捗率
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "現在: ${goalItem.currentNumericValue.toInt()} ${goalItem.unit} (${goalItem.currentProgress}%)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = when {
+                            goalItem.currentProgress >= 100 -> Color(0xFF4CAF50)
+                            goalItem.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
+                            goalItem.currentProgress >= 50 -> Color(0xFFFF9800)
+                            else -> Color(0xFFF44336)
+                        }
+                    )
+                }
             }
         }
-
-        // カード底部の細いプログレスバー
-        LinearProgressIndicator(
-            progress = goalItem.currentProgress / 100f,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(2.dp),
-            color = when {
-                goalItem.currentProgress >= 100 -> Color(0xFF4CAF50)
-                goalItem.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
-                goalItem.currentProgress >= 50 -> Color(0xFFFF9800)
-                else -> Color(0xFFF44336)
-            },
-            trackColor = MaterialTheme.colorScheme.surfaceVariant
-        )
     }
 }
 
