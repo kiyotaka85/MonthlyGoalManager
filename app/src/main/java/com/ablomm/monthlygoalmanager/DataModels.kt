@@ -45,6 +45,7 @@ data class GoalItem(
     val detailedDescription: String? = null,
     val targetMonth: Int = 2025005,
     val targetNumericValue: Double = 0.0, // 数値目標の目標値（必須）
+    val startNumericValue: Double = 0.0, // 数値目標の開始値（デフォルトは0）
     val currentNumericValue: Double = 0.0, // 数値目標の現在値（必須）
     val unit: String = "", // 数値目標の単位（必須）
     val currentProgress: Int = 0,
@@ -88,6 +89,22 @@ data class MissionItem(
 
 enum class GoalPriority{
     High, Middle, Low
+}
+
+// 進捗率計算のヘルパー関数
+fun calculateProgress(
+    startValue: Double,
+    targetValue: Double,
+    currentValue: Double
+): Int {
+    val range = targetValue - startValue
+    val progressInRange = currentValue - startValue
+
+    return if (range != 0.0) {
+        (progressInRange / range * 100).coerceIn(0.0, 100.0).toInt()
+    } else {
+        if (currentValue >= targetValue) 100 else 0
+    }
 }
 
 @HiltViewModel

@@ -58,6 +58,8 @@ import androidx.compose.foundation.background
 import java.util.UUID
 import androidx.compose.material3.TextField
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +87,7 @@ fun GoalEditForm(
                 detailedDescription = "",
                 targetMonth = targetMonth ?: 2025007,
                 targetNumericValue = 0.0,
+                startNumericValue = 0.0,
                 currentNumericValue = 0.0,
                 unit = "",
                 currentProgress = 0,
@@ -154,7 +157,7 @@ fun GoalEditForm(
             ) {
                 // プログレスバー
                 LinearProgressIndicator(
-                    progress = (currentStep + 1).toFloat() / totalSteps,
+                    progress = { (currentStep + 1).toFloat() / totalSteps },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 24.dp)
@@ -285,27 +288,41 @@ fun GoalTypeStep(
         ) {
             // 数値目標の入力フィールド（必須）
             NumericGoalFields(
-                targetValue = editingGoalItem.targetNumericValue,
-                currentValue = editingGoalItem.currentNumericValue,
-                unit = editingGoalItem.unit,
+                targetValue = editingGoalItem.targetNumericValue ?: 0.0,
+                currentValue = editingGoalItem.currentNumericValue ?: 0.0,
+                startValue = editingGoalItem.startNumericValue ?: 0.0,
+                unit = editingGoalItem.unit ?: "",
                 onTargetValueChanged = { value ->
                     val updatedGoal = editingGoalItem.copy(targetNumericValue = value)
-                    // 進捗率も同時に更新
-                    val progress = if (value > 0) {
-                        (editingGoalItem.currentNumericValue / value * 100).coerceIn(0.0, 100.0).toInt()
-                    } else {
-                        0
-                    }
+                    // 新しい進捗率計算ロジックを使用
+                    val progress = calculateProgress(
+                        editingGoalItem.startNumericValue,
+                        value,
+                        editingGoalItem.currentNumericValue
+                    )
                     viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
                 },
                 onCurrentValueChanged = { value ->
                     val updatedGoal = editingGoalItem.copy(currentNumericValue = value)
-                    // 進捗率も同時に更新
-                    val progress = if (editingGoalItem.targetNumericValue > 0) {
-                        (value / editingGoalItem.targetNumericValue * 100).coerceIn(0.0, 100.0).toInt()
-                    } else {
-                        0
-                    }
+                    // 新しい進捗率計算ロジックを使用
+                    val progress = calculateProgress(
+                        editingGoalItem.startNumericValue,
+                        editingGoalItem.targetNumericValue,
+                        value
+                    )
+                    viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
+                },
+                onStartValueChanged = { value ->
+                    // 開始値変更時は現在値も同じ値に設定し、進捗率を再計算
+                    val updatedGoal = editingGoalItem.copy(
+                        startNumericValue = value,
+                        currentNumericValue = value // 現在値も開始値と同じに設定
+                    )
+                    val progress = calculateProgress(
+                        value, // 新しい開始値を使用
+                        updatedGoal.targetNumericValue, // 更新されたGoalから値を取得
+                        value // 新しい現在値（開始値と同じ）を使用
+                    )
                     viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
                 },
                 onUnitChanged = { unit ->
@@ -516,15 +533,17 @@ fun NotesStep(
 fun NumericGoalFields(
     targetValue: Double,
     currentValue: Double,
+    startValue: Double,
     unit: String,
     onTargetValueChanged: (Double) -> Unit,
     onCurrentValueChanged: (Double) -> Unit,
+    onStartValueChanged: (Double) -> Unit,
     onUnitChanged: (String) -> Unit
 ) {
     // 進捗率を自動計算
-    val calculateProgress = { current: Double, target: Double ->
+    val calculateProgress = { start: Double, target: Double, current: Double ->
         if (target > 0) {
-            val progress = (current / target * 100).coerceIn(0.0, 100.0)
+            val progress = ((current - start) / (target - start) * 100).coerceIn(0.0, 100.0)
             progress.toInt()
         } else {
             0
@@ -534,7 +553,7 @@ fun NumericGoalFields(
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 目標値
+        // 目標値と単位（同じ行）
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -561,79 +580,42 @@ fun NumericGoalFields(
             )
         }
 
-        // 現在値
-        Row(
+        // 開始値（単独行）
+        OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            OutlinedTextField(
-                modifier = Modifier.weight(2f),
-                value = if (currentValue == 0.0) "" else currentValue.toString(),
-                onValueChange = {
-                    val value = it.toDoubleOrNull() ?: 0.0
-                    onCurrentValueChanged(value)
-                },
-                label = { Text("現在値") },
-                placeholder = { Text("10") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
+            value = if (startValue == 0.0) "" else startValue.toString(),
+            onValueChange = {
+                val value = it.toDoubleOrNull() ?: 0.0
+                onStartValueChanged(value)
+            },
+            label = { Text("開始値") },
+            placeholder = { Text("0") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            supportingText = { Text("目標開始時点の数値") }
+        )
 
-            Text(
-                text = unit,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 16.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // 進捗率の表示
-        if (targetValue > 0) {
-            val progress = calculateProgress(currentValue, targetValue)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
+        // 使用例の表示
+        if (startValue != 0.0 && targetValue > 0) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.padding(12.dp)
                 ) {
                     Text(
-                        text = "進捗率",
-                        style = MaterialTheme.typography.labelMedium
+                        text = "例：${startValue.toInt()}${unit} → ${targetValue.toInt()}${unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "${progress}%",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            progress >= 100 -> Color(0xFF4CAF50)
-                            progress >= 75 -> MaterialTheme.colorScheme.primary
-                            progress >= 50 -> Color(0xFFFF9800)
-                            else -> Color(0xFFF44336)
-                        }
+                        text = "目標追加時の現在値は開始値と同じ値になります",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
-                LinearProgressIndicator(
-                    progress = progress / 100f,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = when {
-                        progress >= 100 -> Color(0xFF4CAF50)
-                        progress >= 75 -> MaterialTheme.colorScheme.primary
-                        progress >= 50 -> Color(0xFFFF9800)
-                        else -> Color(0xFFF44336)
-                    },
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
             }
         }
     }

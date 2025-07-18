@@ -168,14 +168,13 @@ fun CheckInScreen(
                         Button(
                             onClick = {
                                 goalItemState?.let { goal ->
-                                    // 数値目標：入力値から進捗率を計算
+                                    // 数値目標：入力値から進捗率を計算（新しいロジック）
                                     val currentValue = numericValue.toDoubleOrNull() ?: 0.0
-                                    val targetValue = goal.targetNumericValue
-                                    val progress = if (targetValue > 0) {
-                                        ((currentValue / targetValue) * 100).coerceIn(0.0, 100.0).toInt()
-                                    } else {
-                                        0
-                                    }
+                                    val progress = calculateProgress(
+                                        goal.startNumericValue,
+                                        goal.targetNumericValue,
+                                        currentValue
+                                    )
 
                                     val checkIn = CheckInItem(
                                         goalId = goalId,
@@ -184,7 +183,7 @@ fun CheckInScreen(
                                     )
                                     viewModel.addCheckIn(checkIn)
 
-                                    // Update goal progress
+                                    // Update goal progress（新しいロジック使用）
                                     val updatedGoal = goal.copy(
                                         currentNumericValue = currentValue,
                                         currentProgress = progress,
