@@ -30,6 +30,12 @@ enum class SortMode {
     PROGRESS
 }
 
+enum class GroupMode {
+    NONE,
+    HIGHER_GOAL,
+    PRIORITY
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -45,6 +51,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     // 現在表示中の年月を管理 - ViewModelに保存して状態を保持
     val currentYearMonth by viewModel.currentYearMonth.collectAsState(initial = YearMonth.now())
     var sortMode by remember { mutableStateOf(SortMode.DEFAULT) }
+    var groupMode by remember { mutableStateOf(GroupMode.NONE) }
     var showSortMenu by remember { mutableStateOf(false) }
     
     // 月次レビューの存在をチェック
@@ -269,6 +276,40 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                                     showDisplaySettingsMenu = false
                                 }
                             )
+
+                            HorizontalDivider()
+
+                            // グループ化機能
+                            Text(
+                                text = "グループ化",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("グループなし") },
+                                onClick = {
+                                    groupMode = GroupMode.NONE
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("上位目標でグループ化") },
+                                onClick = {
+                                    groupMode = GroupMode.HIGHER_GOAL
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("優先度でグループ化") },
+                                onClick = {
+                                    groupMode = GroupMode.PRIORITY
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+
+                            HorizontalDivider()
                         }
                     }
                 }
@@ -318,6 +359,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                 higherGoals = higherGoals.value,
                 monthYearText = monthYearText,
                 context = context,
+                groupMode = groupMode,
                 modifier = Modifier.padding(innerPadding)
             )
         }

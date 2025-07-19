@@ -283,6 +283,7 @@ fun GoalListContent(
     higherGoals: List<HigherGoal>,
     monthYearText: String,
     context: android.content.Context,
+    groupMode: GroupMode = GroupMode.NONE,
     modifier: Modifier = Modifier
 ) {
     if (filteredGoals.isEmpty()) {
@@ -309,80 +310,140 @@ fun GoalListContent(
                 Text(
                     text = "Tap the + button to add a new goal",
                     fontSize = 14.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
         }
     } else {
         LazyColumn(
-            modifier = modifier.fillMaxSize()
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Tips表示
+            // ヒントカード
             if (!isTipsHidden) {
                 item {
-                    Card(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = "💡 Tip",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF666666)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Swipe left → Check-in  |  Swipe right → Edit",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFF888888),
-                                    textAlign = TextAlign.Center
+                    TipsCard(onDismiss = { viewModel.setTipsHidden(true) })
+                }
+            }
+
+            // グループ化の処理
+            when (groupMode) {
+                GroupMode.NONE -> {
+                    // グループ化なし：通常の表示
+                    items(filteredGoals, key = { it.id.toString() }) { goalItem ->
+                        GoalCard(
+                            goalItem = goalItem,
+                            navController = navController,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                GroupMode.HIGHER_GOAL -> {
+                    // 上位目標でグループ化
+                    val groupedGoals = filteredGoals.groupBy { goal ->
+                        higherGoals.find { it.id == goal.higherGoalId }
+                    }
+
+                    // 上位目標ありのグループを先に表示
+                    val higherGoalGroups = groupedGoals.filter { it.key != null }
+                    val noHigherGoalGroup = groupedGoals[null]
+
+                    // 上位目標ありのグループを表示
+                    higherGoalGroups.forEach { (higherGoal, goals) ->
+                        item {
+                            GroupHeader(
+                                title = higherGoal?.title ?: "上位目標なし",
+                                count = goals.size,
+                                color = try {
+                                    higherGoal?.color?.let { colorString ->
+                                        // 色文字列を安全にColorに変換
+                                        val colorValue = if (colorString.startsWith("#")) {
+                                            colorString.substring(1)
+                                        } else {
+                                            colorString
+                                        }
+                                        Color(colorValue.toLong(16) or 0xFF000000)
+                                    }
+                                } catch (e: Exception) {
+                                    null // 変換エラーの場合はnullを返す
+                                }
+                            )
+                        }
+
+                        items(goals, key = { it.id.toString() }) { goalItem ->
+                            GoalCard(
+                                goalItem = goalItem,
+                                navController = navController,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp)
+                            )
+                        }
+                    }
+
+                    // 上位目標なしのグループを最後に表示
+                    noHigherGoalGroup?.let { goals ->
+                        if (goals.isNotEmpty()) {
+                            item {
+                                GroupHeader(
+                                    title = "上位目標なし",
+                                    count = goals.size,
+                                    color = null
                                 )
                             }
-                            IconButton(
-                                onClick = { viewModel.setTipsHidden(true) }
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Hide tips",
-                                    tint = Color(0xFF666666)
+
+                            items(goals, key = { it.id.toString() }) { goalItem ->
+                                GoalCard(
+                                    goalItem = goalItem,
+                                    navController = navController,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 16.dp)
                                 )
                             }
                         }
                     }
                 }
-            }
 
-            // 目標リスト（シンプルなリスト形式）
-            items(
-                items = filteredGoals,
-                key = { it.id }
-            ) { goalItem ->
-                GoalCard(
-                    goalItem = goalItem,
-                    navController = navController,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
+                GroupMode.PRIORITY -> {
+                    // 優先度でグループ化
+                    val groupedGoals = filteredGoals.groupBy { it.priority }
+                    val priorityOrder = listOf(GoalPriority.High, GoalPriority.Middle, GoalPriority.Low)
 
-            }
+                    priorityOrder.forEach { priority ->
+                        val goals = groupedGoals[priority] ?: emptyList()
+                        if (goals.isNotEmpty()) {
+                            item {
+                                GroupHeader(
+                                    title = when (priority) {
+                                        GoalPriority.High -> "🔴 高優先度"
+                                        GoalPriority.Middle -> "🟡 中優先度"
+                                        GoalPriority.Low -> "🟢 低優先度"
+                                    },
+                                    count = goals.size,
+                                    color = when (priority) {
+                                        GoalPriority.High -> Color(0xFFFF5722)
+                                        GoalPriority.Middle -> Color(0xFFFF9800)
+                                        GoalPriority.Low -> Color(0xFF4CAF50)
+                                    }
+                                )
+                            }
 
-            // 最後にスペースを追加
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
+                            items(goals, key = { it.id.toString() }) { goalItem ->
+                                GoalCard(
+                                    goalItem = goalItem,
+                                    navController = navController,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -446,6 +507,114 @@ fun GoalProgressIndicator(goal: GoalItem) {
                     goal.currentProgress >= 50 -> Color(0xFFFF9800)
                     else -> Color(0xFFF44336)
                 }
+            )
+        }
+    }
+}
+
+// グループヘッダーコンポーネント
+@Composable
+fun GroupHeader(
+    title: String,
+    count: Int,
+    color: Color? = null,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color?.copy(alpha = 0.1f) ?: MaterialTheme.colorScheme.primaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = color ?: MaterialTheme.colorScheme.onPrimaryContainer
+            )
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = color?.copy(alpha = 0.2f) ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            ) {
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = color ?: MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+// ヒントカードコンポーネント
+@Composable
+fun TipsCard(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "💡",
+                        fontSize = 20.sp
+                    )
+                    Text(
+                        text = "使い方のヒント",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "閉じる",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = "• カードを左右にスワイプして素早くチェックイン・編集\n• メニューから表示設定でソートやグループ化が可能\n• 目標をタップして詳細を確認",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }
