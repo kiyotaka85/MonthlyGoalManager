@@ -90,6 +90,14 @@ fun GoalDetailScreen(
                     )
                 }
 
+                // アクションボタン
+                item {
+                    GoalActionButtons(
+                        goalId = goalId,
+                        navController = navController
+                    )
+                }
+
                 // 進捗カード
                 item {
                     GoalProgressCard(
@@ -112,13 +120,6 @@ fun GoalDetailScreen(
                     }
                 }
 
-                // アクションボタン
-                item {
-                    GoalActionButtons(
-                        goalId = goalId,
-                        navController = navController
-                    )
-                }
             }
         } else {
             Box(
@@ -448,11 +449,11 @@ fun GoalActionButtons(
             Text("チェックイン")
         }
 
-        OutlinedButton(
-            onClick = { navController.navigate("goalEdit/$goalId") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("編集")
-        }
+//        OutlinedButton(
+//            onClick = { navController.navigate("goalEdit/$goalId") },
+//            modifier = Modifier.fillMaxWidth()
+//        ) {
+//            Text("編集")
+//        }
     }
 }
