@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -45,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.FocusManager
@@ -59,9 +57,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.background
 import java.util.UUID
 import androidx.compose.material3.TextField
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.navigation.compose.currentBackStackEntryAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +76,29 @@ fun GoalEditForm(
 
     // 上位目標のリストを取得
     val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
+
+    // 上位目標選択結果の受け取り（修正版）
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(navBackStackEntry) {
+        navBackStackEntry?.savedStateHandle?.get<String>("selected_higher_goal_id")?.let { selectedId ->
+            val higherGoalId = UUID.fromString(selectedId)
+            // 現在の編集中のGoalItemを直接ViewModelから取得
+            viewModel.editingGoalItem.value?.let { currentGoal ->
+                viewModel.setEditingGoalItem(currentGoal.copy(higherGoalId = higherGoalId))
+            }
+            // 上位目標を選択した後は詳細オプションを開いておく
+            showAdvancedOptions = true
+            // 使用済みのデータをクリア
+            navBackStackEntry?.savedStateHandle?.remove<String>("selected_higher_goal_id")
+        }
+    }
+
+    // 上位目標が設定されている場合は自動的に詳細オプションを展開
+    LaunchedEffect(editingGoalItem?.higherGoalId) {
+        if (editingGoalItem?.higherGoalId != null) {
+            showAdvancedOptions = true
+        }
+    }
 
     // LaunchedEffectを使って、初回描画時またはgoalIdが変更された時に一度だけ実行
     LaunchedEffect(key1 = goalId) {
@@ -101,22 +122,12 @@ fun GoalEditForm(
             // 編集モード
             val loaded = viewModel.getGoalById(goalId)
             viewModel.setEditingGoalItem(loaded)
-        }
-        isLoading = false
-    }
-
-    // 上位目標選択結果の受け取り
-    LaunchedEffect(navController) {
-        navController.currentBackStackEntry?.savedStateHandle?.getLiveData<String>("selected_higher_goal_id")?.observeForever { selectedId ->
-            if (selectedId != null) {
-                val higherGoalId = UUID.fromString(selectedId)
-                editingGoalItem?.let { currentGoal ->
-                    viewModel.setEditingGoalItem(currentGoal.copy(higherGoalId = higherGoalId))
-                }
-                // 使用済みのデータをクリア
-                navController.currentBackStackEntry?.savedStateHandle?.remove<String>("selected_higher_goal_id")
+            // 編集モードで上位目標が設定されている場合は詳細オプションを展開
+            if (loaded?.higherGoalId != null) {
+                showAdvancedOptions = true
             }
         }
+        isLoading = false
     }
 
     val scrollPosition = rememberScrollState()
