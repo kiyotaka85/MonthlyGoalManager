@@ -77,12 +77,45 @@ fun GoalEditForm(
     // 上位目標のリストを取得
     val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
 
-    // 上位目標選択結果の受け取り（修正版）
+    // 初期化処理（goalIdに基づいて一度だけ実行）
+    LaunchedEffect(key1 = goalId) {
+        if (goalId == null) {
+            // 新規作成モード - ViewModelの状態をチェックして初期化が必要かを判断
+            val currentValue = viewModel.editingGoalItem.value
+            if (currentValue == null || currentValue.title.isEmpty()) {
+                viewModel.setEditingGoalItem(GoalItem(
+                    id = UUID.randomUUID(),
+                    title = "",
+                    detailedDescription = "",
+                    targetMonth = targetMonth ?: 2025007,
+                    targetNumericValue = 0.0,
+                    startNumericValue = 0.0,
+                    currentNumericValue = 0.0,
+                    unit = "",
+                    currentProgress = 0,
+                    priority = GoalPriority.Middle,
+                    isCompleted = false,
+                    displayOrder = 0
+                ))
+            }
+        } else {
+            // 編集モード
+            val loaded = viewModel.getGoalById(goalId)
+            viewModel.setEditingGoalItem(loaded)
+            // 編集モードで上位目標が設定されている場合は詳細オプションを展開
+            if (loaded?.higherGoalId != null) {
+                showAdvancedOptions = true
+            }
+        }
+        isLoading = false
+    }
+
+    // 上位目標選択結果の受け取り
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     LaunchedEffect(navBackStackEntry) {
         navBackStackEntry?.savedStateHandle?.get<String>("selected_higher_goal_id")?.let { selectedId ->
             val higherGoalId = UUID.fromString(selectedId)
-            // 現在の編集中のGoalItemを直接ViewModelから取得
+            // 現在の編集中のGoalItemを保持したまま上位目標IDのみ更新
             viewModel.editingGoalItem.value?.let { currentGoal ->
                 viewModel.setEditingGoalItem(currentGoal.copy(higherGoalId = higherGoalId))
             }
@@ -98,36 +131,6 @@ fun GoalEditForm(
         if (editingGoalItem?.higherGoalId != null) {
             showAdvancedOptions = true
         }
-    }
-
-    // LaunchedEffectを使って、初回描画時またはgoalIdが変更された時に一度だけ実行
-    LaunchedEffect(key1 = goalId) {
-        if (goalId == null) {
-            // 新規作成モード
-            viewModel.setEditingGoalItem(GoalItem(
-                id = UUID.randomUUID(),
-                title = "",
-                detailedDescription = "",
-                targetMonth = targetMonth ?: 2025007,
-                targetNumericValue = 0.0,
-                startNumericValue = 0.0,
-                currentNumericValue = 0.0,
-                unit = "",
-                currentProgress = 0,
-                priority = GoalPriority.Middle,
-                isCompleted = false,
-                displayOrder = 0
-            ))
-        } else {
-            // 編集モード
-            val loaded = viewModel.getGoalById(goalId)
-            viewModel.setEditingGoalItem(loaded)
-            // 編集モードで上位目標が設定されている場合は詳細オプションを展開
-            if (loaded?.higherGoalId != null) {
-                showAdvancedOptions = true
-            }
-        }
-        isLoading = false
     }
 
     val scrollPosition = rememberScrollState()
