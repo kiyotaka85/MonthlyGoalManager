@@ -61,6 +61,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.material3.Switch
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 // 数値フォーマットのヘルパー関数
 private fun formatNumber(value: Double, isDecimal: Boolean): String {
@@ -908,26 +909,43 @@ fun ActionStepItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextField(
+                OutlinedTextField(
                     modifier = Modifier.weight(1f),
                     value = editText,
                     onValueChange = { editText = it },
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                    label = { Text("ステップ内容") },
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done,
+                        capitalization = KeyboardCapitalization.Sentences
+                    ),
                     keyboardActions = KeyboardActions(
                         onDone = {
-                            onUpdateText(editText)
-                            isEditing = false
+                            if (editText.isNotBlank()) {
+                                onUpdateText(editText)
+                                isEditing = false
+                            }
                         }
-                    )
+                    ),
+                    singleLine = true
                 )
 
                 IconButton(
                     onClick = {
-                        onUpdateText(editText)
-                        isEditing = false
-                    }
+                        if (editText.isNotBlank()) {
+                            onUpdateText(editText)
+                            isEditing = false
+                        }
+                    },
+                    enabled = editText.isNotBlank()
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = "保存")
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = "保存",
+                        tint = if (editText.isNotBlank())
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 IconButton(
@@ -940,20 +958,43 @@ fun ActionStepItem(
                 }
             }
         } else {
-            Text(
-                text = step.title,
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable {
-                        isEditing = true
-                        editText = step.title
-                    },
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (step.isCompleted)
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                else
-                    MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = step.title,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            isEditing = true
+                            editText = step.title
+                        }
+                        .padding(vertical = 8.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (step.isCompleted)
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    else
+                        MaterialTheme.colorScheme.onSurface,
+                    textDecoration = if (step.isCompleted)
+                        androidx.compose.ui.text.style.TextDecoration.LineThrough
+                    else
+                        androidx.compose.ui.text.style.TextDecoration.None
+                )
+
+                // 削除ボタン（編集モードでない時のみ表示）
+                IconButton(
+                    onClick = onDeleteStep,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "削除",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
     }
 }
