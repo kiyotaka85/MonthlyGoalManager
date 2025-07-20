@@ -111,7 +111,8 @@ fun calculateProgress(
 @HiltViewModel
 class GoalsViewModel @Inject constructor(
     private val repository: GoalsRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val dataExportImportManager: DataExportImportManager // 依存関係を追加
 ): ViewModel() {
     val goalList: Flow<List<GoalItem>> = repository.allGoals
     
@@ -314,6 +315,31 @@ class GoalsViewModel @Inject constructor(
 
     fun updateEditingGoalItem(update: (GoalItem) -> GoalItem) {
         _editingGoalItem.value = _editingGoalItem.value?.let(update)
+    }
+
+    // エクスポート・インポート機能
+    suspend fun exportAllData(): String {
+        return dataExportImportManager.exportAllData()
+    }
+
+    suspend fun importData(jsonString: String, replaceExisting: Boolean = false): ImportResult {
+        return dataExportImportManager.importData(jsonString, replaceExisting)
+    }
+
+    suspend fun exportToFile(context: android.content.Context, uri: android.net.Uri, jsonData: String): Boolean {
+        return dataExportImportManager.exportToFile(context, uri, jsonData)
+    }
+
+    suspend fun importFromFile(context: android.content.Context, uri: android.net.Uri): String? {
+        return dataExportImportManager.importFromFile(context, uri)
+    }
+
+    fun generateExportFileName(): String {
+        return dataExportImportManager.generateExportFileName()
+    }
+
+    suspend fun validateImportFile(jsonString: String): Boolean {
+        return dataExportImportManager.validateImportFile(jsonString)
     }
 }
 

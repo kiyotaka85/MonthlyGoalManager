@@ -49,48 +49,8 @@ class GoalsRepository(
         checkInDao.deleteCheckIn(checkIn)
     }
 
-    // MonthlyReview関連のメソッド
-    suspend fun getMonthlyReview(year: Int, month: Int): MonthlyReview? {
-        return monthlyReviewDao.getMonthlyReview(year, month)
-    }
-
-    fun hasMonthlyReview(year: Int, month: Int): Flow<Boolean> {
-        return monthlyReviewDao.hasMonthlyReview(year, month)
-    }
-
-    val allMonthlyReviews: Flow<List<MonthlyReview>> = monthlyReviewDao.getAllMonthlyReviews()
-
-    suspend fun insertMonthlyReview(review: MonthlyReview): Long {
-        return monthlyReviewDao.insertMonthlyReview(review)
-    }
-
-    suspend fun updateMonthlyReview(review: MonthlyReview) {
-        monthlyReviewDao.updateMonthlyReview(review)
-    }
-
-    // FinalCheckIn関連のメソッド
-    fun getFinalCheckInsForReview(reviewId: UUID): Flow<List<FinalCheckIn>> {
-        return finalCheckInDao.getFinalCheckInsForReview(reviewId)
-    }
-
-    suspend fun insertFinalCheckIn(checkIn: FinalCheckIn) {
-        finalCheckInDao.insertFinalCheckIn(checkIn)
-    }
-
-    suspend fun updateFinalCheckIn(checkIn: FinalCheckIn) {
-        finalCheckInDao.updateFinalCheckIn(checkIn)
-    }
-
-    suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn? {
-        return finalCheckInDao.getFinalCheckInForGoal(goalId, reviewId)
-    }
-
-    // HigherGoal関連のメソッド
+    // Higher Goal関連のメソッド
     val allHigherGoals: Flow<List<HigherGoal>> = higherGoalDao.getAllHigherGoals()
-
-    suspend fun getHigherGoalById(id: UUID): HigherGoal? {
-        return higherGoalDao.getHigherGoalById(id)
-    }
 
     suspend fun addHigherGoal(higherGoal: HigherGoal) {
         higherGoalDao.insertHigherGoal(higherGoal)
@@ -104,15 +64,11 @@ class GoalsRepository(
         higherGoalDao.deleteHigherGoal(higherGoal)
     }
 
-    // 月次レビュー削除機能を追加
-    suspend fun deleteMonthlyReview(review: MonthlyReview) {
-        // まず関連するFinalCheckInを削除
-        finalCheckInDao.deleteFinalCheckInsForReview(review.id)
-        // その後、月次レビューを削除
-        monthlyReviewDao.deleteMonthlyReview(review)
+    suspend fun getHigherGoalById(id: UUID): HigherGoal? {
+        return higherGoalDao.getHigherGoalById(id)
     }
 
-    // ActionStep関連のメソッド
+    // Action Step関連のメソッド
     fun getActionStepsForGoal(goalId: UUID): Flow<List<ActionStep>> {
         return actionStepDao.getActionStepsForGoal(goalId)
     }
@@ -127,5 +83,123 @@ class GoalsRepository(
 
     suspend fun deleteActionStep(actionStep: ActionStep) {
         actionStepDao.deleteActionStep(actionStep)
+    }
+
+    // Monthly Review関連のメソッド
+    val allMonthlyReviews: Flow<List<MonthlyReview>> = monthlyReviewDao.getAllMonthlyReviews()
+
+    suspend fun addMonthlyReview(monthlyReview: MonthlyReview) {
+        monthlyReviewDao.insertMonthlyReview(monthlyReview)
+    }
+
+    suspend fun updateMonthlyReview(monthlyReview: MonthlyReview) {
+        monthlyReviewDao.updateMonthlyReview(monthlyReview)
+    }
+
+    suspend fun deleteMonthlyReview(monthlyReview: MonthlyReview) {
+        monthlyReviewDao.deleteMonthlyReview(monthlyReview)
+    }
+
+    suspend fun getMonthlyReview(year: Int, month: Int): MonthlyReview? {
+        return monthlyReviewDao.getMonthlyReview(year, month)
+    }
+
+    // hasMonthlyReviewメソッドを追加
+    fun hasMonthlyReview(year: Int, month: Int): Flow<Boolean> {
+        return monthlyReviewDao.hasMonthlyReview(year, month)
+    }
+
+    // insertMonthlyReviewメソッドを追加（重複していた部分を削除）
+    suspend fun insertMonthlyReview(monthlyReview: MonthlyReview) {
+        monthlyReviewDao.insertMonthlyReview(monthlyReview)
+    }
+
+    // Final CheckIn関連のメソッド
+    val allFinalCheckIns: Flow<List<FinalCheckIn>> = finalCheckInDao.getAllFinalCheckIns()
+
+    suspend fun addFinalCheckIn(finalCheckIn: FinalCheckIn) {
+        finalCheckInDao.insertFinalCheckIn(finalCheckIn)
+    }
+
+    suspend fun updateFinalCheckIn(finalCheckIn: FinalCheckIn) {
+        finalCheckInDao.updateFinalCheckIn(finalCheckIn)
+    }
+
+    suspend fun deleteFinalCheckIn(finalCheckIn: FinalCheckIn) {
+        finalCheckInDao.deleteFinalCheckIn(finalCheckIn)
+    }
+
+    fun getFinalCheckInsForGoal(goalId: UUID): Flow<List<FinalCheckIn>> {
+        return finalCheckInDao.getFinalCheckInsForGoal(goalId)
+    }
+
+    suspend fun getFinalCheckInByReview(reviewId: UUID): List<FinalCheckIn> {
+        return finalCheckInDao.getFinalCheckInByReview(reviewId)
+    }
+
+    // getFinalCheckInsForReviewメソッドを追加
+    fun getFinalCheckInsForReview(reviewId: UUID): Flow<List<FinalCheckIn>> {
+        return finalCheckInDao.getFinalCheckInsForReview(reviewId)
+    }
+
+    // getFinalCheckInForGoalメソッドを追加
+    suspend fun getFinalCheckInForGoal(goalId: UUID, reviewId: UUID): FinalCheckIn? {
+        return finalCheckInDao.getFinalCheckInForGoal(goalId, reviewId)
+    }
+
+    // JSON形式でのデータエクスポート・インポート用のメソッド
+    suspend fun getAllGoalsOnce(): List<GoalItem> {
+        return goalDao.getAllGoalsOnce()
+    }
+
+    suspend fun getAllHigherGoalsOnce(): List<HigherGoal> {
+        return higherGoalDao.getAllHigherGoalsOnce()
+    }
+
+    suspend fun getAllActionStepsOnce(): List<ActionStep> {
+        return actionStepDao.getAllActionStepsOnce()
+    }
+
+    suspend fun getAllCheckInsOnce(): List<CheckInItem> {
+        return checkInDao.getAllCheckInsOnce()
+    }
+
+    suspend fun getAllMonthlyReviewsOnce(): List<MonthlyReview> {
+        return monthlyReviewDao.getAllMonthlyReviewsOnce()
+    }
+
+    suspend fun getAllFinalCheckInsOnce(): List<FinalCheckIn> {
+        return finalCheckInDao.getAllFinalCheckInsOnce()
+    }
+
+    // インポート用のメソッド
+    suspend fun insertGoal(goal: GoalItem) {
+        goalDao.upsertGoal(goal)
+    }
+
+    suspend fun insertHigherGoal(higherGoal: HigherGoal) {
+        higherGoalDao.insertHigherGoal(higherGoal)
+    }
+
+    suspend fun insertActionStep(actionStep: ActionStep) {
+        actionStepDao.insertActionStep(actionStep)
+    }
+
+    suspend fun insertCheckIn(checkIn: CheckInItem) {
+        checkInDao.insertCheckIn(checkIn)
+    }
+
+    suspend fun insertFinalCheckIn(finalCheckIn: FinalCheckIn) {
+        finalCheckInDao.insertFinalCheckIn(finalCheckIn)
+    }
+
+    // 全データ削除用のメソッド（インポート時にreplaceExisting=trueの場合に使用）
+    suspend fun deleteAllData() {
+        finalCheckInDao.deleteAllFinalCheckIns()
+        monthlyReviewDao.deleteAllMonthlyReviews()
+        checkInDao.deleteAllCheckIns()
+        actionStepDao.deleteAllActionSteps()
+        goalDao.deleteAllGoals()
+        higherGoalDao.deleteAllHigherGoals()
     }
 }

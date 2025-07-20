@@ -67,17 +67,26 @@ object AppModule {
     @Provides
     @Singleton
     fun provideGoalsRepository(
-        goalDao: GoalDao, 
+        goalDao: GoalDao,
         checkInDao: CheckInDao,
         monthlyReviewDao: MonthlyReviewDao,
         finalCheckInDao: FinalCheckInDao,
         higherGoalDao: HigherGoalDao,
         actionStepDao: ActionStepDao
-    ): GoalsRepository = GoalsRepository(goalDao, checkInDao, monthlyReviewDao, finalCheckInDao, higherGoalDao, actionStepDao)
+    ): GoalsRepository {
+        return GoalsRepository(goalDao, checkInDao, monthlyReviewDao, finalCheckInDao, higherGoalDao, actionStepDao)
+    }
 
     @Provides
     @Singleton
     fun providePreferencesManager(@ApplicationContext context: Context): PreferencesManager {
         return PreferencesManager(context)
+    }
+
+    // DataExportImportManagerの依存関係を追加
+    @Provides
+    @Singleton
+    fun provideDataExportImportManager(repository: GoalsRepository): DataExportImportManager {
+        return DataExportImportManager(repository)
     }
 }

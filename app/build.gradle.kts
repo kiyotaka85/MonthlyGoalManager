@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
 }
 
 android {
@@ -87,4 +88,10 @@ dependencies {
     
     // PDF generation
     implementation("com.itextpdf:itext7-core:7.2.5")
+
+    // Kotlin Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+
+    // DocumentFile (for file operations)
+    implementation("androidx.documentfile:documentfile:1.0.1")
 }
