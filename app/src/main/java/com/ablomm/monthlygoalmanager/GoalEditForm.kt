@@ -217,10 +217,6 @@ fun GoalEditForm(
     if (showSuccessDialog) {
         GoalCreatedSuccessDialog(
             goalTitle = editingGoalItem?.title ?: "",
-            onContinueEditing = {
-                showSuccessDialog = false
-                showAdvancedOptions = true
-            },
             onGoHome = {
                 showSuccessDialog = false
                 navController.popBackStack()
@@ -707,21 +703,13 @@ fun DeleteButton(
 @Composable
 fun GoalCreatedSuccessDialog(
     goalTitle: String,
-    onContinueEditing: () -> Unit,
     onGoHome: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = { onGoHome() },
-        title = { Text("目標の作成に成功しました") },
+        title = { Text("目標を作成しました") },
         text = { Text("目標「$goalTitle」が正常に作成されました。") },
         confirmButton = {
-            TextButton(
-                onClick = onContinueEditing
-            ) {
-                Text("編集を続ける")
-            }
-        },
-        dismissButton = {
             TextButton(
                 onClick = onGoHome
             ) {
