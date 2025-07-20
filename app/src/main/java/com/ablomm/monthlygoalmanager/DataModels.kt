@@ -53,7 +53,8 @@ data class GoalItem(
     val isCompleted: Boolean = false,
     val displayOrder: Int = 0,
     val higherGoalId: UUID? = null, // 上位目標への参照
-    val celebration: String? = null // ご褒美
+    val celebration: String? = null, // ご褒美
+    val isDecimal: Boolean = false // 小数点表示フラグを追加
     //val associatedMissionItem: MissionItem? = null
 )
 
