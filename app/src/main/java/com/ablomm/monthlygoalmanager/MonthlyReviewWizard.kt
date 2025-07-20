@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -53,7 +54,8 @@ fun MonthlyReviewWizard(
     var finalCheckIns by remember { mutableStateOf<List<FinalCheckInState>>(emptyList()) }
     var overallReflection by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
-    
+    var showCompletionDialog by remember { mutableStateOf(false) }
+
     val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
     
     // その月の目標をフィルタリング
@@ -271,9 +273,9 @@ fun MonthlyReviewWizard(
                                                 viewModel.updateGoalItem(updatedGoal)
                                             }
                                         }
-                                        
-                                        // Navigate to summary
-                                        navController.navigate("monthlyReviewSummary/$year/$month")
+
+                                        // Show completion dialog instead of direct navigation
+                                        showCompletionDialog = true
                                     },
                                     enabled = overallReflection.isNotBlank()
                                 ) {
@@ -287,6 +289,109 @@ fun MonthlyReviewWizard(
                 }
             }
         }
+    }
+
+    // Completion dialog with next month guidance
+    if (showCompletionDialog) {
+        val nextMonth = if (month == 12) 1 else month + 1
+        val nextYear = if (month == 12) year + 1 else year
+        val nextMonthYearMonth = YearMonth.of(nextYear, nextMonth)
+        val nextMonthText = nextMonthYearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+
+        AlertDialog(
+            onDismissRequest = { showCompletionDialog = false },
+            title = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "🎉",
+                        fontSize = 32.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "月次レビュー完了！",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "${monthYearText}の月次レビューが完了しました！",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Divider()
+
+                    Text(
+                        text = "🚀 次のステップとして、${nextMonthText}の目標を設定しましょう！",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = "継続的な成長のために、次の月の目標設定をお勧めします。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            confirmButton = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 翌月の目標設定ボタン（メインアクション）
+                    Button(
+                        onClick = {
+                            showCompletionDialog = false
+                            // ViewModelの更新は不要。ナビゲーションで直接年月を渡す
+                            navController.navigate("home?year=${nextYear}&month=${nextMonth}") {
+                                popUpTo("monthlyReview/$year/$month") { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("${nextMonthText}の目標へ")
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // サマリーを見るボタン
+                        OutlinedButton(
+                            onClick = {
+                                showCompletionDialog = false
+                                navController.navigate("monthlyReviewSummary/$year/$month")
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("サマリーを見る")
+                        }
+
+                        // 後でやるボタン
+                        TextButton(
+                            onClick = {
+                                showCompletionDialog = false
+                                navController.popBackStack()
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("後でやる")
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 

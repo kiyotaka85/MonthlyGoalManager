@@ -30,9 +30,40 @@ fun AppNavigation() {
         navController = navController,
         startDestination = "home"
     ) {
+        composable(
+            route = "home?year={year}&month={month}",
+            arguments = listOf(
+                navArgument("year") {
+                    type = NavType.IntType
+                    defaultValue = -1 // Default value when no parameter is provided
+                },
+                navArgument("month") {
+                    type = NavType.IntType
+                    defaultValue = -1 // Default value when no parameter is provided
+                }
+            )
+        ) { backStackEntry ->
+            val goalsViewModel: GoalsViewModel = hiltViewModel()
+            val year = backStackEntry.arguments?.getInt("year")
+            val month = backStackEntry.arguments?.getInt("month")
+
+            Home(
+                navController = navController,
+                viewModel = goalsViewModel,
+                targetYear = if (year == -1) null else year,
+                targetMonth = if (month == -1) null else month
+            )
+        }
+
+        // Keep the original home route for compatibility
         composable("home") {
             val goalsViewModel: GoalsViewModel = hiltViewModel()
-            Home(navController = navController, viewModel = goalsViewModel)
+            Home(
+                navController = navController,
+                viewModel = goalsViewModel,
+                targetYear = null,
+                targetMonth = null
+            )
         }
 
         composable(

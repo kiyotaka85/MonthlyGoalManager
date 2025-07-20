@@ -39,7 +39,12 @@ enum class GroupMode {
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
+fun Home(
+    navController: NavHostController,
+    viewModel: GoalsViewModel,
+    targetYear: Int? = null,
+    targetMonth: Int? = null
+) {
     val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
     val isTipsHidden = viewModel.isTipsHidden.collectAsState(initial = false)
     val isHideCompletedGoals = viewModel.isHideCompletedGoals.collectAsState(initial = false)
@@ -47,6 +52,13 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    // ナビゲーション経由で年月が渡された場合、ViewModelの状態を更新する
+    LaunchedEffect(targetYear, targetMonth) {
+        if (targetYear != null && targetMonth != null) {
+            viewModel.setCurrentYearMonth(YearMonth.of(targetYear, targetMonth))
+        }
+    }
 
     // 現在表示中の年月を管理 - ViewModelに保存して状態を保持
     val currentYearMonth by viewModel.currentYearMonth.collectAsState(initial = YearMonth.now())
