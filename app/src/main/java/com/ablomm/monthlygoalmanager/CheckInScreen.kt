@@ -64,7 +64,8 @@ fun CheckInScreen(
     LaunchedEffect(goalId) {
         goalItemState = viewModel.getGoalById(goalId)
         progressPercent = goalItemState?.currentProgress?.toString() ?: "0"
-        numericValue = goalItemState?.currentNumericValue?.toString() ?: ""
+        // 現在値は空の状態で開始（規定で数値を入力しない）
+        numericValue = ""
         isLoading = false
     }
 
@@ -146,8 +147,16 @@ fun CheckInScreen(
                                     numericValue = text
                                 },
                                 label = { Text("現在の数値 (${goal.unit})") },
-                                placeholder = { Text("例：${goal.targetNumericValue.toInt()}") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                placeholder = {
+                                    if (goal.isDecimal) {
+                                        Text("例：${String.format("%.1f", goal.targetNumericValue)}")
+                                    } else {
+                                        Text("例：${goal.targetNumericValue.toInt()}")
+                                    }
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = if (goal.isDecimal) KeyboardType.Decimal else KeyboardType.Number
+                                ),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
