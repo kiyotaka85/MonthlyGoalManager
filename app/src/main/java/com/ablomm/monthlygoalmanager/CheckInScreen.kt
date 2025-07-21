@@ -56,7 +56,7 @@ fun CheckInScreen(
     // 変更量計算用の状態変数を追加
     var changeAmount by remember { mutableStateOf(0.0) }
     var previousValue by remember { mutableStateOf(0.0) }
-    var progressIncrease by remember { mutableStateOf(0) }
+    var progressIncreaseDecimal by remember { mutableStateOf(0.0) } // 精密な進捗率増加量を追加
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val checkInsState = viewModel.getCheckInsForGoal(goalId).collectAsState(initial = emptyList())
@@ -190,7 +190,21 @@ fun CheckInScreen(
                                         goal.targetNumericValue,
                                         currentValue
                                     )
-                                    progressIncrease = newProgress - oldProgress
+                                    // 進捗率の増加を小数点で計算
+                                    val oldProgressPrecise = calculateProgressPrecise(
+                                        goal.startNumericValue,
+                                        goal.targetNumericValue,
+                                        goal.currentNumericValue
+                                    )
+                                    val newProgressPrecise = calculateProgressPrecise(
+                                        goal.startNumericValue,
+                                        goal.targetNumericValue,
+                                        currentValue
+                                    )
+                                    val calculatedProgressIncrease = newProgressPrecise - oldProgressPrecise
+
+                                    // 精密な進捗率増加量も保存
+                                    progressIncreaseDecimal = calculatedProgressIncrease
 
                                     val checkIn = CheckInItem(
                                         goalId = goalId,
@@ -263,7 +277,7 @@ fun CheckInScreen(
             checkIn = savedCheckIn!!,
             changeAmount = changeAmount,
             previousValue = previousValue,
-            progressIncrease = progressIncrease,
+            progressIncreaseDecimal = progressIncreaseDecimal, // 精密な進捗率増加量を渡す
             onShare = { shareText ->
                 val shareIntent = Intent().apply {
                     action = Intent.ACTION_SEND
@@ -291,6 +305,9 @@ fun CheckInHistoryItem(checkIn: CheckInItem) {
     )
     val formattedDate = dateTime.format(DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm"))
 
+    // 進捗率を小数点一桁まで繰り上がりで表示
+    val progressText = formatProgressPercentageFromInt(checkIn.progressPercent)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -304,7 +321,7 @@ fun CheckInHistoryItem(checkIn: CheckInItem) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${checkIn.progressPercent}%",
+                    text = "${progressText}%",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -325,12 +342,49 @@ fun CheckInHistoryItem(checkIn: CheckInItem) {
     }
 }
 
+// 整数の進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
+// 注意：この関数は整数値しか受け取らないため、精密な値は失われます
+// 可能な場合は、元の目標データから精密計算を行うことを推奨
+private fun formatProgressPercentageFromInt(progressPercent: Int): String {
+    val progressDouble = progressPercent.toDouble()
+    return String.format("%.1f", progressDouble)
+}
+
 // 数値フォーマットのヘルパー関数
 private fun formatNumber(value: Double, isDecimal: Boolean): String {
     if (!isDecimal && value % 1.0 == 0.0) {
         return value.toInt().toString()
     }
     return String.format("%.1f", value)
+}
+
+// 精密な進捗率計算のヘルパー関数
+private fun calculateProgressPrecise(
+    startValue: Double,
+    targetValue: Double,
+    currentValue: Double
+): Double {
+    val range = targetValue - startValue
+    val progressInRange = currentValue - startValue
+
+    return if (range != 0.0) {
+        (progressInRange / range * 100).coerceIn(0.0, 100.0)
+    } else {
+        if (currentValue >= targetValue) 100.0 else 0.0
+    }
+}
+
+// 進捗率の増加量を小数点一桁まで繰り上がりで表示するヘルパー関数
+private fun formatProgressIncrease(progressIncrease: Double): String {
+    return if (progressIncrease > 0) {
+        val rounded = kotlin.math.ceil(progressIncrease * 10) / 10 // 小数点一桁まで繰り上がり
+        "+${String.format("%.1f", rounded)}%"
+    } else if (progressIncrease < 0) {
+        val rounded = kotlin.math.floor(progressIncrease * 10) / 10 // 負の値の場合は切り下げ
+        "${String.format("%.1f", rounded)}%"
+    } else {
+        "変化なし"
+    }
 }
 
 // 紙吹雪の個別要素データクラス
@@ -481,12 +535,22 @@ fun CheckInCompletionDialog(
     checkIn: CheckInItem,
     changeAmount: Double,
     previousValue: Double,
-    progressIncrease: Int,
+    progressIncreaseDecimal: Double, // パラメータ名をprogressIncreaseから変更
     onShare: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val isGoalCompleted = checkIn.progressPercent >= 100
     var showConfetti by remember { mutableStateOf(isGoalCompleted) }
+
+    // 精密な進捗率を計算（目標データから）
+    val preciseProgress = calculateProgressPrecise(
+        goal.startNumericValue,
+        goal.targetNumericValue,
+        goal.currentNumericValue
+    )
+
+    // 精密な進捗率を小数点一桁まで繰り上がりで表示
+    val formattedProgress = kotlin.math.ceil(preciseProgress * 10) / 10
 
     // 紙吹雪を数秒後に自動的に停止
     LaunchedEffect(isGoalCompleted) {
@@ -529,7 +593,7 @@ fun CheckInCompletionDialog(
                     )
 
                     // 今回の成果カード
-                    if (changeAmount != 0.0 || progressIncrease != 0) {
+                    if (changeAmount != 0.0 || progressIncreaseDecimal != 0.0) {
                         Card(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.tertiaryContainer
@@ -568,17 +632,14 @@ fun CheckInCompletionDialog(
                                 )
 
                                 // 進捗率の増加を表示
-                                if (progressIncrease != 0) {
+                                if (progressIncreaseDecimal != 0.0) {
                                     Text(
-                                        text = if (progressIncrease > 0)
-                                            "進捗率: +${progressIncrease}%"
-                                        else
-                                            "進捗率: ${progressIncrease}%",
+                                        text = formatProgressIncrease(progressIncreaseDecimal),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         color = when {
-                                            progressIncrease > 0 -> Color(0xFF4CAF50)
-                                            progressIncrease < 0 -> Color(0xFFF44336)
+                                            progressIncreaseDecimal > 0 -> Color(0xFF4CAF50)
+                                            progressIncreaseDecimal < 0 -> Color(0xFFF44336)
                                             else -> MaterialTheme.colorScheme.onTertiaryContainer
                                         }
                                     )
@@ -644,7 +705,7 @@ fun CheckInCompletionDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("進捗:")
-                                Text("${checkIn.progressPercent}%", fontWeight = FontWeight.Medium)
+                                Text("${String.format("%.1f", formattedProgress)}%", fontWeight = FontWeight.Medium)
                             }
 
                             if (checkIn.comment.isNotBlank()) {
@@ -682,10 +743,10 @@ fun CheckInCompletionDialog(
                                 }
                                 appendLine()
                                 appendLine("目標: ${goal.title}")
-                                appendLine("進捗: ${checkIn.progressPercent}%")
+                                appendLine("進捗: ${String.format("%.1f", formattedProgress)}%")
 
                                 // 今回の成果を追加
-                                if (changeAmount != 0.0 || progressIncrease != 0) {
+                                if (changeAmount != 0.0 || progressIncreaseDecimal != 0.0) {
                                     appendLine()
                                     appendLine("✨ 今回の成果:")
                                     if (changeAmount != 0.0) {
@@ -696,11 +757,8 @@ fun CheckInCompletionDialog(
                                         }
                                         appendLine("数値変化: $changeText")
                                     }
-                                    if (progressIncrease != 0) {
-                                        val progressText = if (progressIncrease > 0)
-                                            "+${progressIncrease}%"
-                                        else
-                                            "${progressIncrease}%"
+                                    if (progressIncreaseDecimal != 0.0) {
+                                        val progressText = formatProgressIncrease(progressIncreaseDecimal)
                                         appendLine("進捗率: $progressText")
                                     }
                                 }

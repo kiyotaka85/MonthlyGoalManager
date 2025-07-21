@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import kotlin.math.abs
+import kotlin.math.ceil
 
 @Composable
 fun GoalCard(
@@ -449,21 +450,50 @@ fun GoalListContent(
     }
 }
 
+// 精密な進捗率計算のヘルパー関数
+private fun calculateProgressPrecise(
+    startValue: Double,
+    targetValue: Double,
+    currentValue: Double
+): Double {
+    val range = targetValue - startValue
+    val progressInRange = currentValue - startValue
+
+    return if (range != 0.0) {
+        (progressInRange / range * 100).coerceIn(0.0, 100.0)
+    } else {
+        if (currentValue >= targetValue) 100.0 else 0.0
+    }
+}
+
+// 進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
+private fun formatProgressPercentage(progressPercent: Double): String {
+    val rounded = kotlin.math.ceil(progressPercent * 10) / 10 // 小数点第二位以下を繰り上がり
+    return String.format("%.1f", rounded)
+}
+
 // 共通の進捗表示コンポーネント
 @Composable
 fun GoalProgressIndicator(goal: GoalItem) {
+    // 精密な進捗率を計算
+    val preciseProgress = calculateProgressPrecise(
+        goal.startNumericValue,
+        goal.targetNumericValue,
+        goal.currentNumericValue
+    )
+
     Column(modifier = Modifier.fillMaxWidth()) {
         // 1. プログレスバー
         LinearProgressIndicator(
-            progress = { goal.currentProgress / 100f },
+            progress = { (preciseProgress / 100f).toFloat() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp)),
             color = when {
-                goal.currentProgress >= 100 -> Color(0xFF4CAF50)
-                goal.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
-                goal.currentProgress >= 50 -> Color(0xFFFF9800)
+                preciseProgress >= 100 -> Color(0xFF4CAF50)
+                preciseProgress >= 75 -> MaterialTheme.colorScheme.primary
+                preciseProgress >= 50 -> Color(0xFFFF9800)
                 else -> Color(0xFFF44336)
             },
             trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -478,12 +508,14 @@ fun GoalProgressIndicator(goal: GoalItem) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${goal.startNumericValue.toInt()} ${goal.unit}",
+                text = if (goal.isDecimal) "${String.format("%.1f", goal.startNumericValue)} ${goal.unit}"
+                       else "${goal.startNumericValue.toInt()} ${goal.unit}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "${goal.targetNumericValue.toInt()} ${goal.unit}",
+                text = if (goal.isDecimal) "${String.format("%.1f", goal.targetNumericValue)} ${goal.unit}"
+                       else "${goal.targetNumericValue.toInt()} ${goal.unit}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -497,14 +529,17 @@ fun GoalProgressIndicator(goal: GoalItem) {
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val currentValueText = if (goal.isDecimal) "${String.format("%.1f", goal.currentNumericValue)} ${goal.unit}"
+                                  else "${goal.currentNumericValue.toInt()} ${goal.unit}"
+
             Text(
-                text = "現在: ${goal.currentNumericValue.toInt()} ${goal.unit} (${goal.currentProgress}%)",
+                text = "現在: $currentValueText (${formatProgressPercentage(preciseProgress)}%)",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = when {
-                    goal.currentProgress >= 100 -> Color(0xFF4CAF50)
-                    goal.currentProgress >= 75 -> MaterialTheme.colorScheme.primary
-                    goal.currentProgress >= 50 -> Color(0xFFFF9800)
+                    preciseProgress >= 100 -> Color(0xFF4CAF50)
+                    preciseProgress >= 75 -> MaterialTheme.colorScheme.primary
+                    preciseProgress >= 50 -> Color(0xFFFF9800)
                     else -> Color(0xFFF44336)
                 }
             )

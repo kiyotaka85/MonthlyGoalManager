@@ -404,7 +404,7 @@ fun CheckInHistoryContent(checkIns: List<CheckInItem>) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "${checkIn.progressPercent}%",
+                            text = "${formatProgressPercentageFromInt(checkIn.progressPercent)}%",
                             fontWeight = FontWeight.Bold
                         )
                         Text(
@@ -457,6 +457,14 @@ fun GoalActionButtons(
 //            Text("編集")
 //        }
     }
+}
+
+// 整数の進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
+// 注意：この関数は整数値しか受け取らないため、精密な値は失われます
+// 可能な場合は、元の目標データから精密計算を行うことを推奨
+private fun formatProgressPercentageFromInt(progressPercent: Int): String {
+    val progressDouble = progressPercent.toDouble()
+    return String.format("%.1f", progressDouble)
 }
 
 @Composable

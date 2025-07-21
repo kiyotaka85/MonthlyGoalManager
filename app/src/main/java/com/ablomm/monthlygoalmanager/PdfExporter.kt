@@ -110,13 +110,22 @@ class PdfExporter(private val context: Context) {
                 goalList.forEach { goal ->
                     table.addCell(Paragraph(goal.title))
                     table.addCell(Paragraph("${goal.targetNumericValue}"))
-                    table.addCell(Paragraph("${goal.currentProgress}%"))
+
+                    // 精密な進捗率を計算して小数点一桁まで繰り上がりで表示
+                    val preciseProgress = calculateProgressPrecise(
+                        goal.startNumericValue,
+                        goal.targetNumericValue,
+                        goal.currentNumericValue
+                    )
+                    val formattedProgress = formatProgressPercentage(preciseProgress)
+                    table.addCell(Paragraph("${formattedProgress}%"))
+
                     table.addCell(
                         Paragraph(
                             when {
-                                goal.isCompleted -> "✓ Completed"
-                                goal.currentProgress >= 75 -> "In Progress"
-                                goal.currentProgress > 0 -> "Started"
+                                preciseProgress >= 100 -> "✓ Completed"
+                                preciseProgress >= 75 -> "In Progress"
+                                preciseProgress > 0 -> "Started"
                                 else -> "Not Started"
                             }
                         )
@@ -154,5 +163,27 @@ class PdfExporter(private val context: Context) {
             e.printStackTrace()
             null
         }
+    }
+
+    // 精密な進捗率計算のヘルパー関数
+    private fun calculateProgressPrecise(
+        startValue: Double,
+        targetValue: Double,
+        currentValue: Double
+    ): Double {
+        val range = targetValue - startValue
+        val progressInRange = currentValue - startValue
+
+        return if (range != 0.0) {
+            (progressInRange / range * 100).coerceIn(0.0, 100.0)
+        } else {
+            if (currentValue >= targetValue) 100.0 else 0.0
+        }
+    }
+
+    // 進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
+    private fun formatProgressPercentage(progressPercent: Double): String {
+        val rounded = kotlin.math.ceil(progressPercent * 10) / 10
+        return String.format("%.1f", rounded)
     }
 }

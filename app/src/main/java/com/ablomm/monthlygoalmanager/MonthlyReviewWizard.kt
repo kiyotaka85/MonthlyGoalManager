@@ -30,6 +30,13 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.*
 
+// 整数の進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
+private fun formatProgressPercentageFromInt(progressPercent: Int): String {
+    val progressDouble = progressPercent.toDouble()
+    val rounded = kotlin.math.ceil(progressDouble * 10) / 10
+    return String.format("%.1f", rounded)
+}
+
 data class FinalCheckInState(
     val goalId: UUID,
     val goalTitle: String,
@@ -417,8 +424,10 @@ fun FinalCheckInStep(
         
         val lastCheckIn = checkIns.maxByOrNull { it.checkInDate }
         lastCheckIn?.let { 
+            // 進捗率を小数点一桁まで繰り上がりで表示
+            val formattedProgress = formatProgressPercentageFromInt(it.progressPercent)
             onUpdate(checkInState.copy(
-                finalProgress = it.progressPercent.toString(),
+                finalProgress = formattedProgress,
                 achievements = it.comment,
                 challenges = "",
                 learnings = ""
