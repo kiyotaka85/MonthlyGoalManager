@@ -175,7 +175,7 @@ class PdfExporter(private val context: Context) {
         val progressInRange = currentValue - startValue
 
         return if (range != 0.0) {
-            (progressInRange / range * 100).coerceIn(0.0, 100.0)
+            (progressInRange / range * 100).coerceAtLeast(0.0) // 下限は0%だが上限は設けない（オーバーアチーブ許可）
         } else {
             if (currentValue >= targetValue) 100.0 else 0.0
         }

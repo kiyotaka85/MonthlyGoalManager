@@ -102,7 +102,7 @@ fun calculateProgress(
     val progressInRange = currentValue - startValue
 
     return if (range != 0.0) {
-        (progressInRange / range * 100).coerceIn(0.0, 100.0).toInt()
+        (progressInRange / range * 100).coerceAtLeast(0.0).toInt() // 下限は0%だが上限は設けない（オーバーアチーブ許可）
     } else {
         if (currentValue >= targetValue) 100 else 0
     }

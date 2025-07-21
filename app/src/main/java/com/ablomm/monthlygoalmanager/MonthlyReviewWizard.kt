@@ -33,8 +33,23 @@ import java.util.*
 // 整数の進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
 private fun formatProgressPercentageFromInt(progressPercent: Int): String {
     val progressDouble = progressPercent.toDouble()
-    val rounded = kotlin.math.ceil(progressDouble * 10) / 10
-    return String.format("%.1f", rounded)
+    return String.format("%.1f", progressDouble)
+}
+
+// 精密な進捗率計算のヘルパー関数（オーバーアチーブ許可）
+private fun calculateProgressPrecise(
+    startValue: Double,
+    targetValue: Double,
+    currentValue: Double
+): Double {
+    val range = targetValue - startValue
+    val progressInRange = currentValue - startValue
+
+    return if (range != 0.0) {
+        (progressInRange / range * 100).coerceAtLeast(0.0) // 下限は0%だが上限は設けない（オーバーアチーブ許可）
+    } else {
+        if (currentValue >= targetValue) 100.0 else 0.0
+    }
 }
 
 data class FinalCheckInState(
