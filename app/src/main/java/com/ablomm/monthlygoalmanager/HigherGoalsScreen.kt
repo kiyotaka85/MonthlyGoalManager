@@ -40,6 +40,10 @@ fun HigherGoalsScreen(
 ) {
     val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
     var showAddDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var editingGoal by remember { mutableStateOf<HigherGoal?>(null) }
+    var goalToDelete by remember { mutableStateOf<HigherGoal?>(null) }
 
     val isSelectionMode = goalId != null
 
@@ -101,8 +105,14 @@ fun HigherGoalsScreen(
                 items(higherGoals) { higherGoal ->
                     HigherGoalCard(
                         higherGoal = higherGoal,
-                        onEdit = { /* TODO: 編集画面に遷移 */ },
-                        onDelete = { viewModel.deleteHigherGoal(higherGoal) },
+                        onEdit = {
+                            editingGoal = higherGoal
+                            showEditDialog = true
+                        },
+                        onDelete = {
+                            goalToDelete = higherGoal
+                            showDeleteDialog = true
+                        },
                         isSelectionMode = isSelectionMode,
                         onSelect = {
                             if (goalId != null) {
@@ -131,6 +141,38 @@ fun HigherGoalsScreen(
                 )
                 viewModel.addHigherGoal(higherGoal)
                 showAddDialog = false
+            }
+        )
+    }
+
+    // 編集ダイアログ
+    if (showEditDialog && editingGoal != null) {
+        EditHigherGoalDialog(
+            higherGoal = editingGoal!!,
+            onDismiss = {
+                showEditDialog = false
+                editingGoal = null
+            },
+            onUpdate = { updatedGoal ->
+                viewModel.updateHigherGoal(updatedGoal)
+                showEditDialog = false
+                editingGoal = null
+            }
+        )
+    }
+
+    // 削除確認ダイアログ
+    if (showDeleteDialog && goalToDelete != null) {
+        DeleteHigherGoalDialog(
+            higherGoal = goalToDelete!!,
+            onDismiss = {
+                showDeleteDialog = false
+                goalToDelete = null
+            },
+            onConfirm = {
+                viewModel.deleteHigherGoal(goalToDelete!!)
+                showDeleteDialog = false
+                goalToDelete = null
             }
         )
     }
@@ -188,7 +230,7 @@ fun HigherGoalCard(
                         }
                     }
                 }
-                
+
                 if (!isSelectionMode) {
                     Row {
                         IconButton(onClick = onEdit) {
@@ -247,9 +289,9 @@ fun AddHigherGoalDialog(
                         capitalization = KeyboardCapitalization.Sentences
                     )
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
@@ -261,12 +303,12 @@ fun AddHigherGoalDialog(
                         capitalization = KeyboardCapitalization.Sentences
                     )
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Text("Color", style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -297,6 +339,131 @@ fun AddHigherGoalDialog(
                 enabled = title.isNotBlank()
             ) {
                 Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditHigherGoalDialog(
+    higherGoal: HigherGoal,
+    onDismiss: () -> Unit,
+    onUpdate: (HigherGoal) -> Unit
+) {
+    var title by remember { mutableStateOf(higherGoal.title) }
+    var description by remember { mutableStateOf(higherGoal.description ?: "") }
+    var selectedColor by remember { mutableStateOf(higherGoal.color) }
+
+    val colors = listOf(
+        "#2196F3", "#4CAF50", "#FF9800", "#9C27B0",
+        "#F44336", "#00BCD4", "#FFEB3B", "#795548"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Higher Goal") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title *") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (Optional)") },
+                    minLines = 2,
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("Color", style = MaterialTheme.typography.labelMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    colors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(android.graphics.Color.parseColor(color)))
+                                .clickable { selectedColor = color }
+                                .then(
+                                    if (selectedColor == color) {
+                                        Modifier.border(
+                                            width = 3.dp,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            shape = CircleShape
+                                        )
+                                    } else Modifier
+                                )
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onUpdate(
+                        higherGoal.copy(
+                            title = title,
+                            description = if (description.isBlank()) null else description,
+                            color = selectedColor
+                        )
+                    )
+                },
+                enabled = title.isNotBlank()
+            ) {
+                Text("Update")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun DeleteHigherGoalDialog(
+    higherGoal: HigherGoal,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Confirm Deletion") },
+        text = { Text("Are you sure you want to delete this higher goal?") },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Delete")
             }
         },
         dismissButton = {
