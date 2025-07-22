@@ -1,5 +1,9 @@
 package com.ablomm.monthlygoalmanager
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,15 +11,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -54,14 +58,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.compose.runtime.collectAsState
-import androidx.compose.foundation.background
 import java.util.UUID
 import androidx.compose.material3.TextField
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.material3.Switch
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 
 // 数値フォーマットのヘルパー関数
 private fun formatNumber(value: Double, isDecimal: Boolean): String {
@@ -576,7 +583,8 @@ fun PrioritySelector(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = color
                     ),
-                    shape = RoundedCornerShape(20.dp)
+                    shape =
+                        RoundedCornerShape(20.dp)
                 ) {
                     Text(
                         text = when (priority) {
@@ -879,125 +887,243 @@ fun ActionStepItem(
     var isEditing by remember { mutableStateOf(false) }
     var editText by remember { mutableStateOf(step.title) }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // チェックマーク
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .background(
-                    color = if (step.isCompleted) Color(0xFF4CAF50) else Color.Gray,
-                    shape = CircleShape
-                )
-                .clickable { onToggleCompleted() },
-            contentAlignment = Alignment.Center
-        ) {
-            if (step.isCompleted) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = "完了",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                )
+    // アニメーション状態
+    var isJustCompleted by remember { mutableStateOf(false) }
+    var showCelebration by remember { mutableStateOf(false) }
+
+    // チェックボックスのスケールアニメーション
+    val checkboxScale by animateFloatAsState(
+        targetValue = if (isJustCompleted) 1.3f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        finishedListener = {
+            if (isJustCompleted) {
+                isJustCompleted = false
             }
+        },
+        label = "checkbox_scale"
+    )
+
+    // チェックボックスの背景色アニメーション
+    val checkboxColor by animateColorAsState(
+        targetValue = if (step.isCompleted) Color(0xFF4CAF50) else Color.Gray,
+        animationSpec = tween(durationMillis = 300),
+        label = "checkbox_color"
+    )
+
+    // テキストの色アニメーション
+    val textColor by animateColorAsState(
+        targetValue = if (step.isCompleted)
+            MaterialTheme.colorScheme.onSurfaceVariant
+        else
+            MaterialTheme.colorScheme.onSurface,
+        animationSpec = tween(durationMillis = 300),
+        label = "text_color"
+    )
+
+    // 完了時のお祝いエフェクト
+    LaunchedEffect(step.isCompleted) {
+        if (step.isCompleted) {
+            isJustCompleted = true
+            showCelebration = true
+            delay(1500) // 1.5秒後にお祝いエフェクトを非表示
+            showCelebration = false
         }
+    }
 
-        // テキスト部分
-        if (isEditing) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    modifier = Modifier.weight(1f),
-                    value = editText,
-                    onValueChange = { editText = it },
-                    label = { Text("ステップ内容") },
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Done,
-                        capitalization = KeyboardCapitalization.Sentences
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            if (editText.isNotBlank()) {
-                                onUpdateText(editText)
-                                isEditing = false
-                            }
-                        }
-                    ),
-                    singleLine = true
-                )
-
-                IconButton(
-                    onClick = {
-                        if (editText.isNotBlank()) {
-                            onUpdateText(editText)
-                            isEditing = false
-                        }
+    Box {
+        // メインコンテンツ
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // アニメーション付きチェックボックス
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .scale(checkboxScale)
+                    .background(
+                        color = checkboxColor,
+                        shape = CircleShape
+                    )
+                    .clickable {
+                        onToggleCompleted()
                     },
-                    enabled = editText.isNotBlank()
-                ) {
+                contentAlignment = Alignment.Center
+            ) {
+                if (step.isCompleted) {
                     Icon(
                         Icons.Default.Check,
-                        contentDescription = "保存",
-                        tint = if (editText.isNotBlank())
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-                        editText = step.title
-                        isEditing = false
-                    }
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "キャンセル")
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = step.title,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
-                            isEditing = true
-                            editText = step.title
-                        }
-                        .padding(vertical = 8.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (step.isCompleted)
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    else
-                        MaterialTheme.colorScheme.onSurface,
-                    textDecoration = if (step.isCompleted)
-                        androidx.compose.ui.text.style.TextDecoration.LineThrough
-                    else
-                        androidx.compose.ui.text.style.TextDecoration.None
-                )
-
-                // 削除ボタン（編集モードでない時のみ表示）
-                IconButton(
-                    onClick = onDeleteStep,
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "削除",
-                        tint = MaterialTheme.colorScheme.error,
+                        contentDescription = "完了",
+                        tint = Color.White,
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
+
+            // テキスト部分
+            if (isEditing) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        modifier = Modifier.weight(1f),
+                        value = editText,
+                        onValueChange = { editText = it },
+                        label = { Text("ステップ内容") },
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            imeAction = ImeAction.Done,
+                            capitalization = KeyboardCapitalization.Sentences
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                if (editText.isNotBlank()) {
+                                    onUpdateText(editText)
+                                    isEditing = false
+                                }
+                            }
+                        ),
+                        singleLine = true
+                    )
+
+                    IconButton(
+                        onClick = {
+                            if (editText.isNotBlank()) {
+                                onUpdateText(editText)
+                                isEditing = false
+                            }
+                        },
+                        enabled = editText.isNotBlank()
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "保存",
+                            tint = if (editText.isNotBlank())
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            editText = step.title
+                            isEditing = false
+                        }
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "キャンセル")
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = step.title,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                isEditing = true
+                                editText = step.title
+                            }
+                            .padding(vertical = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textColor,
+                        textDecoration = if (step.isCompleted)
+                            TextDecoration.LineThrough
+                        else
+                            TextDecoration.None
+                    )
+
+                    // 削除ボタン（編集モードでない時のみ表示）
+                    IconButton(
+                        onClick = onDeleteStep,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "削除",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // お祝いエフェクト（完了時のみ表示）
+        if (showCelebration) {
+            CelebrationEffect()
         }
     }
+}
+
+// お祝いエフェクト用のComposable
+@Composable
+fun CelebrationEffect() {
+    // 複数のパーティクルアニメーション
+    val particles = remember { (1..8).map { it } }
+
+    particles.forEach { index ->
+        val angle = (index * 45f) // 各パーティクルの角度
+        val distance by animateFloatAsState(
+            targetValue = 50f,
+            animationSpec = tween(
+                durationMillis = 1200,
+                easing = FastOutSlowInEasing
+            ),
+            label = "particle_distance_$index"
+        )
+        val alpha by animateFloatAsState(
+            targetValue = 0f,
+            animationSpec = tween(
+                durationMillis = 1200,
+                delayMillis = 300
+            ),
+            label = "particle_alpha_$index"
+        )
+
+        // パーティクルの位置計算
+        val xOffset = distance * kotlin.math.cos(Math.toRadians(angle.toDouble())).toFloat()
+        val yOffset = distance * kotlin.math.sin(Math.toRadians(angle.toDouble())).toFloat()
+
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .offset(x = xOffset.dp, y = yOffset.dp)
+                .background(
+                    color = when (index % 4) {
+                        0 -> Color(0xFFFFD700) // ゴールド
+                        1 -> Color(0xFF4CAF50) // グリーン
+                        2 -> Color(0xFF2196F3) // ブルー
+                        else -> Color(0xFFFF9800) // オレンジ
+                    }.copy(alpha = alpha),
+                    shape = CircleShape
+                )
+        )
+    }
+
+    // 中央の星エフェクト
+    val starScale by animateFloatAsState(
+        targetValue = 0f,
+        animationSpec = tween(
+            durationMillis = 800,
+            easing = FastOutSlowInEasing
+        ),
+        label = "star_scale"
+    )
+
+    Text(
+        text = "⭐",
+        fontSize = 20.sp,
+        modifier = Modifier
+            .scale(starScale)
+            .offset(x = 12.dp, y = (-8).dp)
+    )
 }
