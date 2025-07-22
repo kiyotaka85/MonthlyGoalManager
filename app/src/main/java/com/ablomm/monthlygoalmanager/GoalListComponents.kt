@@ -593,18 +593,18 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
             Card(
                 shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = when {
-                        preciseProgress >= 100 -> Color(0xFF4CAF50)
-                        preciseProgress >= 75 -> MaterialTheme.colorScheme.primary
-                        preciseProgress >= 50 -> Color(0xFFFF9800)
-                        else -> Color(0xFFF44336)
-                    }
+                    containerColor = Color.White
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Text(
                     text = progressText,
-                    color = Color.White,
+                    color = when {
+                        preciseProgress >= 100 -> Color(0xFF4CAF50)
+                        preciseProgress >= 75 -> MaterialTheme.colorScheme.primary
+                        preciseProgress >= 50 -> Color(0xFFFF9800)
+                        else -> Color(0xFFF44336)
+                    },
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelSmall
