@@ -16,6 +16,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +40,16 @@ fun HigherGoalsScreen(
     viewModel: GoalsViewModel = hiltViewModel(),
     goalId: UUID? = null // 選択モード用の目標ID
 ) {
-    val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
+    val allHigherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
+    val isHideCompleted by viewModel.isHideCompletedHigherGoals.collectAsState(initial = false)
+
+    // フィルタリングされた上位目標リスト
+    val higherGoals = if (isHideCompleted) {
+        allHigherGoals.filter { !it.isCompleted }
+    } else {
+        allHigherGoals
+    }
+
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -54,6 +65,22 @@ fun HigherGoalsScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    // アーカイブトグルボタン
+                    if (!isSelectionMode) {
+                        IconButton(
+                            onClick = {
+                                viewModel.setHideCompletedHigherGoals(!isHideCompleted)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (isHideCompleted) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (isHideCompleted) "Show completed" else "Hide completed",
+                                tint = if (isHideCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             )
@@ -77,18 +104,21 @@ fun HigherGoalsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "🎯",
+                        text = if (isHideCompleted && allHigherGoals.isNotEmpty()) "🏆" else "🎯",
                         fontSize = 48.sp
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "No higher goals yet",
+                        text = if (isHideCompleted && allHigherGoals.isNotEmpty())
+                            "All higher goals completed!" else "No higher goals yet",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Create higher goals to organize your monthly goals",
+                        text = if (isHideCompleted && allHigherGoals.isNotEmpty())
+                            "Toggle visibility to see completed goals" else
+                            "Create higher goals to organize your monthly goals",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -112,6 +142,9 @@ fun HigherGoalsScreen(
                         onDelete = {
                             goalToDelete = higherGoal
                             showDeleteDialog = true
+                        },
+                        onToggleCompletion = {
+                            viewModel.toggleHigherGoalCompletion(higherGoal)
                         },
                         isSelectionMode = isSelectionMode,
                         onSelect = {
@@ -183,6 +216,7 @@ fun HigherGoalCard(
     higherGoal: HigherGoal,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onToggleCompletion: () -> Unit = {},
     isSelectionMode: Boolean = false,
     onSelect: () -> Unit = {}
 ) {
@@ -254,6 +288,33 @@ fun HigherGoalCard(
                         text = "Tap to select",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            // 完了トグルスイッチ
+            if (!isSelectionMode) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Completed",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = higherGoal.isCompleted,
+                        onCheckedChange = {
+                            onToggleCompletion()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.onSurface,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
             }

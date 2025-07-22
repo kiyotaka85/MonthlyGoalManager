@@ -23,7 +23,9 @@ data class HigherGoal(
     val title: String,
     val description: String? = null,
     val color: String = "#2196F3", // デフォルト色
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val isCompleted: Boolean = false, // 達成状態
+    val completedAt: Long? = null // 達成日時
 )
 
 // Action Step for goals
@@ -119,7 +121,8 @@ class GoalsViewModel @Inject constructor(
     // Preferences関連
     val isTipsHidden: Flow<Boolean> = preferencesManager.isTipsHidden
     val isHideCompletedGoals: Flow<Boolean> = preferencesManager.isHideCompletedGoals
-    
+    val isHideCompletedHigherGoals: Flow<Boolean> = preferencesManager.isHideCompletedHigherGoals
+
     // 現在表示中の年月を管理
     @RequiresApi(Build.VERSION_CODES.O)
     private val _currentYearMonth = MutableStateFlow(YearMonth.now())
@@ -143,6 +146,12 @@ class GoalsViewModel @Inject constructor(
         }
     }
     
+    fun setHideCompletedHigherGoals(hide: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setHideCompletedHigherGoals(hide)
+        }
+    }
+
     // 並べ替え機能
     fun updateGoalOrder(goalId: UUID, newOrder: Int) {
         viewModelScope.launch {
@@ -340,6 +349,20 @@ class GoalsViewModel @Inject constructor(
 
     suspend fun validateImportFile(jsonString: String): Boolean {
         return dataExportImportManager.validateImportFile(jsonString)
+    }
+
+    // 上位目標の達成状態を切り替える
+    fun toggleHigherGoalCompletion(higherGoal: HigherGoal) {
+        viewModelScope.launch {
+            val updatedGoal = if (higherGoal.isCompleted) {
+                // 未達成に戻す
+                higherGoal.copy(isCompleted = false, completedAt = null)
+            } else {
+                // 達成にする
+                higherGoal.copy(isCompleted = true, completedAt = System.currentTimeMillis())
+            }
+            repository.updateHigherGoal(updatedGoal)
+        }
     }
 }
 

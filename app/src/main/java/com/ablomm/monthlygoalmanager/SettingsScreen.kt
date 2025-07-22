@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,7 +31,8 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val isTipsHidden by viewModel.isTipsHidden.collectAsState(initial = false)
     val isHideCompletedGoals by viewModel.isHideCompletedGoals.collectAsState(initial = false)
-    
+    val isHideCompletedHigherGoals by viewModel.isHideCompletedHigherGoals.collectAsState(initial = false)
+
     var showExportDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
     var isExporting by remember { mutableStateOf(false) }
@@ -98,75 +100,49 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 表示設定
+            // 表示設定セクション
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "表示設定",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        // Tips表示設定
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Show Tips",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Display helpful tips on home screen",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = !isTipsHidden,
-                                onCheckedChange = { viewModel.setTipsHidden(!it) }
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        // 完了済み目標表示設定
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Show Completed Goals",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Display completed goals in goal list",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = !isHideCompletedGoals,
-                                onCheckedChange = { viewModel.setHideCompletedGoals(!it) }
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = "表示設定",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-            
+
+            // ヒント非表示設定
+            item {
+                SettingsToggleItem(
+                    title = "ヒントを非表示",
+                    description = "ホーム画面のヒント表示を非表示にします",
+                    checked = isTipsHidden,
+                    onCheckedChange = { viewModel.setTipsHidden(it) },
+                    icon = Icons.Default.Lightbulb
+                )
+            }
+
+            // 完了済み目標非表示設定
+            item {
+                SettingsToggleItem(
+                    title = "完了済み目標を非表示",
+                    description = "完了済みの月次目標を一覧から非表示にします",
+                    checked = isHideCompletedGoals,
+                    onCheckedChange = { viewModel.setHideCompletedGoals(it) },
+                    icon = Icons.Default.CheckCircle
+                )
+            }
+
+            // 完了済み上位目標非表示設定
+            item {
+                SettingsToggleItem(
+                    title = "完了済み上位目標を非表示",
+                    description = "達成済みの上位目標を一覧から非表示にします",
+                    checked = isHideCompletedHigherGoals,
+                    onCheckedChange = { viewModel.setHideCompletedHigherGoals(it) },
+                    icon = Icons.Default.EmojiEvents
+                )
+            }
+
             // データの管理
             item {
                 Card(
@@ -315,5 +291,51 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun SettingsToggleItem(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    icon: ImageVector
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange
+            )
+        }
     }
 }
