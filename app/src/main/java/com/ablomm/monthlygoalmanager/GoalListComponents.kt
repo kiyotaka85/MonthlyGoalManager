@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -28,9 +29,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 @Composable
 fun GoalCard(
@@ -53,8 +56,8 @@ fun GoalCard(
     val maxSwipeDistance = 150f
 
     // カードの実際の高さを計算
-    // パディング(12dp * 2) + タイトル(約24dp) + スペース(8dp) + 進捗コンポーネント(約32dp)
-    val calculatedCardHeight = 88.dp
+    // 新しいレイアウトに合わせて高さを調整
+    val calculatedCardHeight = 96.dp
 
     Box(
         modifier = modifier
@@ -65,7 +68,7 @@ fun GoalCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(calculatedCardHeight)
+                .height(calculatedCardHeight) // 新しい高さに更新
                 .background(
                     color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(4.dp)
@@ -143,7 +146,7 @@ fun GoalCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(calculatedCardHeight)
+                .height(96.dp) // 新しいレイアウトに合わせて高さを増加
                 .offset(x = animatedOffsetX.dp)
                 .pointerInput(goalItem.id) {
                     detectHorizontalDragGestures(
@@ -192,23 +195,22 @@ fun GoalCard(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.Center
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                // 要素を上下に均等配置
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // 1行目：目標名（左寄せ）
+                // 上部：目標タイトル
                 Text(
                     text = goalItem.title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
-                    maxLines = 1,
+                    maxLines = 2, // 2行まで表示
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 進捗表示コンポーネント
-                GoalProgressIndicator(goal = goalItem)
+                // 下部：新しい進捗インジケータ
+                GoalProgressIndicatorWithBubble(goal = goalItem)
             }
         }
     }
@@ -544,6 +546,102 @@ fun GoalProgressIndicator(goal: GoalItem) {
                 }
             )
         }
+    }
+}
+
+/**
+ * 吹き出し付きの進捗インジケータ。
+ * 進捗率に応じて吹き出しが移動します。
+ */
+@Composable
+fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
+    // 1. start, target, currentの値から精密な進捗率(Double)を計算
+    val preciseProgress = calculateProgressPrecise(
+        startValue = goal.startNumericValue,
+        targetValue = goal.targetNumericValue,
+        currentValue = goal.currentNumericValue
+    )
+    // 2. 進捗率を0.0〜1.0の間のFloatに変換
+    val progressFraction = (preciseProgress / 100.0).toFloat().coerceIn(0f, 1f)
+
+    // 3. 表示用の進捗率テキストを生成（小数点以下を四捨五入）
+    val progressText = "${preciseProgress.roundToInt()}%"
+
+    // BoxWithConstraintsでコンポーネントの最大幅を取得し、動的な配置を可能にする
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp) // 吹き出しとバーのための高さを確保
+    ) {
+        val parentWidthPx = this.maxWidth
+        // 吹き出しの幅を定義
+        val bubbleWidth = 48.dp
+        // 進捗率に基づいて吹き出しのX座標を計算（Dp単位で統一）
+        val progressPositionDp = parentWidthPx * progressFraction
+        // 吹き出しがコンポーネントの端からはみ出さないようにオフセットを計算
+        val offset = (progressPositionDp - bubbleWidth / 2).coerceIn(0.dp, parentWidthPx - bubbleWidth)
+
+        // 吹き出し（本体と三角形のしっぽ）
+        Column(
+            modifier = Modifier
+                .width(bubbleWidth)
+                .offset(x = offset)
+                .zIndex(1f), // 吹き出しをバーの前面に表示
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // 吹き出し本体 (Cardで影をつける)
+            Card(
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = when {
+                        preciseProgress >= 100 -> Color(0xFF4CAF50)
+                        preciseProgress >= 75 -> MaterialTheme.colorScheme.primary
+                        preciseProgress >= 50 -> Color(0xFFFF9800)
+                        else -> Color(0xFFF44336)
+                    }
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Text(
+                    text = progressText,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            // 吹き出しのしっぽ（下向きの三角形）
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = when {
+                    preciseProgress >= 100 -> Color(0xFF4CAF50)
+                    preciseProgress >= 75 -> MaterialTheme.colorScheme.primary
+                    preciseProgress >= 50 -> Color(0xFFFF9800)
+                    else -> Color(0xFFF44336)
+                },
+                modifier = Modifier
+                    .size(20.dp)
+                    .offset(y = (-2).dp)
+            )
+        }
+
+        // 進捗バー
+        LinearProgressIndicator(
+            progress = { progressFraction },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .align(Alignment.BottomCenter), // Boxの下部に配置
+            color = when {
+                preciseProgress >= 100 -> Color(0xFF4CAF50)
+                preciseProgress >= 75 -> MaterialTheme.colorScheme.primary
+                preciseProgress >= 50 -> Color(0xFFFF9800)
+                else -> Color(0xFFF44336)
+            },
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     }
 }
 
