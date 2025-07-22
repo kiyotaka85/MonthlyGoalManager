@@ -5,30 +5,29 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import java.time.Instant
 import java.time.LocalDateTime
@@ -68,7 +67,7 @@ fun GoalDetailScreen(
                 title = { Text("目標詳細") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "戻る")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 },
                 actions = {
@@ -123,7 +122,7 @@ fun GoalDetailScreen(
                 item {
                     ExpandableSection(
                         title = "進捗状況",
-                        icon = Icons.Default.TrendingUp,
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
                         isExpanded = isProgressExpanded,
                         onToggle = { isProgressExpanded = !isProgressExpanded }
                     ) {
@@ -142,7 +141,7 @@ fun GoalDetailScreen(
                         isExpanded = isActionStepsExpanded,
                         onToggle = { isActionStepsExpanded = !isActionStepsExpanded }
                     ) {
-                        ActionStepsContent(actionSteps = actionStepsState.value)
+                        ActionStepsContent(actionSteps = actionStepsState.value, goalId = goalId, viewModel = viewModel)
                     }
                 }
 
@@ -292,7 +291,7 @@ fun GoalProgressContent(
 
         // 統計情報
         if (checkIns.isNotEmpty()) {
-            Divider()
+            HorizontalDivider()
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -328,52 +327,228 @@ fun GoalProgressContent(
 }
 
 @Composable
-fun ActionStepsContent(actionSteps: List<ActionStep>) {
+fun ActionStepsContent(
+    actionSteps: List<ActionStep>,
+    goalId: UUID,
+    viewModel: GoalsViewModel
+) {
+    var showAddDialog by remember { mutableStateOf(false) }
+    var editingStep by remember { mutableStateOf<ActionStep?>(null) }
+
     Column(
         modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // 追加ボタン
+        OutlinedButton(
+            onClick = { showAddDialog = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("アクションステップを追加")
+        }
+
+        // アクションステップリスト
         actionSteps.sortedBy { it.order }.forEach { step ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ActionStepItem(
+                step = step,
+                onToggleComplete = {
+                    viewModel.updateActionStep(step.copy(isCompleted = !step.isCompleted))
+                },
+                onEdit = { editingStep = step },
+                onDelete = { viewModel.deleteActionStep(step) }
+            )
+        }
+
+        // 進捗表示
+        if (actionSteps.isNotEmpty()) {
+            val completedSteps = actionSteps.count { it.isCompleted }
+            val totalSteps = actionSteps.size
+
+            HorizontalDivider()
+            Text(
+                text = "完了: $completedSteps / $totalSteps",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            Text(
+                text = "まだアクションステップがありません",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+    }
+
+    // 追加ダイアログ
+    if (showAddDialog) {
+        ActionStepDialog(
+            actionStep = null,
+            goalId = goalId,
+            onDismiss = { showAddDialog = false },
+            onSave = { title ->
+                val newStep = ActionStep(
+                    goalId = goalId,
+                    title = title,
+                    order = actionSteps.size
+                )
+                viewModel.addActionStep(newStep)
+                showAddDialog = false
+            }
+        )
+    }
+
+    // 編集ダイアログ
+    editingStep?.let { step ->
+        ActionStepDialog(
+            actionStep = step,
+            goalId = goalId,
+            onDismiss = { editingStep = null },
+            onSave = { title ->
+                viewModel.updateActionStep(step.copy(title = title))
+                editingStep = null
+            }
+        )
+    }
+}
+
+@Composable
+fun ActionStepItem(
+    step: ActionStep,
+    onToggleComplete: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (step.isCompleted)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+            else
+                MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // 完了チェックボタン
+            IconButton(
+                onClick = onToggleComplete,
+                modifier = Modifier.size(40.dp)
             ) {
-                if (step.isCompleted) {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        tint = Color(0xFF4CAF50)
+                Icon(
+                    imageVector = if (step.isCompleted) Icons.Default.CheckCircle else Icons.Default.Check,
+                    contentDescription = if (step.isCompleted) "完了済み" else "完了にする",
+                    tint = if (step.isCompleted) Color(0xFF4CAF50) else Color.Gray
+                )
+            }
+
+            // ステップタイトル
+            Text(
+                text = step.title,
+                modifier = Modifier.weight(1f),
+                style = if (step.isCompleted) {
+                    MaterialTheme.typography.bodyMedium.copy(
+                        color = Color.Gray,
+                        textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
                     )
                 } else {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        tint = Color.Gray
-                    )
+                    MaterialTheme.typography.bodyMedium
                 }
+            )
 
-                Text(
-                    text = step.title,
-                    modifier = Modifier.weight(1f),
-                    style = if (step.isCompleted) {
-                        MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.Gray
-                        )
-                    } else {
-                        MaterialTheme.typography.bodyMedium
-                    }
+            // 編集ボタン
+            IconButton(
+                onClick = onEdit,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "編集",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // 削除ボタン
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "削除",
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
         }
+    }
+}
 
-        val completedSteps = actionSteps.count { it.isCompleted }
-        val totalSteps = actionSteps.size
+@Composable
+fun ActionStepDialog(
+    actionStep: ActionStep?,
+    goalId: UUID,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var title by remember { mutableStateOf(actionStep?.title ?: "") }
+    val isEditing = actionStep != null
 
-        Text(
-            text = "完了: $completedSteps / $totalSteps",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = if (isEditing) "アクションステップを編集" else "新しいアクションステップ",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("タイトル") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("キャンセル")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            if (title.isNotBlank()) {
+                                onSave(title.trim())
+                            }
+                        },
+                        enabled = title.isNotBlank()
+                    ) {
+                        Text(if (isEditing) "更新" else "追加")
+                    }
+                }
+            }
+        }
     }
 }
 
