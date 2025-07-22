@@ -109,12 +109,15 @@ fun GoalEditForm(
                 ))
             }
         } else {
-            // 編集モード
-            val loaded = viewModel.getGoalById(goalId)
-            viewModel.setEditingGoalItem(loaded)
-            // 編集モードで上位目標が設定されている場合は詳細オプションを展開
-            if (loaded?.higherGoalId != null) {
-                showAdvancedOptions = true
+            // 編集モード - 【修正点】ViewModelに編集中のデータがないか、
+            // もしくは違う目標を編集中だった場合のみ、DBから読み込む
+            if (viewModel.editingGoalItem.value?.id != goalId) {
+                val loaded = viewModel.getGoalById(goalId)
+                viewModel.setEditingGoalItem(loaded)
+                // 編集モードで上位目標が設定されている場合は詳細オプションを展開
+                if (loaded?.higherGoalId != null) {
+                    showAdvancedOptions = true
+                }
             }
         }
         isLoading = false
