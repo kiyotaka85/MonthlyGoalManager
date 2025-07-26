@@ -159,7 +159,7 @@ fun GoalEditForm(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (goalId == null) "新しい目標" else "目標を編集") },
+                title = { Text(if (goalId == null) "月次目標の作成" else "目標を編集") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
@@ -246,29 +246,37 @@ fun RequiredFieldsSection(
     focusManager: FocusManager
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // セクション1: 目標の基本情報
-        SectionHeader(title = "目標の基本情報")
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // 目標
+        // 「今月の目標名」入力フィールド
+        Column {
+            Text(
+                text = "目標タイトル",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = editingGoalItem.title,
                 onValueChange = { viewModel.setEditingGoalItem(editingGoalItem.copy(title = it)) },
-                label = { Text("目標") },
-                placeholder = { Text("例：体重を70kgまで減らす") },
-                minLines = 3,
+                placeholder = { Text("例：単語帳を進める") },
+                singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.clearFocus() }
                 )
             )
+        }
 
-            // 数値設定（必須項目）
+        // 「数値目標」入力フィールド
+        Column {
+            Text(
+                text = "数値目標 💡",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
             NumericGoalFields(
                 targetValue = editingGoalItem.targetNumericValue,
                 startValue = editingGoalItem.startNumericValue,
@@ -445,72 +453,43 @@ fun NumericGoalFields(
     onStartValueChange: (String) -> Unit,
     onUnitChanged: (String) -> Unit
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // 目標値と単位（同じ行）
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            OutlinedTextField(
-                modifier = Modifier.weight(2f),
-                value = if (targetValue == 0.0) "" else formatNumber(targetValue, isDecimal),
-                onValueChange = onTargetValueChange,
-                label = { Text("目標値") },
-                placeholder = { Text("100") },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Decimal
-                )
-            )
-
-            OutlinedTextField(
-                modifier = Modifier.weight(1f),
-                value = unit,
-                onValueChange = onUnitChanged,
-                label = { Text("単位") },
-                placeholder = { Text("万円") }
-            )
-        }
-
-        // 開始値（単独行）
+        // 開始値
         OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = if (startValue == 0.0) "" else formatNumber(startValue, isDecimal),
+            modifier = Modifier.weight(1f),
+            value = if (startValue == 0.0 && !isDecimal) "" else formatNumber(startValue, isDecimal),
             onValueChange = onStartValueChange,
-            label = { Text("開始値") },
-            placeholder = { Text("0") },
+            placeholder = { Text("開始値") },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal
             ),
-            supportingText = { Text("目標開始時点の数値") }
+            singleLine = true
         )
 
-        // 使用例の表示
-        if (targetValue > 0) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    Text(
-                        text = "例：${formatNumber(startValue, isDecimal)}${unit} → ${formatNumber(targetValue, isDecimal)}${unit}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "目標追加時の現在値は開始値と同じ値になります",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
+        // 目標値
+        OutlinedTextField(
+            modifier = Modifier.weight(1f),
+            value = if (targetValue == 0.0 && !isDecimal) "" else formatNumber(targetValue, isDecimal),
+            onValueChange = onTargetValueChange,
+            placeholder = { Text("目標値") },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal
+            ),
+            singleLine = true
+        )
+
+        // 単位
+        OutlinedTextField(
+            modifier = Modifier.weight(1f),
+            value = unit,
+            onValueChange = onUnitChanged,
+            placeholder = { Text("単位 (例:ページ)") },
+            singleLine = true
+        )
     }
 }
 
