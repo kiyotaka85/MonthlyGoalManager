@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.HelpOutline // アイコンをインポート
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,6 +70,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.height
 
 // 数値フォーマットのヘルパー関数
 private fun formatNumber(value: Double, isDecimal: Boolean): String {
@@ -76,6 +78,40 @@ private fun formatNumber(value: Double, isDecimal: Boolean): String {
         return value.toInt().toString()
     }
     return value.toString()
+}
+
+/**
+ * タップするとヒントダイアログを表示するヘルプアイコン
+ * @param hintText ダイアログに表示するテキスト
+ */
+@Composable
+fun InfoTooltip(hintText: String) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    // IconButtonでクリック領域を確保し、押しやすくする
+    IconButton(
+        onClick = { showDialog = true },
+        modifier = Modifier.size(24.dp) // アイコンサイズより少し大きめに設定
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.HelpOutline, // 丸に「？」のアイコン
+            contentDescription = "ヒント",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant // アイコンの色
+        )
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("ヒント") },
+            text = { Text(hintText) },
+            confirmButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -250,17 +286,21 @@ fun RequiredFieldsSection(
     ) {
         // 「今月の目標名」入力フィールド
         Column {
-            Text(
-                text = "目標タイトル",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "今月の目標名",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.width(4.dp))
+                InfoTooltip(hintText = "今月達成したい、主要な目標を一つ設定しましょう。具体的で、行動を促すような名前が効果的です。")
+            }
+            Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = editingGoalItem.title,
                 onValueChange = { viewModel.setEditingGoalItem(editingGoalItem.copy(title = it)) },
-                placeholder = { Text("例：単語帳を進める") },
+                placeholder = { Text("例：単語帳を100ページ進める") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(
@@ -271,12 +311,16 @@ fun RequiredFieldsSection(
 
         // 「数値目標」入力フィールド
         Column {
-            Text(
-                text = "数値目標 💡",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "数値目標",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.width(4.dp))
+                InfoTooltip(hintText = "進捗を数値でトラッキングするために必要です。達成率に反映されます。開始値から目標値までの進捗が自動計算されます。")
+            }
+            Spacer(Modifier.height(8.dp))
             NumericGoalFields(
                 targetValue = editingGoalItem.targetNumericValue,
                 startValue = editingGoalItem.startNumericValue,
