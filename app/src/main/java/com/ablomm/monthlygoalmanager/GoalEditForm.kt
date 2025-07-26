@@ -270,49 +270,45 @@ fun RequiredFieldsSection(
 
             // 数値設定（必須項目）
             NumericGoalFields(
-                targetValue = editingGoalItem.targetNumericValue ?: 0.0,
-                currentValue = editingGoalItem.currentNumericValue ?: 0.0,
-                startValue = editingGoalItem.startNumericValue ?: 0.0,
-                unit = editingGoalItem.unit ?: "",
+                targetValue = editingGoalItem.targetNumericValue,
+                startValue = editingGoalItem.startNumericValue,
+                unit = editingGoalItem.unit,
                 isDecimal = editingGoalItem.isDecimal,
-                onTargetValueChanged = { value ->
-                    val updatedGoal = editingGoalItem.copy(targetNumericValue = value)
-                    // 新しい進捗率計算ロジックを使用
+                onTargetValueChange = { text ->
+                    val value = text.toDoubleOrNull() ?: 0.0
+                    val hasDecimal = text.contains('.')
                     val progress = calculateProgress(
                         editingGoalItem.startNumericValue,
                         value,
                         editingGoalItem.currentNumericValue
                     )
-                    viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
+                    viewModel.setEditingGoalItem(
+                        editingGoalItem.copy(
+                            targetNumericValue = value,
+                            isDecimal = hasDecimal,
+                            currentProgress = progress
+                        )
+                    )
                 },
-                onCurrentValueChanged = { value ->
-                    val updatedGoal = editingGoalItem.copy(currentNumericValue = value)
-                    // 新しい進捗率計算ロジックを使用
+                onStartValueChange = { text ->
+                    val value = text.toDoubleOrNull() ?: 0.0
+                    val hasDecimal = text.contains('.')
                     val progress = calculateProgress(
-                        editingGoalItem.startNumericValue,
+                        value,
                         editingGoalItem.targetNumericValue,
-                        value
+                        value // 開始値と現在値を同期
                     )
-                    viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
-                },
-                onStartValueChanged = { value ->
-                    // 開始値変更時は現在値も同じ値に設定し、進捗率を再計算
-                    val updatedGoal = editingGoalItem.copy(
-                        startNumericValue = value,
-                        currentNumericValue = value // 現在値も開始値と同じに設定
+                    viewModel.setEditingGoalItem(
+                        editingGoalItem.copy(
+                            startNumericValue = value,
+                            currentNumericValue = value,
+                            isDecimal = hasDecimal,
+                            currentProgress = progress
+                        )
                     )
-                    val progress = calculateProgress(
-                        value, // 新しい開始値を使用
-                        updatedGoal.targetNumericValue, // 更新されたGoalから値を取得
-                        value // 新しい現在値（開始値と同じ）を使用
-                    )
-                    viewModel.setEditingGoalItem(updatedGoal.copy(currentProgress = progress))
                 },
                 onUnitChanged = { unit ->
                     viewModel.setEditingGoalItem(editingGoalItem.copy(unit = unit))
-                },
-                onIsDecimalChanged = { isDecimal ->
-                    viewModel.setEditingGoalItem(editingGoalItem.copy(isDecimal = isDecimal))
                 }
             )
         }
@@ -442,35 +438,16 @@ fun AdvancedOptionsSection(
 @Composable
 fun NumericGoalFields(
     targetValue: Double,
-    currentValue: Double,
     startValue: Double,
     unit: String,
     isDecimal: Boolean,
-    onTargetValueChanged: (Double) -> Unit,
-    onCurrentValueChanged: (Double) -> Unit,
-    onStartValueChanged: (Double) -> Unit,
-    onUnitChanged: (String) -> Unit,
-    onIsDecimalChanged: (Boolean) -> Unit
+    onTargetValueChange: (String) -> Unit,
+    onStartValueChange: (String) -> Unit,
+    onUnitChanged: (String) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 小数点切り替えスイッチ
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "小数点以下の値を入力する",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Switch(
-                checked = isDecimal,
-                onCheckedChange = onIsDecimalChanged
-            )
-        }
-
         // 目標値と単位（同じ行）
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -480,14 +457,11 @@ fun NumericGoalFields(
             OutlinedTextField(
                 modifier = Modifier.weight(2f),
                 value = if (targetValue == 0.0) "" else formatNumber(targetValue, isDecimal),
-                onValueChange = {
-                    val value = it.toDoubleOrNull() ?: 0.0
-                    onTargetValueChanged(value)
-                },
+                onValueChange = onTargetValueChange,
                 label = { Text("目標値") },
                 placeholder = { Text("100") },
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number
+                    keyboardType = KeyboardType.Decimal
                 )
             )
 
@@ -504,20 +478,17 @@ fun NumericGoalFields(
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = if (startValue == 0.0) "" else formatNumber(startValue, isDecimal),
-            onValueChange = {
-                val value = it.toDoubleOrNull() ?: 0.0
-                onStartValueChanged(value)
-            },
+            onValueChange = onStartValueChange,
             label = { Text("開始値") },
             placeholder = { Text("0") },
             keyboardOptions = KeyboardOptions(
-                keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number
+                keyboardType = KeyboardType.Decimal
             ),
             supportingText = { Text("目標開始時点の数値") }
         )
 
         // 使用例の表示
-        if (startValue != 0.0 && targetValue > 0) {
+        if (targetValue > 0) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -1046,7 +1017,7 @@ fun CelebrationEffect() {
                     }.copy(alpha = alpha),
                     shape = CircleShape
                 )
-        )
+        ) //これ消さんといてね。
     }
 
     // 中央の星エフェクト
