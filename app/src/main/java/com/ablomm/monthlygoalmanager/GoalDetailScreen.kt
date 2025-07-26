@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import java.time.Instant
@@ -202,19 +203,15 @@ fun GoalBasicInfoContent(
             Text("${goal.currentNumericValue} ${goal.unit}")
         }
 
-        // 優先度
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("優先度:", fontWeight = FontWeight.Medium)
-            Text(
-                text = when (goal.priority) {
-                    GoalPriority.High -> "高"
-                    GoalPriority.Middle -> "中"
-                    GoalPriority.Low -> "低"
-                }
-            )
+        // キー目標
+        if (goal.isKeyGoal) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("🗝️", fontSize = 20.sp)
+                Text("キー目標", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
         }
 
         // 上位目標

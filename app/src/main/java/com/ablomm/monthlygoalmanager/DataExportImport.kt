@@ -39,7 +39,7 @@ data class SerializableGoalItem(
     val currentNumericValue: Double,
     val unit: String,
     val currentProgress: Int,
-    val priority: String, // GoalPriorityを文字列として保存
+    val isKeyGoal: Boolean = false, // priorityフィールドをisKeyGoalに変更
     val isCompleted: Boolean,
     val displayOrder: Int,
     val higherGoalId: String? = null,
@@ -106,7 +106,7 @@ fun GoalItem.toSerializable() = SerializableGoalItem(
     currentNumericValue = currentNumericValue,
     unit = unit,
     currentProgress = currentProgress,
-    priority = priority.name,
+    isKeyGoal = isKeyGoal,
     isCompleted = isCompleted,
     displayOrder = displayOrder,
     higherGoalId = higherGoalId?.toString(),
@@ -124,7 +124,7 @@ fun SerializableGoalItem.toGoalItem() = GoalItem(
     currentNumericValue = currentNumericValue,
     unit = unit,
     currentProgress = currentProgress,
-    priority = GoalPriority.valueOf(priority),
+    isKeyGoal = isKeyGoal,
     isCompleted = isCompleted,
     displayOrder = displayOrder,
     higherGoalId = higherGoalId?.let { UUID.fromString(it) },

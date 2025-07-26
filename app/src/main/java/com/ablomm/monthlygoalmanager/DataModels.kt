@@ -51,7 +51,7 @@ data class GoalItem(
     val currentNumericValue: Double = 0.0, // 数値目標の現在値（必須）
     val unit: String = "", // 数値目標の単位（必須）
     val currentProgress: Int = 0,
-    val priority: GoalPriority = GoalPriority.Middle,
+    val isKeyGoal: Boolean = false, // キー目標フラグ
     val isCompleted: Boolean = false,
     val displayOrder: Int = 0,
     val higherGoalId: UUID? = null, // 上位目標への参照
@@ -88,11 +88,6 @@ class Converters {
 data class MissionItem(
     val title: String
 )
-
-
-enum class GoalPriority{
-    High, Middle, Low
-}
 
 // 進捗率計算のヘルパー関数
 fun calculateProgress(
@@ -375,7 +370,7 @@ val juneGoals = listOf(
         targetMonth = 2025006,
         targetNumericValue = 100.0, // 完了目標
         currentProgress = 100,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 0
     ),
     GoalItem(
@@ -383,7 +378,7 @@ val juneGoals = listOf(
         targetMonth = 2025006,
         targetNumericValue = 100.0,
         currentProgress = 5,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 1
     ),
     GoalItem(
@@ -391,7 +386,6 @@ val juneGoals = listOf(
         targetMonth = 2025006,
         targetNumericValue = 100.0,
         currentProgress = 50,
-        priority = GoalPriority.Middle,
         displayOrder = 2
     ),
     GoalItem(
@@ -399,7 +393,6 @@ val juneGoals = listOf(
         targetMonth = 2025006,
         targetNumericValue = 100.0,
         currentProgress = 10,
-        priority = GoalPriority.Middle,
         displayOrder = 3
     ),
     GoalItem(
@@ -407,7 +400,6 @@ val juneGoals = listOf(
         targetMonth = 2025006,
         targetNumericValue = 100.0,
         currentProgress = 80,
-        priority = GoalPriority.Middle,
         displayOrder = 4
     ),
     GoalItem(
@@ -415,7 +407,6 @@ val juneGoals = listOf(
         targetMonth = 2025006,
         targetNumericValue = 4.0,
         currentProgress = 0,
-        priority = GoalPriority.Low,
         displayOrder = 5
     )
 )
@@ -427,7 +418,7 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetNumericValue = 100.0,
         currentProgress = 20,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 0
     ),
     GoalItem(
@@ -436,7 +427,7 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetNumericValue = 100.0,
         currentProgress = 10,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 1
     ),
     GoalItem(
@@ -445,7 +436,7 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetNumericValue = 100.0,
         currentProgress = 30,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 2
     ),
     GoalItem(
@@ -453,7 +444,6 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetNumericValue = 100.0,
         currentProgress = 20,
-        priority = GoalPriority.Middle,
         displayOrder = 3
     ),
     GoalItem(
@@ -462,7 +452,6 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetNumericValue = 4.0,
         currentProgress = 0,
-        priority = GoalPriority.Middle,
         displayOrder = 4
     ),
     GoalItem(
@@ -471,7 +460,6 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetNumericValue = 7.0,
         currentProgress = 0,
-        priority = GoalPriority.Low,
         displayOrder = 5
     ),
     GoalItem(
@@ -480,7 +468,6 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetNumericValue = 5.0,
         currentProgress = 0,
-        priority = GoalPriority.Middle,
         displayOrder = 6
     ),
     GoalItem(
@@ -489,7 +476,6 @@ val julyGoals = listOf(
         targetMonth = 2025007,
         targetNumericValue = 1.0,
         currentProgress = 0,
-        priority = GoalPriority.Low,
         displayOrder = 7
     )
 )

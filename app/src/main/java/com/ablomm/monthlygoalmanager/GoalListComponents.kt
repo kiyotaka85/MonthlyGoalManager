@@ -197,14 +197,28 @@ fun GoalCard(
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // 上部：目標タイトル
-                Text(
-                    text = goalItem.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2, // 2行まで表示
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = goalItem.title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2, // 2行まで表示
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // キー目標のアイコン
+                    if (goalItem.isKeyGoal) {
+                        Text(
+                            text = "🗝️",
+                            fontSize = 20.sp,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
 
                 // 下部：新しい進捗インジケータ
                 GoalProgressIndicatorWithBubble(goal = goalItem)
@@ -408,39 +422,50 @@ fun GoalListContent(
                     }
                 }
 
-                GroupMode.PRIORITY -> {
-                    // 優先度でグループ化
-                    val groupedGoals = filteredGoals.groupBy { it.priority }
-                    val priorityOrder = listOf(GoalPriority.High, GoalPriority.Middle, GoalPriority.Low)
+                GroupMode.KEY_GOAL -> {
+                    // キー目標でグループ化
+                    val keyGoals = filteredGoals.filter { it.isKeyGoal }
+                    val normalGoals = filteredGoals.filter { !it.isKeyGoal }
 
-                    priorityOrder.forEach { priority ->
-                        val goals = groupedGoals[priority] ?: emptyList()
-                        if (goals.isNotEmpty()) {
-                            item {
-                                GroupHeader(
-                                    title = when (priority) {
-                                        GoalPriority.High -> "🔴 高優先度"
-                                        GoalPriority.Middle -> "🟡 中優先度"
-                                        GoalPriority.Low -> "🟢 低優先度"
-                                    },
-                                    count = goals.size,
-                                    color = when (priority) {
-                                        GoalPriority.High -> Color(0xFFFF5722)
-                                        GoalPriority.Middle -> Color(0xFFFF9800)
-                                        GoalPriority.Low -> Color(0xFF4CAF50)
-                                    }
-                                )
-                            }
+                    // キー目標グループ
+                    if (keyGoals.isNotEmpty()) {
+                        item {
+                            GroupHeader(
+                                title = "🗝️ キー目標",
+                                count = keyGoals.size,
+                                color = Color(0xFFFFD700) // ゴールド色
+                            )
+                        }
 
-                            items(goals, key = { it.id.toString() }) { goalItem ->
-                                GoalCard(
-                                    goalItem = goalItem,
-                                    navController = navController,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = 16.dp)
-                                )
-                            }
+                        items(keyGoals, key = { it.id.toString() }) { goalItem ->
+                            GoalCard(
+                                goalItem = goalItem,
+                                navController = navController,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp)
+                            )
+                        }
+                    }
+
+                    // 通常目標グループ
+                    if (normalGoals.isNotEmpty()) {
+                        item {
+                            GroupHeader(
+                                title = "📋 通常目標",
+                                count = normalGoals.size,
+                                color = Color(0xFF2196F3) // ブルー色
+                            )
+                        }
+
+                        items(normalGoals, key = { it.id.toString() }) { goalItem ->
+                            GoalCard(
+                                goalItem = goalItem,
+                                navController = navController,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp)
+                            )
                         }
                     }
                 }

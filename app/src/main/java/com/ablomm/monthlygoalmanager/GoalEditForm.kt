@@ -110,7 +110,7 @@ fun GoalEditForm(
                     currentNumericValue = 0.0,
                     unit = "",
                     currentProgress = 0,
-                    priority = GoalPriority.Middle,
+                    isKeyGoal = false,
                     isCompleted = false,
                     displayOrder = 0
                 ))
@@ -380,11 +380,11 @@ fun AdvancedOptionsSection(
                     }
                 )
 
-                // 優先度
-                PrioritySelector(
-                    selectedPriority = editingGoalItem.priority,
-                    onPriorityChanged = { priority ->
-                        viewModel.setEditingGoalItem(editingGoalItem.copy(priority = priority))
+                // キー目標設定
+                KeyGoalSelector(
+                    isKeyGoal = editingGoalItem.isKeyGoal,
+                    onKeyGoalChanged = { isKeyGoal ->
+                        viewModel.setEditingGoalItem(editingGoalItem.copy(isKeyGoal = isKeyGoal))
                     }
                 )
 
@@ -536,66 +536,6 @@ fun NumericGoalFields(
                         text = "目標追加時の現在値は開始値と同じ値になります",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-// 優先度選択（カラーバッジ風）
-@Composable
-fun PrioritySelector(
-    selectedPriority: GoalPriority,
-    onPriorityChanged: (GoalPriority) -> Unit
-) {
-    Column {
-        Text(
-            text = "優先度",
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            GoalPriority.values().forEach { priority ->
-                val isSelected = selectedPriority == priority
-                val (color, textColor) = when (priority) {
-                    GoalPriority.High -> if (isSelected)
-                        Color(0xFFF44336) to Color.White
-                    else
-                        Color(0xFFFFEBEE) to Color(0xFFF44336)
-                    GoalPriority.Middle -> if (isSelected)
-                        Color(0xFF2196F3) to Color.White
-                    else
-                        Color(0xFFE3F2FD) to Color(0xFF2196F3)
-                    GoalPriority.Low -> if (isSelected)
-                        Color(0xFF4CAF50) to Color.White
-                    else
-                        Color(0xFFE8F5E8) to Color(0xFF4CAF50)
-                }
-
-                Button(
-                    onClick = { onPriorityChanged(priority) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = color
-                    ),
-                    shape =
-                        RoundedCornerShape(20.dp)
-                ) {
-                    Text(
-                        text = when (priority) {
-                            GoalPriority.High -> "High"
-                            GoalPriority.Middle -> "Medium"
-                            GoalPriority.Low -> "Low"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        color = textColor,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
@@ -1126,4 +1066,63 @@ fun CelebrationEffect() {
             .scale(starScale)
             .offset(x = 12.dp, y = (-8).dp)
     )
+}
+
+// キー目標選択（美しいSwitch）
+@Composable
+fun KeyGoalSelector(
+    isKeyGoal: Boolean,
+    onKeyGoalChanged: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isKeyGoal)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            else
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "🗝️",
+                        fontSize = 20.sp,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text(
+                        text = "キー目標に設定する",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = if (isKeyGoal) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+                Text(
+                    text = if (isKeyGoal)
+                        "この目標は今月の最重要目標です"
+                    else
+                        "今月、これさえやれば大丈夫という目標に設定",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            Switch(
+                checked = isKeyGoal,
+                onCheckedChange = onKeyGoalChanged,
+                modifier = Modifier.scale(1.1f)
+            )
+        }
+    }
 }

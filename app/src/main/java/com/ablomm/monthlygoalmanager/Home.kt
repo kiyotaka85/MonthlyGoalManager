@@ -26,14 +26,14 @@ import java.util.Locale
 
 enum class SortMode {
     DEFAULT,
-    PRIORITY,
+    KEY_GOAL,
     PROGRESS
 }
 
 enum class GroupMode {
     NONE,
     HIGHER_GOAL,
-    PRIORITY
+    KEY_GOAL
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,13 +89,7 @@ fun Home(
         // 並べ替え機能
         when (sortMode) {
             SortMode.DEFAULT -> goals.sortedBy { it.displayOrder }
-            SortMode.PRIORITY -> goals.sortedBy { 
-                when (it.priority) {
-                    GoalPriority.High -> 0
-                    GoalPriority.Middle -> 1
-                    GoalPriority.Low -> 2
-                }
-            }
+            SortMode.KEY_GOAL -> goals.sortedWith(compareByDescending<GoalItem> { it.isKeyGoal }.thenBy { it.displayOrder })
             SortMode.PROGRESS -> goals.sortedByDescending { it.currentProgress }
         }
     }
@@ -271,9 +265,9 @@ fun Home(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("優先度順 (高→低)") },
+                                text = { Text("キー目標を優先的にソート") },
                                 onClick = {
-                                    sortMode = SortMode.PRIORITY
+                                    sortMode = SortMode.KEY_GOAL
                                     showDisplaySettingsMenu = false
                                 }
                             )
@@ -325,9 +319,9 @@ fun Home(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("優先度でグループ化") },
+                                text = { Text("キー目標でグループ化") },
                                 onClick = {
-                                    groupMode = GroupMode.PRIORITY
+                                    groupMode = GroupMode.KEY_GOAL
                                     showDisplaySettingsMenu = false
                                 }
                             )
