@@ -55,11 +55,14 @@ fun GoalCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            // .clip(RoundedCornerShape(8.dp)) // Cardがクリップするのでここは不要
     ) {
         // 背景のアクション（編集・チェックイン）
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .matchParentSize() // Boxのサイズに合わせる
+                .clip(RoundedCornerShape(8.dp)), // 背景自体をクリップ
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -95,11 +98,11 @@ fun GoalCard(
             }
         }
 
-        // カード本体
-        Row(
+        // カード本体をCardコンポーザブルで囲むように修正
+        Card(
             modifier = Modifier
+                .fillMaxWidth()
                 .offset(x = animatedOffsetX.dp)
-                .background(MaterialTheme.colorScheme.surface)
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
@@ -114,70 +117,75 @@ fun GoalCard(
                     }
                 }
                 .clickable {
-                    if(abs(offsetX) < 20f) navController.navigate("goalDetail/${goalItem.id}")
-                }
+                    if (abs(offsetX) < 20f) navController.navigate("goalDetail/${goalItem.id}")
+                },
+            shape = RoundedCornerShape(8.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp) // 影を戻す
         ) {
-            // 左のカラーバー
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(6.dp)
-                    .background(
-                        color = higherGoal?.color?.let { Color(android.graphics.Color.parseColor(it)) } ?: Color.Transparent
-                    )
-            )
-
-            // カードの中身
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // 1行目：タイトル
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (goalItem.isKeyGoal) {
-                        Text("🔑 ", style = MaterialTheme.typography.titleMedium)
-                    }
-                    Text(
-                        text = goalItem.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                // 2行目：進捗テキスト
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = formatNumber(goalItem.startNumericValue, goalItem.isDecimal),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = "→", modifier = Modifier.size(16.dp))
-                    Text(
-                        text = formatNumber(goalItem.currentNumericValue, goalItem.isDecimal),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = "→", modifier = Modifier.size(16.dp))
-                    Text(
-                        text = "🎯 ${formatNumber(goalItem.targetNumericValue, goalItem.isDecimal)} ${goalItem.unit}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // 3行目：進捗バー
-                GoalProgressBarWithCheckIns(
-                    goal = goalItem,
-                    checkInItems = checkIns
+            Row {
+                // 左のカラーバー
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(6.dp)
+                        .background(
+                            color = higherGoal?.color?.let { Color(android.graphics.Color.parseColor(it)) }
+                                ?: Color.Transparent
+                        )
                 )
+
+                // カードの中身
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 1行目：タイトル
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (goalItem.isKeyGoal) {
+                            Text("🔑 ", style = MaterialTheme.typography.titleMedium)
+                        }
+                        Text(
+                            text = goalItem.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    // 2行目：進捗テキスト
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = formatNumber(goalItem.startNumericValue, goalItem.isDecimal),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = "→", modifier = Modifier.size(16.dp))
+                        Text(
+                            text = formatNumber(goalItem.currentNumericValue, goalItem.isDecimal),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = "→", modifier = Modifier.size(16.dp))
+                        Text(
+                            text = "🎯 ${formatNumber(goalItem.targetNumericValue, goalItem.isDecimal)} ${goalItem.unit}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // 3行目：進捗バー
+                    GoalProgressBarWithCheckIns(
+                        goal = goalItem,
+                        checkInItems = checkIns
+                    )
+                }
             }
         }
     }
@@ -203,10 +211,13 @@ fun GoalProgressBarWithCheckIns(
         else -> MaterialTheme.colorScheme.error
     }
 
+    // テーマの色をCanvas外で取得
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(16.dp),
+            .height(16.dp), // 高さを確保
         contentAlignment = Alignment.CenterStart
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -215,7 +226,7 @@ fun GoalProgressBarWithCheckIns(
 
             // 1. 背景のトラック
             drawLine(
-                color = Color.LightGray,
+                color = trackColor,
                 start = Offset(0f, yCenter),
                 end = Offset(size.width, yCenter),
                 strokeWidth = strokeWidth,
@@ -551,7 +562,7 @@ fun TipsCard(
             }
 
             Text(
-                text = "• カードを左右にスワイプして素早く��ェックイン・編集\n• メニューから表示設定��ソートやグループ化が可能\n• 目標をタップして詳細を確認",
+                text = "• カードを左右にスワイプして素早くチェックイン・編集\n• メニューから表示設定でソートやグループ化が可能\n• 目標をタップして詳細を確認",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
