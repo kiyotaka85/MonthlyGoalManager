@@ -1,6 +1,7 @@
 package com.ablomm.monthlygoalmanager
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -11,467 +12,256 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowRightAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import kotlinx.coroutines.launch
-import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+// 新しい目標カードデザイ���
 @Composable
 fun GoalCard(
     goalItem: GoalItem,
-    modifier: Modifier = Modifier,
-    navController: NavHostController
+    higherGoal: HigherGoal?,
+    navController: NavHostController,
+    viewModel: GoalsViewModel,
+    modifier: Modifier = Modifier
 ) {
+    // このカードに紐づくチェックイン��歴を取得
+    val checkIns by viewModel.getCheckInsForGoal(goalItem.id).collectAsState(initial = emptyList())
+
     var offsetX by remember { mutableStateOf(0f) }
-    var isSwipeInProgress by remember { mutableStateOf(false) }
-
-    // スワイプアニメーション
     val animatedOffsetX by animateFloatAsState(
-        targetValue = if (isSwipeInProgress) offsetX else 0f,
-        animationSpec = tween(durationMillis = 300),
-        label = "swipe_animation"
+        targetValue = offsetX,
+        animationSpec = spring(),
+        label = "offset_x_animation"
     )
-
-    // スワイプしきい値
-    val swipeThreshold = 120f
-    val maxSwipeDistance = 150f
-
-    // カードの実際の高さを計算
-    // 新しいレイアウトに合わせて高さを調整
-    val calculatedCardHeight = 96.dp
+    val swipeThresholdPx = with(androidx.compose.ui.platform.LocalDensity.current) { 120.dp.toPx() }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(8.dp))
     ) {
-        // 背景アクションエリア（カードと完全に同じ高さ）
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(calculatedCardHeight) // 新しい高さに更新
-                .background(
-                    color = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(4.dp)
-                )
+        // 背景のアクション（編集・チェックイン）
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // 左側の編集アクション（右スワイプ時に表示）
-            if (animatedOffsetX > 0) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width((animatedOffsetX * 2).dp.coerceAtMost(maxSwipeDistance.dp))
-                        .background(
-                            color = Color(0xFF2196F3),
-                            shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "編集",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "編集",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold
-                        )
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(animatedOffsetX.coerceAtLeast(0f).dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if(animatedOffsetX > 20.dp.value) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
+                        Icon(Icons.Default.Edit, "編集", tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(8.dp))
+                        Text("編集", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
             }
-
-            // 右側のチェックインアクション（左スワイプ時に表示）
-            if (animatedOffsetX < 0) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width((abs(animatedOffsetX) * 2).dp.coerceAtMost(maxSwipeDistance.dp))
-                        .align(Alignment.CenterEnd)
-                        .background(
-                            color = Color(0xFF4CAF50),
-                            shape = RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = "チェックイン",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "チェックイン",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold
-                        )
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(abs(animatedOffsetX.coerceAtMost(0f)).dp)
+                    .background(Color(0xFFE8F5E9)),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                if(animatedOffsetX < -20.dp.value) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
+                        Text("チェックイン", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.Default.Check, "チェックイン", tint = Color(0xFF388E3C))
                     }
                 }
             }
         }
 
-        // メインカード
-        Card(
+        // カード本体
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(96.dp) // 新しいレイアウトに合わせて高さを増加
                 .offset(x = animatedOffsetX.dp)
-                .pointerInput(goalItem.id) {
+                .background(MaterialTheme.colorScheme.surface)
+                .pointerInput(Unit) {
                     detectHorizontalDragGestures(
-                        onDragStart = {
-                            isSwipeInProgress = true
-                        },
                         onDragEnd = {
-                            try {
-                                when {
-                                    offsetX > swipeThreshold -> {
-                                        // 右スワイプ → 編集
-                                        navController.navigate("goalEdit/${goalItem.id}")
-                                    }
-                                    offsetX < -swipeThreshold -> {
-                                        // 左スワイプ → チェックイン
-                                        navController.navigate("checkIn/${goalItem.id}")
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                // ナビゲーションエラーをキャッチ
-                                e.printStackTrace()
+                            when {
+                                offsetX > swipeThresholdPx -> navController.navigate("goalEdit/${goalItem.id}")
+                                offsetX < -swipeThresholdPx -> navController.navigate("checkIn/${goalItem.id}")
                             }
                             offsetX = 0f
-                            isSwipeInProgress = false
                         }
                     ) { _, dragAmount ->
-                        // スワイプ距離を制限
-                        offsetX = (offsetX + dragAmount).coerceIn(-maxSwipeDistance, maxSwipeDistance)
+                        offsetX = (offsetX + dragAmount).coerceIn(-swipeThresholdPx * 1.5f, swipeThresholdPx * 1.5f)
                     }
                 }
                 .clickable {
-                    if (abs(offsetX) < 10f) { // 小さなドラッグはクリックとして扱う
-                        try {
-                            navController.navigate("goalDetail/${goalItem.id}")
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                },
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = RoundedCornerShape(4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
+                    if(abs(offsetX) < 20f) navController.navigate("goalDetail/${goalItem.id}")
+                }
         ) {
+            // 左のカラーバー
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(6.dp)
+                    .background(
+                        color = higherGoal?.color?.let { Color(android.graphics.Color.parseColor(it)) } ?: Color.Transparent
+                    )
+            )
+
+            // カードの中身
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                // 要素を上下に均等配置
-                verticalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 上部：目標タイトル
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                // 1行目：タイトル
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (goalItem.isKeyGoal) {
+                        Text("🔑 ", style = MaterialTheme.typography.titleMedium)
+                    }
                     Text(
                         text = goalItem.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 2, // 2行まで表示
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-
-                    // キー目標のアイコン
-                    if (goalItem.isKeyGoal) {
-                        Text(
-                            text = "🗝️",
-                            fontSize = 20.sp,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
                 }
 
-                // 下部：新しい進捗インジケータ
-                GoalProgressIndicatorWithBubble(goal = goalItem)
+                // 2行目：進捗テキスト
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = formatNumber(goalItem.startNumericValue, goalItem.isDecimal),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = "→", modifier = Modifier.size(16.dp))
+                    Text(
+                        text = formatNumber(goalItem.currentNumericValue, goalItem.isDecimal),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = "→", modifier = Modifier.size(16.dp))
+                    Text(
+                        text = "🎯 ${formatNumber(goalItem.targetNumericValue, goalItem.isDecimal)} ${goalItem.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // 3行目：進捗バー
+                GoalProgressBarWithCheckIns(
+                    goal = goalItem,
+                    checkInItems = checkIns
+                )
             }
         }
     }
 }
 
+// 新しく追加するカスタム進捗バー
 @Composable
-fun GoalListItem(
-    goalItem: GoalItem,
-    modifier: Modifier = Modifier,
-    navController: NavHostController
+fun GoalProgressBarWithCheckIns(
+    goal: GoalItem,
+    checkInItems: List<CheckInItem>
 ) {
-    // シンプルなリストアイテムデザイン
-    Row(
-        modifier = modifier
+    val progress = calculateProgressPrecise(
+        startValue = goal.startNumericValue,
+        targetValue = goal.targetNumericValue,
+        currentValue = goal.currentNumericValue
+    )
+    val progressFraction = (progress / 100f).toFloat().coerceIn(0f, 1f)
+
+    val progressColor = when {
+        progress >= 100 -> Color(0xFF4CAF50) // Green
+        progress >= 75 -> MaterialTheme.colorScheme.primary
+        progress >= 50 -> Color(0xFFFFC107) // Amber
+        else -> MaterialTheme.colorScheme.error
+    }
+
+    Box(
+        modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                navController.navigate("goalDetail/${goalItem.id}")
-            }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .height(16.dp),
+        contentAlignment = Alignment.CenterStart
     ) {
-        // 左側：目標名
-        Text(
-            text = goalItem.title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokeWidth = 8.dp.toPx()
+            val yCenter = size.height / 2
 
-        // 右側：進捗
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 数値目標の表示: [現在値] / [目標値] [単位]
-            val currentValue = goalItem.currentNumericValue.toInt()
-            val targetValue = goalItem.targetNumericValue.toInt()
-            val unit = goalItem.unit
-
-            Text(
-                text = "$currentValue / $targetValue $unit",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            // 1. 背景のトラック
+            drawLine(
+                color = Color.LightGray,
+                start = Offset(0f, yCenter),
+                end = Offset(size.width, yCenter),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round
             )
 
-            // 完了マーク
-            if (goalItem.isCompleted) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = "完了",
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(16.dp)
+            // 2. 現在の進捗
+            if (progressFraction > 0) {
+                drawLine(
+                    color = progressColor,
+                    start = Offset(0f, yCenter),
+                    end = Offset(size.width * progressFraction, yCenter),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+            }
+
+            // 3. チェックイン地点のドット
+            checkInItems.forEach { checkIn ->
+                val checkInProgressFraction = (checkIn.progressPercent / 100f).coerceIn(0f, 1f)
+                val dotX = size.width * checkInProgressFraction
+
+                // ドットの外枠（少し大きくして目立たせる）
+                drawCircle(
+                    color = Color.White,
+                    radius = 4.dp.toPx(),
+                    center = Offset(dotX, yCenter)
+                )
+                // ドット本体
+                drawCircle(
+                    color = progressColor.copy(alpha = 0.8f),
+                    radius = 3.dp.toPx(),
+                    center = Offset(dotX, yCenter)
                 )
             }
         }
     }
 }
 
-@Composable
-fun GoalListContent(
-    filteredGoals: List<GoalItem>,
-    isTipsHidden: Boolean,
-    viewModel: GoalsViewModel,
-    navController: NavHostController,
-    sortMode: SortMode,
-    setSortMode: (SortMode) -> Unit,
-    showSortMenu: Boolean,
-    setShowSortMenu: (Boolean) -> Unit,
-    isHideCompletedGoals: Boolean,
-    higherGoals: List<HigherGoal>,
-    monthYearText: String,
-    context: android.content.Context,
-    groupMode: GroupMode = GroupMode.NONE,
-    modifier: Modifier = Modifier
-) {
-    if (filteredGoals.isEmpty()) {
-        // 空の状態の表示
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "🎯",
-                    fontSize = 48.sp
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "No goals for this month",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Tap the + button to add a new goal",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-    } else {
-        LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // ヒントカード
-            if (!isTipsHidden) {
-                item {
-                    TipsCard(onDismiss = { viewModel.setTipsHidden(true) })
-                }
-            }
-
-            // グループ化の処理
-            when (groupMode) {
-                GroupMode.NONE -> {
-                    // グループ化なし：通常の表示
-                    items(filteredGoals, key = { it.id.toString() }) { goalItem ->
-                        GoalCard(
-                            goalItem = goalItem,
-                            navController = navController,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                GroupMode.HIGHER_GOAL -> {
-                    // 上位目標でグループ化
-                    val groupedGoals = filteredGoals.groupBy { goal ->
-                        higherGoals.find { it.id == goal.higherGoalId }
-                    }
-
-                    // 上位目標ありのグループを先に表示
-                    val higherGoalGroups = groupedGoals.filter { it.key != null }
-                    val noHigherGoalGroup = groupedGoals[null]
-
-                    // 上位目標ありのグループを表示
-                    higherGoalGroups.forEach { (higherGoal, goals) ->
-                        item {
-                            GroupHeader(
-                                title = higherGoal?.title ?: "上位目標なし",
-                                count = goals.size,
-                                color = try {
-                                    higherGoal?.color?.let { colorString ->
-                                        // 色文字列を安全にColorに変換
-                                        val colorValue = if (colorString.startsWith("#")) {
-                                            colorString.substring(1)
-                                        } else {
-                                            colorString
-                                        }
-                                        Color(colorValue.toLong(16) or 0xFF000000)
-                                    }
-                                } catch (e: Exception) {
-                                    null // 変換エラーの場合はnullを返す
-                                }
-                            )
-                        }
-
-                        items(goals, key = { it.id.toString() }) { goalItem ->
-                            GoalCard(
-                                goalItem = goalItem,
-                                navController = navController,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 16.dp)
-                            )
-                        }
-                    }
-
-                    // 上位目標なしのグループを最後に表示
-                    noHigherGoalGroup?.let { goals ->
-                        if (goals.isNotEmpty()) {
-                            item {
-                                GroupHeader(
-                                    title = "上位目標なし",
-                                    count = goals.size,
-                                    color = null
-                                )
-                            }
-
-                            items(goals, key = { it.id.toString() }) { goalItem ->
-                                GoalCard(
-                                    goalItem = goalItem,
-                                    navController = navController,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = 16.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                GroupMode.KEY_GOAL -> {
-                    // キー目標でグループ化
-                    val keyGoals = filteredGoals.filter { it.isKeyGoal }
-                    val normalGoals = filteredGoals.filter { !it.isKeyGoal }
-
-                    // キー目標グループ
-                    if (keyGoals.isNotEmpty()) {
-                        item {
-                            GroupHeader(
-                                title = "🗝️ キー目標",
-                                count = keyGoals.size,
-                                color = Color(0xFFFFD700) // ゴールド色
-                            )
-                        }
-
-                        items(keyGoals, key = { it.id.toString() }) { goalItem ->
-                            GoalCard(
-                                goalItem = goalItem,
-                                navController = navController,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 16.dp)
-                            )
-                        }
-                    }
-
-                    // 通常目標グループ
-                    if (normalGoals.isNotEmpty()) {
-                        item {
-                            GroupHeader(
-                                title = "📋 通常目標",
-                                count = normalGoals.size,
-                                color = Color(0xFF2196F3) // ブルー色
-                            )
-                        }
-
-                        items(normalGoals, key = { it.id.toString() }) { goalItem ->
-                            GoalCard(
-                                goalItem = goalItem,
-                                navController = navController,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 16.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
+// 数値フォーマットのヘルパー関数
+private fun formatNumber(value: Double, isDecimal: Boolean): String {
+    if (!isDecimal && value % 1.0 == 0.0) {
+        return value.toInt().toString()
     }
+    // 小数点以下1桁でフォーマット
+    return String.format("%.1f", value)
 }
 
 // 精密な進捗率計算のヘルパー関数
@@ -484,16 +274,10 @@ private fun calculateProgressPrecise(
     val progressInRange = currentValue - startValue
 
     return if (range != 0.0) {
-        (progressInRange / range * 100).coerceAtLeast(0.0) // 下限は0%だが上限は設けない（オーバーアチーブ許可）
+        (progressInRange / range * 100).coerceAtLeast(0.0)
     } else {
         if (currentValue >= targetValue) 100.0 else 0.0
     }
-}
-
-// 進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
-private fun formatProgressPercentage(progressPercent: Double): String {
-    val rounded = kotlin.math.ceil(progressPercent * 10) / 10 // 小数点第二位以下を繰り上がり
-    return String.format("%.1f", rounded)
 }
 
 // 共通の進捗表示コンポーネント
@@ -767,10 +551,178 @@ fun TipsCard(
             }
 
             Text(
-                text = "• カードを左右にスワイプして素早くチェックイン・編集\n• メニューから表示設定でソートやグループ化が可能\n• 目標をタップして詳細を確認",
+                text = "• カードを左右にスワイプして素早く��ェックイン・編集\n• メニューから表示設定��ソートやグループ化が可能\n• 目標をタップして詳細を確認",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }
+}
+
+// GoalListContentの引数にviewModelを追加し、GoalCardの呼び出しを修正
+@Composable
+fun GoalListContent(
+    filteredGoals: List<GoalItem>,
+    isTipsHidden: Boolean,
+    viewModel: GoalsViewModel, // 追加
+    navController: NavHostController,
+    sortMode: SortMode,
+    setSortMode: (SortMode) -> Unit,
+    showSortMenu: Boolean,
+    setShowSortMenu: (Boolean) -> Unit,
+    isHideCompletedGoals: Boolean,
+    higherGoals: List<HigherGoal>,
+    monthYearText: String,
+    context: android.content.Context,
+    groupMode: GroupMode = GroupMode.NONE,
+    modifier: Modifier = Modifier
+) {
+    if (filteredGoals.isEmpty()) {
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "🎯",
+                    fontSize = 48.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No goals for this month",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Tap the + button to add a new goal",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp) // 間隔を調整
+        ) {
+            if (!isTipsHidden) {
+                item {
+                    TipsCard(onDismiss = { viewModel.setTipsHidden(true) })
+                }
+            }
+
+            when (groupMode) {
+                GroupMode.NONE -> {
+                    items(filteredGoals, key = { it.id.toString() }) { goalItem ->
+                        val higherGoal = higherGoals.find { it.id == goalItem.higherGoalId }
+                        GoalCard(
+                            goalItem = goalItem,
+                            higherGoal = higherGoal,
+                            navController = navController,
+                            viewModel = viewModel, // viewModelを渡す
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                GroupMode.HIGHER_GOAL -> {
+                    val groupedGoals = filteredGoals.groupBy { goal ->
+                        higherGoals.find { it.id == goal.higherGoalId }
+                    }
+
+                    val higherGoalGroups = groupedGoals.filterKeys { it != null }.toList().sortedBy { it.first?.createdAt }
+                    val noHigherGoalGroup = groupedGoals[null]
+
+                    higherGoalGroups.forEach { (higherGoal, goals) ->
+                        item {
+                            GroupHeader(
+                                title = higherGoal?.title ?: "上位目標なし",
+                                count = goals.size,
+                                color = higherGoal?.color?.let { Color(android.graphics.Color.parseColor(it)) }
+                            )
+                        }
+                        items(goals, key = { it.id.toString() }) { goalItem ->
+                            GoalCard(
+                                goalItem = goalItem,
+                                higherGoal = higherGoal,
+                                navController = navController,
+                                viewModel = viewModel,
+                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
+                            )
+                        }
+                    }
+
+                    noHigherGoalGroup?.let { goals ->
+                        if (goals.isNotEmpty()) {
+                            item {
+                                GroupHeader(title = "上位目標なし", count = goals.size)
+                            }
+                            items(goals, key = { it.id.toString() }) { goalItem ->
+                                GoalCard(
+                                    goalItem = goalItem,
+                                    higherGoal = null,
+                                    navController = navController,
+                                    viewModel = viewModel,
+                                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                GroupMode.KEY_GOAL -> {
+                    val keyGoals = filteredGoals.filter { it.isKeyGoal }
+                    val normalGoals = filteredGoals.filter { !it.isKeyGoal }
+
+                    if (keyGoals.isNotEmpty()) {
+                        item {
+                            GroupHeader(
+                                title = "🗝️ キー目標",
+                                count = keyGoals.size,
+                                color = Color(0xFFFFD700)
+                            )
+                        }
+                        items(keyGoals, key = { it.id.toString() }) { goalItem ->
+                            val higherGoal = higherGoals.find { it.id == goalItem.higherGoalId }
+                            GoalCard(
+                                goalItem = goalItem,
+                                higherGoal = higherGoal,
+                                navController = navController,
+                                viewModel = viewModel,
+                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
+                            )
+                        }
+                    }
+                    if (normalGoals.isNotEmpty()) {
+                        item {
+                            GroupHeader(
+                                title = "📋 通常目標",
+                                count = normalGoals.size
+                            )
+                        }
+                        items(normalGoals, key = { it.id.toString() }) { goalItem ->
+                            val higherGoal = higherGoals.find { it.id == goalItem.higherGoalId }
+                            GoalCard(
+                                goalItem = goalItem,
+                                higherGoal = higherGoal,
+                                navController = navController,
+                                viewModel = viewModel,
+                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
+private fun formatProgressPercentage(progressPercent: Double): String {
+    val rounded = kotlin.math.ceil(progressPercent * 10) / 10 // 小数点第二位以下を繰り上がり
+    return String.format("%.1f", rounded)
 }
