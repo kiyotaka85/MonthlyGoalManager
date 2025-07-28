@@ -52,7 +52,7 @@ data class SerializableHigherGoal(
     val id: String,
     val title: String,
     val description: String? = null,
-    val color: String,
+    val icon: String,
     val createdAt: Long
 )
 
@@ -136,7 +136,7 @@ fun HigherGoal.toSerializable() = SerializableHigherGoal(
     id = id.toString(),
     title = title,
     description = description,
-    color = color,
+    icon = icon,
     createdAt = createdAt
 )
 
@@ -144,7 +144,7 @@ fun SerializableHigherGoal.toHigherGoal() = HigherGoal(
     id = UUID.fromString(id),
     title = title,
     description = description,
-    color = color,
+    icon = icon,
     createdAt = createdAt
 )
 

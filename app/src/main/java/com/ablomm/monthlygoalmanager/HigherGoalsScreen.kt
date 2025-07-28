@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -166,11 +167,11 @@ fun HigherGoalsScreen(
     if (showAddDialog) {
         AddHigherGoalDialog(
             onDismiss = { showAddDialog = false },
-            onAdd = { title, description, color ->
+            onAdd = { title, description, icon ->
                 val higherGoal = HigherGoal(
                     title = title,
                     description = description,
-                    color = color
+                    icon = icon
                 )
                 viewModel.addHigherGoal(higherGoal)
                 showAddDialog = false
@@ -242,11 +243,11 @@ fun HigherGoalCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(CircleShape)
-                            .background(Color(android.graphics.Color.parseColor(higherGoal.color)))
+                    Icon(
+                        imageVector = GoalIcons.getIconByName(higherGoal.icon),
+                        contentDescription = GoalIcons.getIconDescription(higherGoal.icon),
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
@@ -329,18 +330,15 @@ fun AddHigherGoalDialog(
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var selectedColor by remember { mutableStateOf("#2196F3") }
-    
-    val colors = listOf(
-        "#2196F3", "#4CAF50", "#FF9800", "#9C27B0", 
-        "#F44336", "#00BCD4", "#FFEB3B", "#795548"
-    )
+    var selectedIcon by remember { mutableStateOf("EmojiEvents") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Higher Goal") },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.height(400.dp)
+            ) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -367,36 +365,59 @@ fun AddHigherGoalDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Color", style = MaterialTheme.typography.labelMedium)
+                Text("Icon", style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                LazyColumn(
+                    modifier = Modifier.height(150.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    colors.forEach { color ->
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(Color(android.graphics.Color.parseColor(color)))
-                                .clickable { selectedColor = color }
-                                .then(
-                                    if (selectedColor == color) {
-                                        Modifier.border(
-                                            width = 3.dp,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            shape = CircleShape
+                    items(GoalIcons.allIcons.chunked(5)) { iconRow ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            iconRow.forEach { goalIcon ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (selectedIcon == goalIcon.name)
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            else
+                                                MaterialTheme.colorScheme.surface
                                         )
-                                    } else Modifier
-                                )
-                        )
+                                        .clickable { selectedIcon = goalIcon.name }
+                                        .then(
+                                            if (selectedIcon == goalIcon.name) {
+                                                Modifier.border(
+                                                    width = 2.dp,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    shape = CircleShape
+                                                )
+                                            } else Modifier
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = goalIcon.icon,
+                                        contentDescription = goalIcon.description,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = if (selectedIcon == goalIcon.name)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onAdd(title, description, selectedColor) },
+                onClick = { onAdd(title, description, selectedIcon) },
                 enabled = title.isNotBlank()
             ) {
                 Text("Add")
@@ -418,18 +439,15 @@ fun EditHigherGoalDialog(
 ) {
     var title by remember { mutableStateOf(higherGoal.title) }
     var description by remember { mutableStateOf(higherGoal.description ?: "") }
-    var selectedColor by remember { mutableStateOf(higherGoal.color) }
-
-    val colors = listOf(
-        "#2196F3", "#4CAF50", "#FF9800", "#9C27B0",
-        "#F44336", "#00BCD4", "#FFEB3B", "#795548"
-    )
+    var selectedIcon by remember { mutableStateOf(higherGoal.icon) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Higher Goal") },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.height(400.dp)
+            ) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -456,29 +474,52 @@ fun EditHigherGoalDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Color", style = MaterialTheme.typography.labelMedium)
+                Text("Icon", style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                LazyColumn(
+                    modifier = Modifier.height(150.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    colors.forEach { color ->
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(Color(android.graphics.Color.parseColor(color)))
-                                .clickable { selectedColor = color }
-                                .then(
-                                    if (selectedColor == color) {
-                                        Modifier.border(
-                                            width = 3.dp,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            shape = CircleShape
+                    items(GoalIcons.allIcons.chunked(5)) { iconRow ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            iconRow.forEach { goalIcon ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (selectedIcon == goalIcon.name)
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            else
+                                                MaterialTheme.colorScheme.surface
                                         )
-                                    } else Modifier
-                                )
-                        )
+                                        .clickable { selectedIcon = goalIcon.name }
+                                        .then(
+                                            if (selectedIcon == goalIcon.name) {
+                                                Modifier.border(
+                                                    width = 2.dp,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    shape = CircleShape
+                                                )
+                                            } else Modifier
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = goalIcon.icon,
+                                        contentDescription = goalIcon.description,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = if (selectedIcon == goalIcon.name)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -490,7 +531,7 @@ fun EditHigherGoalDialog(
                         higherGoal.copy(
                             title = title,
                             description = if (description.isBlank()) null else description,
-                            color = selectedColor
+                            icon = selectedIcon
                         )
                     )
                 },

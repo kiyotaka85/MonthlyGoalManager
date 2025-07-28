@@ -22,7 +22,7 @@ data class HigherGoal(
     val id: UUID = UUID.randomUUID(),
     val title: String,
     val description: String? = null,
-    val color: String = "#2196F3", // デフォルト色
+    val icon: String = "EmojiEvents", // デフォルトアイコン（トロフィー）
     val createdAt: Long = System.currentTimeMillis(),
     val isCompleted: Boolean = false, // 達成状態
     val completedAt: Long? = null // 達成日時
@@ -109,7 +109,7 @@ fun calculateProgress(
 class GoalsViewModel @Inject constructor(
     private val repository: GoalsRepository,
     private val preferencesManager: PreferencesManager,
-    private val dataExportImportManager: DataExportImportManager // 依存関係を追加
+    private val dataExportImportManager: DataExportImportManager // 依��関係を追加
 ): ViewModel() {
     val goalList: Flow<List<GoalItem>> = repository.allGoals
     

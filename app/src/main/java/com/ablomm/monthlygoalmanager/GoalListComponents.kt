@@ -62,7 +62,7 @@ fun GoalCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .matchParentSize() // Boxのサイズに合わせる
-                .clip(RoundedCornerShape(8.dp)), // 背�����������自体をクリップ
+                .clip(RoundedCornerShape(8.dp)), // 背�����������������������自体をクリップ
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -127,42 +127,44 @@ fun GoalCard(
                     if (abs(offsetX) < 20f) navController.navigate("goalDetail/${goalItem.id}")
                 }
         ) {
-            Row {
-                // 左のカラーバー
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(6.dp)
-                        .background(
-                            color = higherGoal?.color?.let { Color(android.graphics.Color.parseColor(it)) }
-                                ?: Color.Transparent
-                        )
-                )
-
-                // カードの中身
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            // カードの中身
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 1行目：タイトル（上位目標のアイコンを左に配置）
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // 1行目：タイトル
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = goalItem.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                    // 上位目標のアイコン
+                    higherGoal?.let {
+                        Icon(
+                            imageVector = GoalIcons.getIconByName(it.icon),
+                            contentDescription = GoalIcons.getIconDescription(it.icon),
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
 
-                    // 2行目：進捗バー（現在値吹き出し付き）
-                    StackedBlockProgressBarWithBubble(
-                        goal = goalItem,
-                        checkInItems = checkIns
+                    // 目標タイトル
+                    Text(
+                        text = goalItem.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
                 }
+
+                // 2行目：進捗バ���（現在値吹き出し付き）
+                StackedBlockProgressBarWithBubble(
+                    goal = goalItem,
+                    checkInItems = checkIns
+                )
             }
 
             // キー目標アイコンを右上に配置
@@ -313,7 +315,7 @@ fun StackedBlockProgressBar(
 
                     // ブロックが十分な幅を持つ場合のみ枠線を描画
                     if (blockWidth > 6.dp.toPx()) { // 閾値を少し上げる
-                        // ブロックごとに色を少し変えて、区切りを表現
+                        // ブロック���とに色を少し変えて、区切りを表現
                         val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
 
                         // ブロック本体を描画
@@ -325,7 +327,7 @@ fun StackedBlockProgressBar(
                             // capはブロック感を出すためにButt（デフォルト）のまま
                         )
 
-                        // 四角形の枠線を描画（上下左右すべて）
+                        // 四角形の枠線を描画（上下左���すべて）
                         val blockTop = yCenter - strokeWidth / 2
                         val blockBottom = yCenter + strokeWidth / 2
 
@@ -400,10 +402,10 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
     // 2. 進捗率を0.0〜1.0の間のFloatに変換
     val progressFraction = (preciseProgress / 100.0).toFloat().coerceIn(0f, 1f)
 
-    // 3. 表示用の進捗率テキストを生成（小���点以下を四捨五入）
+    // 3. ���示用の進捗率テキストを生成（小���点以下を四捨五入）
     val progressText = "${preciseProgress.roundToInt()}%"
 
-    // BoxWithConstraintsでコンポーネントの最大幅を取得し���������動的な配置を可能にする
+    // BoxWithConstraintsでコンポーネントの最大幅を取得し���������動的な��置を可能にする
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
@@ -414,7 +416,7 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
         val bubbleWidth = 48.dp
         // 進捗率に基づいて吹き出しのX座標を計算（Dp単位で統一）
         val progressPositionDp = parentWidthPx * progressFraction
-        // 吹き出しがコンポーネントの端からはみ出さないようにオフセットを計算
+        // 吹き出しがコンポーネントの端からはみ出さないようにオ���セットを計算
         val offset = (progressPositionDp - bubbleWidth / 2).coerceIn(0.dp, parentWidthPx - bubbleWidth)
 
         // 吹き出し��本体と三角形のしっぽ）
@@ -486,7 +488,7 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
 fun GroupHeader(
     title: String,
     count: Int,
-    color: Color? = null,
+    icon: String? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -494,7 +496,7 @@ fun GroupHeader(
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = color?.copy(alpha = 0.1f) ?: MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -505,22 +507,35 @@ fun GroupHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = color ?: MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                icon?.let {
+                    Icon(
+                        imageVector = GoalIcons.getIconByName(it),
+                        contentDescription = GoalIcons.getIconDescription(it),
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
 
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = color?.copy(alpha = 0.2f) ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
             ) {
                 Text(
                     text = "$count",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color = color ?: MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
@@ -673,7 +688,7 @@ fun GoalListContent(
                             GroupHeader(
                                 title = higherGoal?.title ?: "上位目標なし",
                                 count = goals.size,
-                                color = higherGoal?.color?.let { Color(android.graphics.Color.parseColor(it)) }
+                                icon = higherGoal?.icon
                             )
                         }
                         items(goals, key = { it.id.toString() }) { goalItem ->
@@ -712,8 +727,7 @@ fun GoalListContent(
                         item {
                             GroupHeader(
                                 title = "🗝️ キー目標",
-                                count = keyGoals.size,
-                                color = Color(0xFFFFD700)
+                                count = keyGoals.size
                             )
                         }
                         items(keyGoals, key = { it.id.toString() }) { goalItem ->
