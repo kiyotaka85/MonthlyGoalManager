@@ -281,18 +281,18 @@ fun StackedBlockProgressBar(
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
     val primaryColor = MaterialTheme.colorScheme.primary
     val goalLineColor = MaterialTheme.colorScheme.tertiary
-    val blockBorderColor = MaterialTheme.colorScheme.outline // より濃い枠線色（alpha除去）
+    val blockBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) // より濃い枠線色に変更
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(16.dp), // 高さを確保
+            .height(32.dp), // 高さを2倍に（16dp → 32dp）
         contentAlignment = Alignment.CenterStart
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = 8.dp.toPx()
+            val strokeWidth = 16.dp.toPx() // 進捗バーの太さを2倍に（8dp → 16dp）
             val yCenter = size.height / 2f
-            val borderWidth = 2.dp.toPx() // 枠線の太さを2倍に
+            val borderWidth = 2.dp.toPx() // 枠線の太さはそのまま
 
             // 1. 背景のトラック
             drawLine(
@@ -317,7 +317,7 @@ fun StackedBlockProgressBar(
                     val blockEndX = size.width * currentProgressFraction
                     val blockWidth = blockEndX - blockStartX
 
-                    // ブロッ��が十分な幅を持つ場合のみ枠線を描画
+                    // ブロックが十分な幅を持つ場合のみ枠線を描画
                     if (blockWidth > 6.dp.toPx()) { // 閾値を少し上げる
                         // ブロックごとに色を少し変えて、区切りを表現
                         val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
@@ -386,9 +386,9 @@ fun StackedBlockProgressBar(
             val goalMarkerX = size.width
             drawLine(
                 color = goalLineColor,
-                start = Offset(goalMarkerX, yCenter - 8.dp.toPx()),
-                end = Offset(goalMarkerX, yCenter + 8.dp.toPx()),
-                strokeWidth = 2.dp.toPx()
+                start = Offset(goalMarkerX, yCenter - 12.dp.toPx()), // マーカーも太いバーに合わせて調整
+                end = Offset(goalMarkerX, yCenter + 12.dp.toPx()),
+                strokeWidth = 3.dp.toPx() // マーカーの線も少し太く
             )
         }
     }
@@ -496,7 +496,7 @@ fun GoalProgressIndicator(goal: GoalItem) {
 
 /**
  * 吹き出し付きの進捗インジケータ。
- * 進捗率に応じて吹き出しが移動します。
+ * 進捗率に応じ���吹き出しが移動します。
  */
 @Composable
 fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
@@ -860,7 +860,7 @@ fun GoalListContent(
     }
 }
 
-// 進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
+// 進捗率を小数点一桁まで繰り���がりで表示するヘルパー関数
 private fun formatProgressPercentage(progressPercent: Double): String {
     val rounded = kotlin.math.ceil(progressPercent * 10) / 10 // 小数点第二位以下を繰り上がり
     return String.format("%.1f", rounded)
