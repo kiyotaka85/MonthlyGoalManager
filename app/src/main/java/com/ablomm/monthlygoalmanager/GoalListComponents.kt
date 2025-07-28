@@ -3,12 +3,12 @@ package com.ablomm.monthlygoalmanager
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -99,10 +99,17 @@ fun GoalCard(
         }
 
         // カード本体をCardコンポーザブルで囲むように修正
-        Card(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .offset(x = animatedOffsetX.dp)
+                .border( // 枠線を追加
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), // 少し薄めの色
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .clip(RoundedCornerShape(8.dp)) // 枠線の内側をクリップ
+                .background(MaterialTheme.colorScheme.surface) // カードの背景色
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
@@ -118,9 +125,7 @@ fun GoalCard(
                 }
                 .clickable {
                     if (abs(offsetX) < 20f) navController.navigate("goalDetail/${goalItem.id}")
-                },
-            shape = RoundedCornerShape(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp) // 影を戻す
+                }
         ) {
             Row {
                 // 左のカラーバー
@@ -406,7 +411,7 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
                 .zIndex(1f), // 吹き出しをバーの前面に表示
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 吹き出し本体 (Cardで影をつける)
+            // 吹き出し本体 (Cardで影をつけ��)
             Card(
                 shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(
