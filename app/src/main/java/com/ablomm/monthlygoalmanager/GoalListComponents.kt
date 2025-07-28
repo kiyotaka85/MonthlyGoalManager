@@ -62,7 +62,7 @@ fun GoalCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .matchParentSize() // Boxのサイズに合わせる
-                .clip(RoundedCornerShape(8.dp)), // 背���������自体をクリップ
+                .clip(RoundedCornerShape(8.dp)), // 背�����������自体をクリップ
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -229,7 +229,7 @@ fun GoalProgressBarWithCheckIns(
                 start = Offset(0f, yCenter),
                 end = Offset(size.width, yCenter),
                 strokeWidth = strokeWidth,
-                cap = StrokeCap.Butt // 両端を真っ直ぐに変更
+                cap = StrokeCap.Butt // 両端を真���直ぐに変更
             )
 
             // 2. 現在の進捗
@@ -862,7 +862,7 @@ fun StackedBlockProgressBarWithBubble(
                 elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
             ) {
                 Text(
-                    text = "${progress.roundToInt()}%",
+                    text = "${formatNumber(goal.currentNumericValue, goal.isDecimal)}${goal.unit}",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -877,7 +877,7 @@ fun StackedBlockProgressBarWithBubble(
             horizontalArrangement = Arrangement.End
         ) {
             Text(
-                text = "目標: ${formatNumber(goal.targetNumericValue, goal.isDecimal)}${goal.unit}",
+                text = "${formatNumber(goal.targetNumericValue, goal.isDecimal)}${goal.unit}",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
