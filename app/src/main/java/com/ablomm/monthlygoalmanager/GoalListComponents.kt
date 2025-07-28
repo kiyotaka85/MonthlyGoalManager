@@ -62,7 +62,7 @@ fun GoalCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .matchParentSize() // Boxのサイズに合わせる
-                .clip(RoundedCornerShape(8.dp)), // 背�������自体をクリップ
+                .clip(RoundedCornerShape(8.dp)), // 背���������自体をクリップ
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -382,7 +382,7 @@ fun StackedBlockProgressBar(
                 color = goalLineColor,
                 start = Offset(goalMarkerX, yCenter - 12.dp.toPx()), // マーカーも太いバーに合わせて調整
                 end = Offset(goalMarkerX, yCenter + 12.dp.toPx()),
-                strokeWidth = 3.dp.toPx() // マーカーの線も少し太く
+                strokeWidth = 3.dp.toPx() // マーカーの線も��し太く
             )
         }
     }
@@ -850,7 +850,7 @@ fun StackedBlockProgressBarWithBubble(
             }
 
             // 現在値の吹き出し（進捗バーの上）
-            val bubbleWidth = 72.dp
+            val bubbleWidth = 48.dp // 幅を小さく調整
             val bubbleX = (parentWidth * progressFraction).coerceIn(bubbleWidth / 2, parentWidth - bubbleWidth / 2)
 
             Card(
@@ -862,7 +862,7 @@ fun StackedBlockProgressBarWithBubble(
                 elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
             ) {
                 Text(
-                    text = "${formatNumber(goal.currentNumericValue, goal.isDecimal)}${goal.unit} (${progress.roundToInt()}%)",
+                    text = "${progress.roundToInt()}%",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -871,7 +871,7 @@ fun StackedBlockProgressBarWithBubble(
             }
         }
 
-        // 目標値表示（進捗バーの下の行に独立して配置）
+        // 目標値表示（進捗バー��下の行に独立して配置）
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
