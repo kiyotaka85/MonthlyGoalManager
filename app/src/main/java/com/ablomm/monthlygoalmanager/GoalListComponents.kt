@@ -186,7 +186,7 @@ fun GoalCard(
                     }
 
                     // 3行目：進捗バー
-                    GoalProgressBarWithCheckIns(
+                    StackedBlockProgressBar(
                         goal = goalItem,
                         checkInItems = checkIns
                     )
@@ -267,6 +267,71 @@ fun GoalProgressBarWithCheckIns(
                     center = Offset(dotX, yCenter)
                 )
             }
+        }
+    }
+}
+
+// 積み上げ式ブロック進捗バー - 革新的な加点法デザイン
+@Composable
+fun StackedBlockProgressBar(
+    goal: GoalItem,
+    checkInItems: List<CheckInItem>
+) {
+    // テーマから色を取得
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val goalLineColor = MaterialTheme.colorScheme.tertiary
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(16.dp), // 高さを確保
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokeWidth = 8.dp.toPx()
+            val yCenter = size.height / 2f
+
+            // 1. 背景のトラック
+            drawLine(
+                color = trackColor,
+                start = Offset(0f, yCenter),
+                end = Offset(size.width, yCenter),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round
+            )
+
+            // 2. チェックインブロックを積み上げる
+            var lastProgressFraction = 0f
+            // チェックイン日時でソートして、古いものから順に描画
+            val sortedCheckIns = checkInItems.sortedBy { it.checkInDate }
+
+            sortedCheckIns.forEachIndexed { index, checkIn ->
+                val currentProgressFraction = (checkIn.progressPercent / 100f).coerceIn(0f, 1f)
+
+                // 前回の進捗からの差分ブロックを描画
+                if (currentProgressFraction > lastProgressFraction) {
+                    // ブロックごとに色を少し変えて、区切りを表現
+                    val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
+                    drawLine(
+                        color = blockColor,
+                        start = Offset(size.width * lastProgressFraction, yCenter),
+                        end = Offset(size.width * currentProgressFraction, yCenter),
+                        strokeWidth = strokeWidth
+                        // capはブロック感を出すためにButt（デフォルト）のまま
+                    )
+                }
+                lastProgressFraction = currentProgressFraction
+            }
+
+            // 3. 🎯 目標地点のマーカー
+            val goalMarkerX = size.width
+            drawLine(
+                color = goalLineColor,
+                start = Offset(goalMarkerX, yCenter - 8.dp.toPx()),
+                end = Offset(goalMarkerX, yCenter + 8.dp.toPx()),
+                strokeWidth = 2.dp.toPx()
+            )
         }
     }
 }
