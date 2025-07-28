@@ -148,9 +148,6 @@ fun GoalCard(
                 ) {
                     // 1行目：タイトル
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (goalItem.isKeyGoal) {
-                            Text("🔑 ", style = MaterialTheme.typography.titleMedium)
-                        }
                         Text(
                             text = goalItem.title,
                             style = MaterialTheme.typography.titleMedium,
@@ -189,6 +186,28 @@ fun GoalCard(
                     StackedBlockProgressBar(
                         goal = goalItem,
                         checkInItems = checkIns
+                    )
+                }
+            }
+
+            // キー目標アイコンを右上に配置
+            if (goalItem.isKeyGoal) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(24.dp)
+                        .background(
+                            color = Color(0xFFF5E6A8), // ベージュに近い黄色
+                            shape = androidx.compose.foundation.shape.CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "キー目標",
+                        tint = Color(0xFFB8860B), // より濃い黄色（ダークゴールデンロッド）
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
@@ -430,7 +449,7 @@ fun GoalProgressIndicator(goal: GoalItem) {
     )
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // 1. プログレスバー
+        // 1. プログ���スバー
         LinearProgressIndicator(
             progress = { (preciseProgress / 100f).toFloat() },
             modifier = Modifier
@@ -534,7 +553,7 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
                 .zIndex(1f), // 吹き出しをバーの前面に表示
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 吹き出し本体 (Cardで影をつけ��)
+            // 吹き出��本体 (Cardで影をつけ��)
             Card(
                 shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(
