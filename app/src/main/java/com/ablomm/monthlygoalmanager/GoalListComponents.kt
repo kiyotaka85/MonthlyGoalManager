@@ -62,7 +62,7 @@ fun GoalCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .matchParentSize() // Boxのサイズに合わせる
-                .clip(RoundedCornerShape(8.dp)), // 背�����������������������自体をクリップ
+                .clip(RoundedCornerShape(8.dp)), // 背���自体をクリップ
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -154,8 +154,6 @@ fun GoalCard(
                         text = goalItem.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -267,7 +265,7 @@ fun GoalProgressBarWithCheckIns(
     }
 }
 
-// 積み��げ式ブロック進捗バー - 革新的な加点法デザイン
+// 積み��げ式ブロック進捗バ�� - 革新的な加点法デザイン
 @Composable
 fun StackedBlockProgressBar(
     goal: GoalItem,
@@ -315,7 +313,7 @@ fun StackedBlockProgressBar(
 
                     // ブロックが十分な幅を持つ場合のみ枠線を描画
                     if (blockWidth > 6.dp.toPx()) { // 閾値を少し上げる
-                        // ブロック���とに色を少し変えて、区切りを表現
+                        // ブロックごとに色を少し変えて、区切りを表現
                         val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
 
                         // ブロック本体を描画
@@ -327,7 +325,7 @@ fun StackedBlockProgressBar(
                             // capはブロック感を出すためにButt（デフォルト）のまま
                         )
 
-                        // 四角形の枠線を描画（上下左���すべて）
+                        // 四角形の枠線を描画（上下左すべて）
                         val blockTop = yCenter - strokeWidth / 2
                         val blockBottom = yCenter + strokeWidth / 2
 
@@ -347,7 +345,7 @@ fun StackedBlockProgressBar(
                             strokeWidth = borderWidth
                         )
 
-                        // 左辺（最初のブロック以外は重複を避けるため描画���ない）
+                        // 左辺（最初のブロック以外は重複を避けるため描画しない）
                         if (index == 0) {
                             drawLine(
                                 color = blockBorderColor,
@@ -365,7 +363,7 @@ fun StackedBlockProgressBar(
                             strokeWidth = borderWidth
                         )
                     } else {
-                        // 幅が狭い場合は枠線なしで描画
+                        // 幅��狭い場合は枠線なしで描画
                         val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
                         drawLine(
                             color = blockColor,
@@ -382,7 +380,7 @@ fun StackedBlockProgressBar(
             val goalMarkerX = size.width
             drawLine(
                 color = goalLineColor,
-                start = Offset(goalMarkerX, yCenter - 12.dp.toPx()), // マーカーも太いバーに合わせて調整
+                start = Offset(goalMarkerX, yCenter - 12.dp.toPx()), // マー���ーも太いバーに合わせて調整
                 end = Offset(goalMarkerX, yCenter + 12.dp.toPx()),
                 strokeWidth = 3.dp.toPx() // マーカーの線も��し太く
             )
@@ -399,7 +397,7 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
         targetValue = goal.targetNumericValue,
         currentValue = goal.currentNumericValue
     )
-    // 2. 進捗率を0.0〜1.0の間のFloatに変換
+    // 2. 進捗��を0.0〜1.0の間のFloatに変換
     val progressFraction = (preciseProgress / 100.0).toFloat().coerceIn(0f, 1f)
 
     // 3. ���示用の進捗率テキストを生成（小���点以下を四捨五入）
@@ -876,7 +874,7 @@ fun StackedBlockProgressBarWithBubble(
                 elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
             ) {
                 Text(
-                    text = "${formatNumber(goal.currentNumericValue, goal.isDecimal)}${goal.unit}",
+                    text = formatNumber(goal.currentNumericValue, goal.isDecimal),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
