@@ -235,7 +235,7 @@ fun GoalProgressBarWithCheckIns(
                 start = Offset(0f, yCenter),
                 end = Offset(size.width, yCenter),
                 strokeWidth = strokeWidth,
-                cap = StrokeCap.Round
+                cap = StrokeCap.Butt // 両端を真っ直ぐに変更
             )
 
             // 2. 現在の進捗
@@ -300,7 +300,7 @@ fun StackedBlockProgressBar(
                 start = Offset(0f, yCenter),
                 end = Offset(size.width, yCenter),
                 strokeWidth = strokeWidth,
-                cap = StrokeCap.Round
+                cap = StrokeCap.Butt // 両端を真っ直ぐに変更
             )
 
             // 2. チェックインブロックを積み上げる
@@ -526,7 +526,7 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
         // 吹き出しがコンポーネントの端からはみ出さないようにオフセットを計算
         val offset = (progressPositionDp - bubbleWidth / 2).coerceIn(0.dp, parentWidthPx - bubbleWidth)
 
-        // 吹き出し（本体と三角形のしっぽ）
+        // 吹き出し��本体と三角形のしっぽ）
         Column(
             modifier = Modifier
                 .width(bubbleWidth)
