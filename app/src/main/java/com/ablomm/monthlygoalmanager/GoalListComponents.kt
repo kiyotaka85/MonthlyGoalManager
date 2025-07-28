@@ -281,6 +281,7 @@ fun StackedBlockProgressBar(
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
     val primaryColor = MaterialTheme.colorScheme.primary
     val goalLineColor = MaterialTheme.colorScheme.tertiary
+    val blockBorderColor = MaterialTheme.colorScheme.outline // より濃い枠線色（alpha除去）
 
     Box(
         modifier = Modifier
@@ -291,6 +292,7 @@ fun StackedBlockProgressBar(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokeWidth = 8.dp.toPx()
             val yCenter = size.height / 2f
+            val borderWidth = 2.dp.toPx() // 枠線の太さを2倍に
 
             // 1. 背景のトラック
             drawLine(
@@ -311,15 +313,71 @@ fun StackedBlockProgressBar(
 
                 // 前回の進捗からの差分ブロックを描画
                 if (currentProgressFraction > lastProgressFraction) {
-                    // ブロックごとに色を少し変えて、区切りを表現
-                    val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
-                    drawLine(
-                        color = blockColor,
-                        start = Offset(size.width * lastProgressFraction, yCenter),
-                        end = Offset(size.width * currentProgressFraction, yCenter),
-                        strokeWidth = strokeWidth
-                        // capはブロック感を出すためにButt（デフォルト）のまま
-                    )
+                    val blockStartX = size.width * lastProgressFraction
+                    val blockEndX = size.width * currentProgressFraction
+                    val blockWidth = blockEndX - blockStartX
+
+                    // ブロッ��が十分な幅を持つ場合のみ枠線を描画
+                    if (blockWidth > 6.dp.toPx()) { // 閾値を少し上げる
+                        // ブロックごとに色を少し変えて、区切りを表現
+                        val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
+
+                        // ブロック本体を描画
+                        drawLine(
+                            color = blockColor,
+                            start = Offset(blockStartX, yCenter),
+                            end = Offset(blockEndX, yCenter),
+                            strokeWidth = strokeWidth
+                            // capはブロック感を出すためにButt（デフォルト）のまま
+                        )
+
+                        // 四角形の枠線を描画（上下左右すべて）
+                        val blockTop = yCenter - strokeWidth / 2
+                        val blockBottom = yCenter + strokeWidth / 2
+
+                        // 上辺
+                        drawLine(
+                            color = blockBorderColor,
+                            start = Offset(blockStartX, blockTop),
+                            end = Offset(blockEndX, blockTop),
+                            strokeWidth = borderWidth
+                        )
+
+                        // 下辺
+                        drawLine(
+                            color = blockBorderColor,
+                            start = Offset(blockStartX, blockBottom),
+                            end = Offset(blockEndX, blockBottom),
+                            strokeWidth = borderWidth
+                        )
+
+                        // 左辺（最初のブロック以外は重複を避けるため描画しない）
+                        if (index == 0) {
+                            drawLine(
+                                color = blockBorderColor,
+                                start = Offset(blockStartX, blockTop),
+                                end = Offset(blockStartX, blockBottom),
+                                strokeWidth = borderWidth
+                            )
+                        }
+
+                        // 右辺
+                        drawLine(
+                            color = blockBorderColor,
+                            start = Offset(blockEndX, blockTop),
+                            end = Offset(blockEndX, blockBottom),
+                            strokeWidth = borderWidth
+                        )
+                    } else {
+                        // 幅が狭い場合は枠線なしで描画
+                        val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
+                        drawLine(
+                            color = blockColor,
+                            start = Offset(blockStartX, yCenter),
+                            end = Offset(blockEndX, yCenter),
+                            strokeWidth = strokeWidth
+                        )
+                    }
                 }
                 lastProgressFraction = currentProgressFraction
             }
@@ -336,7 +394,7 @@ fun StackedBlockProgressBar(
     }
 }
 
-// 数値フォーマットのヘルパー関数
+// ��値フォーマットのヘルパー関数
 private fun formatNumber(value: Double, isDecimal: Boolean): String {
     if (!isDecimal && value % 1.0 == 0.0) {
         return value.toInt().toString()
@@ -345,7 +403,7 @@ private fun formatNumber(value: Double, isDecimal: Boolean): String {
     return String.format("%.1f", value)
 }
 
-// 精密な進捗率計算のヘルパー関数
+// 精密な進捗率計算のヘルパ��関数
 private fun calculateProgressPrecise(
     startValue: Double,
     targetValue: Double,
@@ -690,7 +748,7 @@ fun GoalListContent(
         LazyColumn(
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp) // 間隔を調整
+            verticalArrangement = Arrangement.spacedBy(12.dp) // ���隔を調整
         ) {
             if (!isTipsHidden) {
                 item {
