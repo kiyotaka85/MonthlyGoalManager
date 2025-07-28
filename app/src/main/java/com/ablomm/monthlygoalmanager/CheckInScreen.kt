@@ -114,7 +114,7 @@ fun CheckInScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             // 共通の進捗表示コンポーネントを使用
-                            GoalProgressIndicator(goal = goal)
+                            GoalProgressIndicatorWithBubble(goal = goal)
                         }
                     }
                 }

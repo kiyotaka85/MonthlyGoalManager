@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowRightAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
+import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -62,7 +62,7 @@ fun GoalCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .matchParentSize() // Boxのサイズに合わせる
-                .clip(RoundedCornerShape(8.dp)), // 背景自体をクリップ
+                .clip(RoundedCornerShape(8.dp)), // 背�������自体をクリップ
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -157,33 +157,8 @@ fun GoalCard(
                         )
                     }
 
-                    // 2行目：進捗テキスト
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = formatNumber(goalItem.startNumericValue, goalItem.isDecimal),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = "→", modifier = Modifier.size(16.dp))
-                        Text(
-                            text = formatNumber(goalItem.currentNumericValue, goalItem.isDecimal),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = "→", modifier = Modifier.size(16.dp))
-                        Text(
-                            text = "🎯 ${formatNumber(goalItem.targetNumericValue, goalItem.isDecimal)} ${goalItem.unit}",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // 3行目：進捗バー
-                    StackedBlockProgressBar(
+                    // 2行目：進捗バー（現在値吹き出し付き）
+                    StackedBlockProgressBarWithBubble(
                         goal = goalItem,
                         checkInItems = checkIns
                     )
@@ -290,7 +265,7 @@ fun GoalProgressBarWithCheckIns(
     }
 }
 
-// 積み上げ式ブロック進捗バー - 革新的な加点法デザイン
+// 積み��げ式ブロック進捗バー - 革新的な加点法デザイン
 @Composable
 fun StackedBlockProgressBar(
     goal: GoalItem,
@@ -319,7 +294,7 @@ fun StackedBlockProgressBar(
                 start = Offset(0f, yCenter),
                 end = Offset(size.width, yCenter),
                 strokeWidth = strokeWidth,
-                cap = StrokeCap.Butt // 両端を真っ直ぐに変更
+                cap = StrokeCap.Butt // 両端を真っ直ぐに��更
             )
 
             // 2. チェックインブロックを積み上げる
@@ -370,7 +345,7 @@ fun StackedBlockProgressBar(
                             strokeWidth = borderWidth
                         )
 
-                        // 左辺（最初のブロック以外は重複を避けるため描画しない）
+                        // 左辺（最初のブロック以外は重複を避けるため描画���ない）
                         if (index == 0) {
                             drawLine(
                                 color = blockBorderColor,
@@ -413,110 +388,7 @@ fun StackedBlockProgressBar(
     }
 }
 
-// ��値フォーマットのヘルパー関数
-private fun formatNumber(value: Double, isDecimal: Boolean): String {
-    if (!isDecimal && value % 1.0 == 0.0) {
-        return value.toInt().toString()
-    }
-    // 小数点以下1桁でフォーマット
-    return String.format("%.1f", value)
-}
-
-// 精密な進捗率計算のヘルパ��関数
-private fun calculateProgressPrecise(
-    startValue: Double,
-    targetValue: Double,
-    currentValue: Double
-): Double {
-    val range = targetValue - startValue
-    val progressInRange = currentValue - startValue
-
-    return if (range != 0.0) {
-        (progressInRange / range * 100).coerceAtLeast(0.0)
-    } else {
-        if (currentValue >= targetValue) 100.0 else 0.0
-    }
-}
-
-// 共通の進捗表示コンポーネント
-@Composable
-fun GoalProgressIndicator(goal: GoalItem) {
-    // 精密な進捗率を計算
-    val preciseProgress = calculateProgressPrecise(
-        goal.startNumericValue,
-        goal.targetNumericValue,
-        goal.currentNumericValue
-    )
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // 1. プログ���スバー
-        LinearProgressIndicator(
-            progress = { (preciseProgress / 100f).toFloat() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            color = when {
-                preciseProgress >= 100 -> Color(0xFF4CAF50)
-                preciseProgress >= 75 -> MaterialTheme.colorScheme.primary
-                preciseProgress >= 50 -> Color(0xFFFF9800)
-                else -> Color(0xFFF44336)
-            },
-            trackColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // 2. 開始値と目標値のラベル
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (goal.isDecimal) "${String.format("%.1f", goal.startNumericValue)} ${goal.unit}"
-                       else "${goal.startNumericValue.toInt()} ${goal.unit}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = if (goal.isDecimal) "${String.format("%.1f", goal.targetNumericValue)} ${goal.unit}"
-                       else "${goal.targetNumericValue.toInt()} ${goal.unit}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // 3. 現在値と進捗率
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val currentValueText = if (goal.isDecimal) "${String.format("%.1f", goal.currentNumericValue)} ${goal.unit}"
-                                  else "${goal.currentNumericValue.toInt()} ${goal.unit}"
-
-            Text(
-                text = "現在: $currentValueText (${formatProgressPercentage(preciseProgress)}%)",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = when {
-                    preciseProgress >= 100 -> Color(0xFF4CAF50)
-                    preciseProgress >= 75 -> MaterialTheme.colorScheme.primary
-                    preciseProgress >= 50 -> Color(0xFFFF9800)
-                    else -> Color(0xFFF44336)
-                }
-            )
-        }
-    }
-}
-
-/**
- * 吹き出し付きの進捗インジケータ。
- * 進捗率に応じ���吹き出しが移動します。
- */
+// 吹き出し付きの進捗インジケータ。
 @Composable
 fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
     // 1. start, target, currentの値から精密な進捗率(Double)を計算
@@ -528,17 +400,17 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
     // 2. 進捗率を0.0〜1.0の間のFloatに変換
     val progressFraction = (preciseProgress / 100.0).toFloat().coerceIn(0f, 1f)
 
-    // 3. 表示用の進捗率テキストを生成（小数点以下を四捨五入）
+    // 3. 表示用の進捗率テキストを生成（小���点以下を四捨五入）
     val progressText = "${preciseProgress.roundToInt()}%"
 
-    // BoxWithConstraintsでコンポーネントの最大幅を取得し、動的な配置を可能にする
+    // BoxWithConstraintsでコンポーネントの最大幅を取得し���������動的な配置を可能にする
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .height(40.dp) // 吹き出しとバーのための高さを確保
     ) {
         val parentWidthPx = this.maxWidth
-        // 吹き出しの幅を定義
+        // 吹き出しの幅���定義
         val bubbleWidth = 48.dp
         // 進捗率に基づいて吹き出しのX座標を計算（Dp単位で統一）
         val progressPositionDp = parentWidthPx * progressFraction
@@ -590,7 +462,7 @@ fun GoalProgressIndicatorWithBubble(goal: GoalItem) {
             )
         }
 
-        // 進捗バー
+        // ���捗バー
         LinearProgressIndicator(
             progress = { progressFraction },
             modifier = Modifier
@@ -709,7 +581,7 @@ fun TipsCard(
             }
 
             Text(
-                text = "• カードを左右にスワイプして素早くチェックイン・編集\n• メニューから表示設定でソートやグループ化が可能\n• 目標をタップして詳細を確認",
+                text = "• カードを左右にスワイプして素早くチェックイン・編集\n• メニューから表示設��でソートやグループ化が可能\n• 目標をタップして詳細を確認",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -879,8 +751,162 @@ fun GoalListContent(
     }
 }
 
-// 進捗率を小数点一桁まで繰り���がりで表示するヘルパー関数
-private fun formatProgressPercentage(progressPercent: Double): String {
-    val rounded = kotlin.math.ceil(progressPercent * 10) / 10 // 小数点第二位以下を繰り上がり
-    return String.format("%.1f", rounded)
+// 積み上げ式ブロック進捗バー（吹き出し付き）- 革新的な加点法デザイン
+@Composable
+fun StackedBlockProgressBarWithBubble(
+    goal: GoalItem,
+    checkInItems: List<CheckInItem>
+) {
+    val progress = calculateProgressPrecise(
+        startValue = goal.startNumericValue,
+        targetValue = goal.targetNumericValue,
+        currentValue = goal.currentNumericValue
+    )
+    val progressFraction = (progress / 100f).toFloat().coerceIn(0f, 1f)
+
+    // テーマから色を取得
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val goalLineColor = MaterialTheme.colorScheme.tertiary
+    val blockBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp) // スペースを狭く
+    ) {
+        // 進捗バーと吹き出し部分
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp), // 吹き出しを含む高さ
+            contentAlignment = Alignment.BottomStart
+        ) {
+            val parentWidth = maxWidth
+
+            // 進捗バー部分
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(24.dp) // 進捗バーの高さを小さく
+                    .align(Alignment.BottomCenter),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokeWidth = 12.dp.toPx() // 少し細く
+                    val yCenter = size.height / 2f
+                    val borderWidth = 1.5.dp.toPx()
+
+                    // 1. 背景のトラック
+                    drawLine(
+                        color = trackColor,
+                        start = Offset(0f, yCenter),
+                        end = Offset(size.width, yCenter),
+                        strokeWidth = strokeWidth,
+                        cap = StrokeCap.Butt
+                    )
+
+                    // 2. チェックインブロックを積み上げる
+                    var lastProgressFraction = 0f
+                    val sortedCheckIns = checkInItems.sortedBy { it.checkInDate }
+
+                    sortedCheckIns.forEachIndexed { index, checkIn ->
+                        val currentProgressFraction = (checkIn.progressPercent / 100f).coerceIn(0f, 1f)
+
+                        if (currentProgressFraction > lastProgressFraction) {
+                            val blockStartX = size.width * lastProgressFraction
+                            val blockEndX = size.width * currentProgressFraction
+                            val blockWidth = blockEndX - blockStartX
+
+                            if (blockWidth > 4.dp.toPx()) {
+                                val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
+
+                                // ブロック本体を描画
+                                drawLine(
+                                    color = blockColor,
+                                    start = Offset(blockStartX, yCenter),
+                                    end = Offset(blockEndX, yCenter),
+                                    strokeWidth = strokeWidth
+                                )
+
+                                // 四角形の枠線を描画
+                                val blockTop = yCenter - strokeWidth / 2
+                                val blockBottom = yCenter + strokeWidth / 2
+
+                                drawLine(color = blockBorderColor, start = Offset(blockStartX, blockTop), end = Offset(blockEndX, blockTop), strokeWidth = borderWidth)
+                                drawLine(color = blockBorderColor, start = Offset(blockStartX, blockBottom), end = Offset(blockEndX, blockBottom), strokeWidth = borderWidth)
+
+                                if (index == 0) {
+                                    drawLine(color = blockBorderColor, start = Offset(blockStartX, blockTop), end = Offset(blockStartX, blockBottom), strokeWidth = borderWidth)
+                                }
+                                drawLine(color = blockBorderColor, start = Offset(blockEndX, blockTop), end = Offset(blockEndX, blockBottom), strokeWidth = borderWidth)
+                            } else {
+                                val blockColor = primaryColor.copy(alpha = (0.6f + (index % 5) * 0.08f).coerceIn(0.6f, 1.0f))
+                                drawLine(color = blockColor, start = Offset(blockStartX, yCenter), end = Offset(blockEndX, yCenter), strokeWidth = strokeWidth)
+                            }
+                        }
+                        lastProgressFraction = currentProgressFraction
+                    }
+                }
+            }
+
+            // 現在値の吹き出し（進捗バーの上）
+            val bubbleWidth = 72.dp
+            val bubbleX = (parentWidth * progressFraction).coerceIn(bubbleWidth / 2, parentWidth - bubbleWidth / 2)
+
+            Card(
+                modifier = Modifier
+                    .offset(x = bubbleX - bubbleWidth / 2, y = (-16).dp) // 位置を調整
+                    .wrapContentWidth(),
+                shape = RoundedCornerShape(6.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            ) {
+                Text(
+                    text = "${formatNumber(goal.currentNumericValue, goal.isDecimal)}${goal.unit} (${progress.roundToInt()}%)",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                )
+            }
+        }
+
+        // 目標値表示（進捗バーの下の行に独立して配置）
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Text(
+                text = "目標: ${formatNumber(goal.targetNumericValue, goal.isDecimal)}${goal.unit}",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// 数値フォーマットのヘルパー関数
+private fun formatNumber(value: Double, isDecimal: Boolean): String {
+    if (!isDecimal && value % 1.0 == 0.0) {
+        return value.toInt().toString()
+    }
+    // 小数点以下1桁でフォーマット
+    return String.format(Locale.getDefault(), "%.1f", value)
+}
+
+// 精密な進捗率計算のヘルパー関数
+private fun calculateProgressPrecise(
+    startValue: Double,
+    targetValue: Double,
+    currentValue: Double
+): Double {
+    val range = targetValue - startValue
+    val progressInRange = currentValue - startValue
+
+    return if (range != 0.0) {
+        (progressInRange / range * 100).coerceAtLeast(0.0)
+    } else {
+        if (currentValue >= targetValue) 100.0 else 0.0
+    }
 }

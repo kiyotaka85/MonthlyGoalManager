@@ -266,7 +266,7 @@ fun GoalProgressContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // 共通の進捗表示コンポーネントを使用
-        GoalProgressIndicator(goal = goal)
+        GoalProgressIndicatorWithBubble(goal = goal)
 
         if (goal.isCompleted) {
             Row(
@@ -619,7 +619,7 @@ fun GoalActionButtons(
             onClick = { navController.navigate("checkIn/$goalId") },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("チェックイン")
+            Text("チェックイ��")
         }
 
 //        OutlinedButton(
