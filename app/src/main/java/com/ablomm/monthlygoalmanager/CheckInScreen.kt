@@ -114,7 +114,9 @@ fun CheckInScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             // 共通の進捗表示コンポーネントを使用
-                            GoalProgressIndicatorWithBubble(goal = goal)
+                            GoalProgressInfo(
+                                goal = goal
+                            )
                         }
                     }
                 }
@@ -348,30 +350,6 @@ fun CheckInHistoryItem(checkIn: CheckInItem) {
 private fun formatProgressPercentageFromInt(progressPercent: Int): String {
     val progressDouble = progressPercent.toDouble()
     return String.format("%.1f", progressDouble)
-}
-
-// 数値フォーマットのヘルパー関数
-private fun formatNumber(value: Double, isDecimal: Boolean): String {
-    if (!isDecimal && value % 1.0 == 0.0) {
-        return value.toInt().toString()
-    }
-    return String.format("%.1f", value)
-}
-
-// 精密な進捗率計算のヘルパー関数
-private fun calculateProgressPrecise(
-    startValue: Double,
-    targetValue: Double,
-    currentValue: Double
-): Double {
-    val range = targetValue - startValue
-    val progressInRange = currentValue - startValue
-
-    return if (range != 0.0) {
-        (progressInRange / range * 100).coerceAtLeast(0.0) // 下限は0%だが上限は設けない（オーバーアチーブ許可）
-    } else {
-        if (currentValue >= targetValue) 100.0 else 0.0
-    }
 }
 
 // 進捗率の増加量を小数点一桁まで繰り上がりで表示するヘルパー関数

@@ -72,14 +72,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.height
 
-// 数値フォーマットのヘルパー関数
-private fun formatNumber(value: Double, isDecimal: Boolean): String {
-    if (!isDecimal && value % 1.0 == 0.0) {
-        return value.toInt().toString()
-    }
-    return value.toString()
-}
-
 /**
  * タップするとヒントダイアログを表示するヘルプアイコン
  * @param hintText ダイアログに表示するテキスト

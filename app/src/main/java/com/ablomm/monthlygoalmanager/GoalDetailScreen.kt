@@ -265,7 +265,7 @@ fun GoalProgressContent(
         modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 共通の進捗表示コンポーネントを使用
+        // Premium bubble progress indicator
         GoalProgressIndicatorWithBubble(goal = goal)
 
         if (goal.isCompleted) {
@@ -383,7 +383,6 @@ fun ActionStepsContent(
     if (showAddDialog) {
         ActionStepDialog(
             actionStep = null,
-            goalId = goalId,
             onDismiss = { showAddDialog = false },
             onSave = { title ->
                 val newStep = ActionStep(
@@ -401,7 +400,6 @@ fun ActionStepsContent(
     editingStep?.let { step ->
         ActionStepDialog(
             actionStep = step,
-            goalId = goalId,
             onDismiss = { editingStep = null },
             onSave = { title ->
                 viewModel.updateActionStep(step.copy(title = title))
@@ -490,7 +488,6 @@ fun ActionStepItem(
 @Composable
 fun ActionStepDialog(
     actionStep: ActionStep?,
-    goalId: UUID,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit
 ) {
@@ -619,7 +616,7 @@ fun GoalActionButtons(
             onClick = { navController.navigate("checkIn/$goalId") },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("チェックイ��")
+            Text("チェックイン")
         }
 
 //        OutlinedButton(
@@ -636,7 +633,7 @@ fun GoalActionButtons(
 // 可能な場合は、元の目標データから精密計算を行うことを推奨
 private fun formatProgressPercentageFromInt(progressPercent: Int): String {
     val progressDouble = progressPercent.toDouble()
-    return String.format("%.1f", progressDouble)
+    return java.lang.String.format(java.util.Locale.getDefault(), "%.1f", progressDouble)
 }
 
 @Composable

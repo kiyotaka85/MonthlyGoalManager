@@ -36,22 +36,6 @@ private fun formatProgressPercentageFromInt(progressPercent: Int): String {
     return String.format("%.1f", progressDouble)
 }
 
-// 精密な進捗率計算のヘルパー関数（オーバーアチーブ許可）
-private fun calculateProgressPrecise(
-    startValue: Double,
-    targetValue: Double,
-    currentValue: Double
-): Double {
-    val range = targetValue - startValue
-    val progressInRange = currentValue - startValue
-
-    return if (range != 0.0) {
-        (progressInRange / range * 100).coerceAtLeast(0.0) // 下限は0%だが上限は設けない（オーバーアチーブ許可）
-    } else {
-        if (currentValue >= targetValue) 100.0 else 0.0
-    }
-}
-
 data class FinalCheckInState(
     val goalId: UUID,
     val goalTitle: String,
