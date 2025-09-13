@@ -35,6 +35,7 @@ fun GoalCard(
     goalItem: GoalItem,
     higherGoal: HigherGoal?,
     navController: NavHostController,
+    onCheckIn: (java.util.UUID) -> Unit, // 追加
     modifier: Modifier = Modifier
 ) {
     var offsetX by remember { mutableStateOf(0f) }
@@ -71,7 +72,7 @@ fun GoalCard(
                         onDragEnd = {
                             when {
                                 offsetX > swipeThresholdPx -> navController.navigate("goalEdit/${goalItem.id}")
-                                offsetX < -swipeThresholdPx -> navController.navigate("checkIn/${goalItem.id}")
+                                offsetX < -swipeThresholdPx -> onCheckIn(goalItem.id) // シートを開く
                             }
                             offsetX = 0f
                         }
@@ -135,7 +136,7 @@ fun GoalCard(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = " / ${formatNumber(goalItem.targetNumericValue, goalItem.isDecimal)}${goalItem.unit}",
+                                    text = " / ${formatNumber(goalItem.targetNumericValue, goalItem.isDecimal)} ${goalItem.unit}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 6.dp)
@@ -163,7 +164,7 @@ fun GoalCard(
                                 progress < 70.0 -> {
                                     val remaining = (goalItem.targetNumericValue - goalItem.currentNumericValue).coerceAtLeast(0.0)
                                     Text(
-                                        text = "${formatNumber(remaining, goalItem.isDecimal)}${goalItem.unit} to go",
+                                        text = "${formatNumber(remaining, goalItem.isDecimal)} ${goalItem.unit} to go",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -182,10 +183,13 @@ fun GoalCard(
                     }
 
                     // ボタン行（全幅）
-                    Button(
-                        onClick = { navController.navigate("checkIn/${goalItem.id}") },
+                    FilledTonalButton(
+                        onClick = { onCheckIn(goalItem.id) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     ) {
                         Icon(Icons.Default.CheckCircle, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -446,6 +450,7 @@ fun GoalListContent(
     higherGoals: List<HigherGoal>,
     monthYearText: String,
     context: android.content.Context,
+    onCheckIn: (java.util.UUID) -> Unit, // 追加: シート起動
     groupMode: GroupMode = GroupMode.NONE,
     modifier: Modifier = Modifier
 ) {
@@ -498,6 +503,7 @@ fun GoalListContent(
                             goalItem = goalItem,
                             higherGoal = higherGoal,
                             navController = navController,
+                            onCheckIn = onCheckIn,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -523,6 +529,7 @@ fun GoalListContent(
                                 goalItem = goalItem,
                                 higherGoal = higherGoal,
                                 navController = navController,
+                                onCheckIn = onCheckIn,
                                 modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
                             )
                         }
@@ -538,6 +545,7 @@ fun GoalListContent(
                                     goalItem = goalItem,
                                     higherGoal = null,
                                     navController = navController,
+                                    onCheckIn = onCheckIn,
                                     modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
                                 )
                             }
@@ -561,6 +569,7 @@ fun GoalListContent(
                                 goalItem = goalItem,
                                 higherGoal = higherGoal,
                                 navController = navController,
+                                onCheckIn = onCheckIn,
                                 modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
                             )
                         }
@@ -578,6 +587,7 @@ fun GoalListContent(
                                 goalItem = goalItem,
                                 higherGoal = higherGoal,
                                 navController = navController,
+                                onCheckIn = onCheckIn,
                                 modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
                             )
                         }
@@ -618,7 +628,7 @@ fun GoalProgressInfo(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = " / ${formatNumber(goal.targetNumericValue, goal.isDecimal)}${goal.unit}",
+                        text = " / ${formatNumber(goal.targetNumericValue, goal.isDecimal)} ${goal.unit}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 6.dp)

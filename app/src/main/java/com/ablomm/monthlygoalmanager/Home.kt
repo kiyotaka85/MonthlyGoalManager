@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.UUID
 
 enum class SortMode {
     DEFAULT,
@@ -97,6 +98,11 @@ fun Home(
     val monthYearText = currentYearMonth.format(
         DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
     )
+
+    // チェックイン用モーダルシートの状態
+    var showCheckInSheet by remember { mutableStateOf(false) }
+    var targetGoalForCheckIn by remember { mutableStateOf<UUID?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
         topBar = {
@@ -376,8 +382,31 @@ fun Home(
                 higherGoals = higherGoals.value,
                 monthYearText = monthYearText,
                 context = context,
+                onCheckIn = { goalId ->
+                    targetGoalForCheckIn = goalId
+                    showCheckInSheet = true
+                },
                 groupMode = groupMode,
                 modifier = Modifier.padding(innerPadding)
+            )
+        }
+    }
+
+    if (showCheckInSheet && targetGoalForCheckIn != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showCheckInSheet = false
+                targetGoalForCheckIn = null
+            },
+            sheetState = sheetState
+        ) {
+            CheckInSheet(
+                goalId = targetGoalForCheckIn!!,
+                viewModel = viewModel,
+                onClose = {
+                    showCheckInSheet = false
+                    targetGoalForCheckIn = null
+                }
             )
         }
     }

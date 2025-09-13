@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,7 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -756,6 +760,249 @@ fun CheckInCompletionDialog(
                         Text("成果を共有")
                     }
                 }
+            }
+        )
+    }
+}
+
+// --- ここから：モーダルシート用の簡易チェックインフォーム ---
+@OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun CheckInSheet(
+    goalId: UUID,
+    viewModel: GoalsViewModel,
+    onClose: () -> Unit
+) {
+    var goal by remember { mutableStateOf<GoalItem?>(null) }
+    var currentValueText by remember { mutableStateOf("") }
+    var diffText by remember { mutableStateOf("") }
+    var comment by remember { mutableStateOf("") }
+
+    var showCompletionDialog by remember { mutableStateOf(false) }
+    var savedCheckIn by remember { mutableStateOf<CheckInItem?>(null) }
+    var changeAmount by remember { mutableStateOf(0.0) }
+    var progressIncreaseDecimal by remember { mutableStateOf(0.0) }
+
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(goalId) {
+        goal = viewModel.getGoalById(goalId)
+        goal?.let {
+            // フォーム初期化：現在値は空、差異も空
+            currentValueText = ""
+            diffText = ""
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "New Check-in",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        goal?.let { g ->
+            // 直近値 → 現在値 の表形式
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 左側（前回値）
+                    Box(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "前回: ${formatNumber(g.currentNumericValue, g.isDecimal)} ${g.unit}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        )
+                    }
+                    // 中央の矢印（画面中央に配置）
+                    Text(
+                        "→",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    // 右側（現在値入力）
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = currentValueText,
+                            onValueChange = { text ->
+                                // 数値以外は拒否
+                                val v = text.toDoubleOrNull()
+                                if (text.isNotEmpty() && v == null) return@OutlinedTextField
+                                if (v != null && v < 0) return@OutlinedTextField
+                                currentValueText = text
+                                // 差異を自動計算
+                                if (text.isNotEmpty()) {
+                                    val diff = (v ?: 0.0) - g.currentNumericValue
+                                    diffText = if (g.isDecimal) {
+                                        diff.toString()
+                                    } else {
+                                        diff.toInt().toString()
+                                    }
+                                } else {
+                                    diffText = ""
+                                }
+                            },
+                            label = { Text("現在値 (${g.unit})") },
+                            placeholder = {
+                                if (g.isDecimal) Text("例: ${String.format("%.1f", g.targetNumericValue)}") else Text("例: ${g.targetNumericValue.toInt()}")
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = if (g.isDecimal) KeyboardType.Decimal else KeyboardType.Number,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(onDone = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                            }),
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                        )
+                    }
+                }
+
+                // ガイダンス
+                Text(
+                    text = "現在値か差異のどちらか一方を入力すればOKです。もう一方は自動計算されます。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // 差異フィールド（加算入力用）を現在値と同じ幅に
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = diffText,
+                            onValueChange = { text ->
+                                val d = text.toDoubleOrNull()
+                                if (text.isNotEmpty() && d == null) return@OutlinedTextField
+                                diffText = text
+                                // 現在値を自動計算
+                                if (text.isNotEmpty()) {
+                                    val current = g.currentNumericValue + (d ?: 0.0)
+                                    currentValueText = if (g.isDecimal) {
+                                        current.toString()
+                                    } else {
+                                        current.toInt().toString()
+                                    }
+                                }
+                            },
+                            label = { Text("差異 (${g.unit})") },
+                            placeholder = { Text("例: +1, -1, +0.5") },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = if (g.isDecimal) KeyboardType.Decimal else KeyboardType.Number,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(onDone = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                            }),
+                            singleLine = true,
+                            supportingText = { Text("差異を入力すると現在値を自動計算します") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+
+            OutlinedTextField(
+                value = comment,
+                onValueChange = { comment = it },
+                label = { Text("Comments (Optional)") },
+                placeholder = { Text("What did you accomplish? How do you feel?") },
+                minLines = 3,
+                maxLines = 5,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                }),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            val canSave = currentValueText.isNotBlank()
+
+            Button(
+                onClick = {
+                    val currentValue = currentValueText.toDoubleOrNull() ?: return@Button
+
+                    val oldProgressPrecise = calculateProgressPrecise(
+                        g.startNumericValue,
+                        g.targetNumericValue,
+                        g.currentNumericValue
+                    )
+                    val newProgress = calculateProgress(
+                        g.startNumericValue,
+                        g.targetNumericValue,
+                        currentValue
+                    )
+                    val newProgressPrecise = calculateProgressPrecise(
+                        g.startNumericValue,
+                        g.targetNumericValue,
+                        currentValue
+                    )
+
+                    changeAmount = currentValue - g.currentNumericValue
+                    progressIncreaseDecimal = newProgressPrecise - oldProgressPrecise
+
+                    val checkIn = CheckInItem(
+                        goalId = g.id,
+                        progressPercent = newProgress,
+                        comment = comment.trim()
+                    )
+                    viewModel.addCheckIn(checkIn)
+
+                    val updatedGoal = g.copy(
+                        currentNumericValue = currentValue,
+                        currentProgress = newProgress,
+                        isCompleted = newProgress >= 100
+                    )
+                    viewModel.updateGoalItem(updatedGoal)
+
+                    savedCheckIn = checkIn
+                    showCompletionDialog = true
+                },
+                enabled = canSave,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Save Check-in")
+            }
+        }
+    }
+
+    if (showCompletionDialog && savedCheckIn != null && goal != null) {
+        CheckInCompletionDialog(
+            goal = goal!!,
+            checkIn = savedCheckIn!!,
+            changeAmount = changeAmount,
+            previousValue = goal!!.currentNumericValue,
+            progressIncreaseDecimal = progressIncreaseDecimal,
+            onShare = { shareText ->
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    type = "text/plain"
+                }
+                context.startActivity(Intent.createChooser(shareIntent, "進捗を共有"))
+                onClose()
+            },
+            onDismiss = {
+                onClose()
             }
         )
     }

@@ -57,6 +57,10 @@ fun GoalDetailScreen(
     val actionStepsState = viewModel.getActionStepsForGoal(goalId).collectAsState(initial = emptyList())
     val higherGoalsState = viewModel.higherGoalList.collectAsState(initial = emptyList())
 
+    // チェックイン用シート
+    var showCheckInSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     LaunchedEffect(goalId) {
         goalItem = viewModel.getGoalById(goalId)
         isLoading = false
@@ -100,7 +104,8 @@ fun GoalDetailScreen(
                 item {
                     GoalActionButtons(
                         goalId = goalId,
-                        navController = navController
+                        navController = navController,
+                        onCheckIn = { showCheckInSheet = true }
                     )
                 }
 
@@ -142,31 +147,46 @@ fun GoalDetailScreen(
                         isExpanded = isActionStepsExpanded,
                         onToggle = { isActionStepsExpanded = !isActionStepsExpanded }
                     ) {
-                        ActionStepsContent(actionSteps = actionStepsState.value, goalId = goalId, viewModel = viewModel)
+                        GoalActionStepsContent(
+                            goal = goalItem!!,
+                            actionSteps = actionStepsState.value,
+                            onAdd = { viewModel.addActionStep(it) },
+                            onUpdate = { viewModel.updateActionStep(it) },
+                            onDelete = { viewModel.deleteActionStep(it) }
+                        )
                     }
                 }
 
                 // チェックイン履歴セクション
-                if (checkInsState.value.isNotEmpty()) {
-                    item {
-                        ExpandableSection(
-                            title = "チェックイン履歴",
-                            icon = Icons.Default.History,
-                            isExpanded = isCheckInHistoryExpanded,
-                            onToggle = { isCheckInHistoryExpanded = !isCheckInHistoryExpanded }
-                        ) {
-                            CheckInHistoryContent(checkIns = checkInsState.value)
-                        }
+                item {
+                    ExpandableSection(
+                        title = "チェックイン履歴",
+                        icon = Icons.Default.History,
+                        isExpanded = isCheckInHistoryExpanded,
+                        onToggle = { isCheckInHistoryExpanded = !isCheckInHistoryExpanded }
+                    ) {
+                        CheckInHistoryContent(checkIns = checkInsState.value)
                     }
                 }
+
+                // 削除セクション
+                item {
+                    GoalDeleteSection(goal = goalItem!!, viewModel = viewModel, navController = navController)
+                }
             }
-        } else {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("目標が見つかりませんでした")
-            }
+        }
+    }
+
+    if (showCheckInSheet && goalItem != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showCheckInSheet = false },
+            sheetState = sheetState
+        ) {
+            CheckInSheet(
+                goalId = goalItem!!.id,
+                viewModel = viewModel,
+                onClose = { showCheckInSheet = false }
+            )
         }
     }
 }
@@ -324,225 +344,27 @@ fun GoalProgressContent(
 }
 
 @Composable
-fun ActionStepsContent(
-    actionSteps: List<ActionStep>,
+fun GoalActionButtons(
     goalId: UUID,
-    viewModel: GoalsViewModel
+    navController: NavHostController,
+    onCheckIn: () -> Unit
 ) {
-    var showAddDialog by remember { mutableStateOf(false) }
-    var editingStep by remember { mutableStateOf<ActionStep?>(null) }
-
     Column(
-        modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 追加ボタン
-        OutlinedButton(
-            onClick = { showAddDialog = true },
+        Button(
+            onClick = onCheckIn,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("アクションステップを追加")
+            Text("チェックイン")
         }
 
-        // アクションステップリスト
-        actionSteps.sortedBy { it.order }.forEach { step ->
-            ActionStepItem(
-                step = step,
-                onToggleComplete = {
-                    viewModel.updateActionStep(step.copy(isCompleted = !step.isCompleted))
-                },
-                onEdit = { editingStep = step },
-                onDelete = { viewModel.deleteActionStep(step) }
-            )
-        }
-
-        // 進捗表示
-        if (actionSteps.isNotEmpty()) {
-            val completedSteps = actionSteps.count { it.isCompleted }
-            val totalSteps = actionSteps.size
-
-            HorizontalDivider()
-            Text(
-                text = "完了: $completedSteps / $totalSteps",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            Text(
-                text = "まだアクションステップがありません",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
-    }
-
-    // 追加ダイアログ
-    if (showAddDialog) {
-        ActionStepDialog(
-            actionStep = null,
-            onDismiss = { showAddDialog = false },
-            onSave = { title ->
-                val newStep = ActionStep(
-                    goalId = goalId,
-                    title = title,
-                    order = actionSteps.size
-                )
-                viewModel.addActionStep(newStep)
-                showAddDialog = false
-            }
-        )
-    }
-
-    // 編集ダイアログ
-    editingStep?.let { step ->
-        ActionStepDialog(
-            actionStep = step,
-            onDismiss = { editingStep = null },
-            onSave = { title ->
-                viewModel.updateActionStep(step.copy(title = title))
-                editingStep = null
-            }
-        )
-    }
-}
-
-@Composable
-fun ActionStepItem(
-    step: ActionStep,
-    onToggleComplete: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (step.isCompleted)
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-            else
-                MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 完了チェックボタン
-            IconButton(
-                onClick = onToggleComplete,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = if (step.isCompleted) Icons.Default.CheckCircle else Icons.Default.Check,
-                    contentDescription = if (step.isCompleted) "完了済み" else "完了にする",
-                    tint = if (step.isCompleted) Color(0xFF4CAF50) else Color.Gray
-                )
-            }
-
-            // ステップタイトル
-            Text(
-                text = step.title,
-                modifier = Modifier.weight(1f),
-                style = if (step.isCompleted) {
-                    MaterialTheme.typography.bodyMedium.copy(
-                        color = Color.Gray,
-                        textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
-                    )
-                } else {
-                    MaterialTheme.typography.bodyMedium
-                }
-            )
-
-            // 編集ボタン
-            IconButton(
-                onClick = onEdit,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "編集",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // 削除ボタン
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "削除",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ActionStepDialog(
-    actionStep: ActionStep?,
-    onDismiss: () -> Unit,
-    onSave: (String) -> Unit
-) {
-    var title by remember { mutableStateOf(actionStep?.title ?: "") }
-    val isEditing = actionStep != null
-
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = if (isEditing) "アクションステップを編集" else "新しいアクションステップ",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("タイトル") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("キャンセル")
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Button(
-                        onClick = {
-                            if (title.isNotBlank()) {
-                                onSave(title.trim())
-                            }
-                        },
-                        enabled = title.isNotBlank()
-                    ) {
-                        Text(if (isEditing) "更新" else "追加")
-                    }
-                }
-            }
-        }
+//        OutlinedButton(
+//            onClick = { navController.navigate("goalEdit/$goalId") },
+//            modifier = Modifier.fillMaxWidth()
+//        ) {
+//            Text("編集")
+//        }
     }
 }
 
@@ -605,26 +427,80 @@ fun CheckInHistoryContent(checkIns: List<CheckInItem>) {
 }
 
 @Composable
-fun GoalActionButtons(
-    goalId: UUID,
-    navController: NavHostController
+fun GoalActionStepsContent(
+    goal: GoalItem,
+    actionSteps: List<ActionStep>,
+    onAdd: (ActionStep) -> Unit,
+    onUpdate: (ActionStep) -> Unit,
+    onDelete: (ActionStep) -> Unit
 ) {
     Column(
+        modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Button(
-            onClick = { navController.navigate("checkIn/$goalId") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("チェックイン")
+        actionSteps.forEach { step ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(step.title)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val toggled = step.copy(isCompleted = !step.isCompleted)
+                    TextButton(onClick = { onUpdate(toggled) }) {
+                        Text(if (step.isCompleted) "未完了にする" else "完了")
+                    }
+                    TextButton(onClick = { onDelete(step) }) {
+                        Text("削除")
+                    }
+                }
+            }
         }
+        // 追加は簡易的にダミー追加ボタン
+        OutlinedButton(onClick = {
+            onAdd(
+                ActionStep(
+                    goalId = goal.id,
+                    title = "New step",
+                    order = (actionSteps.maxOfOrNull { it.order } ?: 0) + 1
+                )
+            )
+        }) {
+            Text("ステップを追加")
+        }
+    }
+}
 
-//        OutlinedButton(
-//            onClick = { navController.navigate("goalEdit/$goalId") },
-//            modifier = Modifier.fillMaxWidth()
-//        ) {
-//            Text("編集")
-//        }
+@Composable
+fun GoalDeleteSection(
+    goal: GoalItem,
+    viewModel: GoalsViewModel,
+    navController: NavHostController
+) {
+    var showConfirm by remember { mutableStateOf(false) }
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("目標の削除", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = { showConfirm = true }) { Text("削除する") }
+        }
+    }
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            title = { Text("削除の確認") },
+            text = { Text("この目標を削除しますか？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteGoalItem(goal)
+                    showConfirm = false
+                    navController.popBackStack()
+                }) { Text("削除") }
+            },
+            dismissButton = { TextButton(onClick = { showConfirm = false }) { Text("キャンセル") } }
+        )
     }
 }
 
