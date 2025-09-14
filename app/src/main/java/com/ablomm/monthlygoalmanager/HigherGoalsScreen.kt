@@ -7,16 +7,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -25,8 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,7 +61,10 @@ fun HigherGoalsScreen(
 
     val isSelectionMode = goalId != null
 
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text(if (isSelectionMode) "Select Higher Goal" else "Higher Goals & Visions") },
@@ -83,7 +88,8 @@ fun HigherGoalsScreen(
                             )
                         }
                     }
-                }
+                },
+                scrollBehavior = scrollBehavior
             )
         },
         floatingActionButton = {
@@ -98,30 +104,35 @@ fun HigherGoalsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(paddingValues)
+                    .padding(horizontal = 32.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxHeight()
                 ) {
+                    val message = if (isHideCompleted && allHigherGoals.isNotEmpty()) {
+                        Triple("🏆", "All Goals Achieved!", "Congratulations! You've completed all your higher goals. Toggle the visibility to see them again.")
+                    } else {
+                        Triple("🚀", "Ready for a New Vision?", "Let's set some ambitious higher goals. Tap the '+' button to begin your journey.")
+                    }
+
+                    Text(text = message.first, fontSize = 64.sp)
+                    Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = if (isHideCompleted && allHigherGoals.isNotEmpty()) "🏆" else "🎯",
-                        fontSize = 48.sp
+                        text = message.second,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = if (isHideCompleted && allHigherGoals.isNotEmpty())
-                            "All higher goals completed!" else "No higher goals yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = if (isHideCompleted && allHigherGoals.isNotEmpty())
-                            "Toggle visibility to see completed goals" else
-                            "Create higher goals to organize your monthly goals",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = message.third,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -131,7 +142,7 @@ fun HigherGoalsScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(higherGoals) { higherGoal ->
                     HigherGoalCard(
@@ -225,98 +236,88 @@ fun HigherGoalCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                if (isSelectionMode) {
-                    onSelect()
-                }
+                if (isSelectionMode) onSelect() else onToggleCompletion()
             },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = GoalIcons.getIconByName(higherGoal.icon),
-                        contentDescription = GoalIcons.getIconDescription(higherGoal.icon),
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = higherGoal.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        if (!higherGoal.description.isNullOrBlank()) {
-                            Text(
-                                text = higherGoal.description,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+                Icon(
+                    imageVector = GoalIcons.getIconByName(higherGoal.icon),
+                    contentDescription = GoalIcons.getIconDescription(higherGoal.icon),
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
 
-                if (!isSelectionMode) {
-                    Row {
-                        IconButton(onClick = onEdit) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "Edit",
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                } else {
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = higherGoal.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                if (!higherGoal.description.isNullOrBlank()) {
                     Text(
-                        text = "Tap to select",
+                        text = higherGoal.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // 完了トグルスイッチ
-            if (!isSelectionMode) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Completed",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Switch(
-                        checked = higherGoal.isCompleted,
-                        onCheckedChange = {
-                            onToggleCompletion()
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                            uncheckedThumbColor = MaterialTheme.colorScheme.onSurface,
-                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                            uncheckedTrackColor = MaterialTheme.colorScheme.onSurfaceVariant
+            if (isSelectionMode) {
+                Text(
+                    text = "Select",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                Checkbox(
+                    checked = higherGoal.isCompleted,
+                    onCheckedChange = { onToggleCompletion() }
+                )
+                var showMenu by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            onClick = {
+                                onEdit()
+                                showMenu = false
+                            },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Edit") }
                         )
-                    )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                onDelete()
+                                showMenu = false
+                            },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error) }
+                        )
+                    }
                 }
             }
         }
@@ -336,9 +337,7 @@ fun AddHigherGoalDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Higher Goal") },
         text = {
-            Column(
-                modifier = Modifier.height(400.dp)
-            ) {
+            Column {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -368,48 +367,38 @@ fun AddHigherGoalDialog(
                 Text("Icon", style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                LazyColumn(
-                    modifier = Modifier.height(150.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(GoalIcons.allIcons.chunked(5)) { iconRow ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    items(GoalIcons.allIcons) { goalIcon ->
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (selectedIcon == goalIcon.name)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                .clickable { selectedIcon = goalIcon.name }
+                                .border(
+                                    width = 2.dp,
+                                    color = if (selectedIcon == goalIcon.name) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
-                            iconRow.forEach { goalIcon ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (selectedIcon == goalIcon.name)
-                                                MaterialTheme.colorScheme.primaryContainer
-                                            else
-                                                MaterialTheme.colorScheme.surface
-                                        )
-                                        .clickable { selectedIcon = goalIcon.name }
-                                        .then(
-                                            if (selectedIcon == goalIcon.name) {
-                                                Modifier.border(
-                                                    width = 2.dp,
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    shape = CircleShape
-                                                )
-                                            } else Modifier
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = goalIcon.icon,
-                                        contentDescription = goalIcon.description,
-                                        modifier = Modifier.size(20.dp),
-                                        tint = if (selectedIcon == goalIcon.name)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
+                            Icon(
+                                imageVector = goalIcon.icon,
+                                contentDescription = goalIcon.description,
+                                modifier = Modifier.size(28.dp),
+                                tint = if (selectedIcon == goalIcon.name)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -445,9 +434,7 @@ fun EditHigherGoalDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Higher Goal") },
         text = {
-            Column(
-                modifier = Modifier.height(400.dp)
-            ) {
+            Column {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -477,48 +464,38 @@ fun EditHigherGoalDialog(
                 Text("Icon", style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                LazyColumn(
-                    modifier = Modifier.height(150.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(GoalIcons.allIcons.chunked(5)) { iconRow ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    items(GoalIcons.allIcons) { goalIcon ->
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (selectedIcon == goalIcon.name)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                .clickable { selectedIcon = goalIcon.name }
+                                .border(
+                                    width = 2.dp,
+                                    color = if (selectedIcon == goalIcon.name) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
-                            iconRow.forEach { goalIcon ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (selectedIcon == goalIcon.name)
-                                                MaterialTheme.colorScheme.primaryContainer
-                                            else
-                                                MaterialTheme.colorScheme.surface
-                                        )
-                                        .clickable { selectedIcon = goalIcon.name }
-                                        .then(
-                                            if (selectedIcon == goalIcon.name) {
-                                                Modifier.border(
-                                                    width = 2.dp,
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    shape = CircleShape
-                                                )
-                                            } else Modifier
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = goalIcon.icon,
-                                        contentDescription = goalIcon.description,
-                                        modifier = Modifier.size(20.dp),
-                                        tint = if (selectedIcon == goalIcon.name)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
+                            Icon(
+                                imageVector = goalIcon.icon,
+                                contentDescription = goalIcon.description,
+                                modifier = Modifier.size(28.dp),
+                                tint = if (selectedIcon == goalIcon.name)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
