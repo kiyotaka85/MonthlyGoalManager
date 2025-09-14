@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -22,6 +24,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
@@ -30,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -765,6 +770,62 @@ fun CheckInCompletionDialog(
     }
 }
 
+@Composable
+fun CustomKeypad(
+    modifier: Modifier = Modifier,
+    onKeyPress: (String) -> Unit,
+    onBackspace: () -> Unit,
+    isDecimal: Boolean
+) {
+    val keys = listOf(
+        listOf("1", "2", "3"),
+        listOf("4", "5", "6"),
+        listOf("7", "8", "9"),
+        listOf(if (isDecimal) "." else "", "0", "⌫")
+    )
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        keys.forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+            ) {
+                row.forEach { key ->
+                    val buttonModifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .weight(1f)
+                    if (key.isEmpty()) {
+                        Spacer(modifier = buttonModifier)
+                    } else {
+                        Button(
+                            onClick = {
+                                if (key == "⌫") onBackspace() else onKeyPress(key)
+                            },
+                            modifier = buttonModifier,
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(vertical = 16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) {
+                            if (key == "⌫") {
+                                Icon(Icons.Default.Backspace, contentDescription = "Backspace")
+                            } else {
+                                Text(key, style = MaterialTheme.typography.headlineMedium)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // --- ここから：モーダルシート用の簡易チェックインフォーム ---
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -776,7 +837,6 @@ fun CheckInSheet(
 ) {
     var goal by remember { mutableStateOf<GoalItem?>(null) }
     var currentValueText by remember { mutableStateOf("") }
-    var diffText by remember { mutableStateOf("") }
     var comment by remember { mutableStateOf("") }
 
     var showCompletionDialog by remember { mutableStateOf(false) }
@@ -784,139 +844,99 @@ fun CheckInSheet(
     var changeAmount by remember { mutableStateOf(0.0) }
     var progressIncreaseDecimal by remember { mutableStateOf(0.0) }
 
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
     val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(goalId) {
         goal = viewModel.getGoalById(goalId)
-        goal?.let {
-            // フォーム初期化：現在値は空、差異も空
-            currentValueText = ""
-            diffText = ""
-        }
     }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
             text = "New Check-in",
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
 
         goal?.let { g ->
-            // 直近値 → 現在値 の表形式
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 左側（前回値）
-                    Box(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "前回: ${formatNumber(g.currentNumericValue, g.isDecimal)} ${g.unit}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.align(Alignment.CenterEnd)
-                        )
-                    }
-                    // 中央の矢印（画面中央に配置）
-                    Text(
-                        "→",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                    // 右側（現在値入力）
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = currentValueText,
-                            onValueChange = { text ->
-                                // 数値以外は拒否
-                                val v = text.toDoubleOrNull()
-                                if (text.isNotEmpty() && v == null) return@OutlinedTextField
-                                if (v != null && v < 0) return@OutlinedTextField
-                                currentValueText = text
-                                // 差異を自動計算
-                                if (text.isNotEmpty()) {
-                                    val diff = (v ?: 0.0) - g.currentNumericValue
-                                    diffText = if (g.isDecimal) {
-                                        diff.toString()
-                                    } else {
-                                        diff.toInt().toString()
-                                    }
-                                } else {
-                                    diffText = ""
-                                }
-                            },
-                            label = { Text("現在値 (${g.unit})") },
-                            placeholder = {
-                                if (g.isDecimal) Text("例: ${String.format("%.1f", g.targetNumericValue)}") else Text("例: ${g.targetNumericValue.toInt()}")
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = if (g.isDecimal) KeyboardType.Decimal else KeyboardType.Number,
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(onDone = {
-                                keyboardController?.hide()
-                                focusManager.clearFocus()
-                            }),
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                        )
-                    }
-                }
-
-                // ガイダンス
+            // Display for the current value
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = "現在値か差異のどちらか一方を入力すればOKです。もう一方は自動計算されます。",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "前回: ${formatNumber(g.currentNumericValue, g.isDecimal)} ${g.unit}",
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                val diff = (currentValueText.toDoubleOrNull() ?: 0.0) - g.currentNumericValue
+                val diffText = if (currentValueText.isNotBlank() && diff != 0.0) {
+                    val sign = if (diff > 0) "+" else ""
+                    "${sign}${formatNumber(diff, g.isDecimal)} ${g.unit}"
+                } else {
+                    ""
+                }
+                Text(
+                    text = diffText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (diff > 0) Color(0xFF4CAF50) else if (diff < 0) Color(0xFFF44336) else Color.Transparent
+                )
+            }
 
-                // 差異フィールド（加算入力用）を現在値と同じ幅に
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Spacer(modifier = Modifier.weight(1f))
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = diffText,
-                            onValueChange = { text ->
-                                val d = text.toDoubleOrNull()
-                                if (text.isNotEmpty() && d == null) return@OutlinedTextField
-                                diffText = text
-                                // 現在値を自動計算
-                                if (text.isNotEmpty()) {
-                                    val current = g.currentNumericValue + (d ?: 0.0)
-                                    currentValueText = if (g.isDecimal) {
-                                        current.toString()
-                                    } else {
-                                        current.toInt().toString()
-                                    }
-                                }
-                            },
-                            label = { Text("差異 (${g.unit})") },
-                            placeholder = { Text("例: +1, -1, +0.5") },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = if (g.isDecimal) KeyboardType.Decimal else KeyboardType.Number,
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(onDone = {
-                                keyboardController?.hide()
-                                focusManager.clearFocus()
-                            }),
-                            singleLine = true,
-                            supportingText = { Text("差異を入力すると現在値を自動計算します") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (currentValueText.isEmpty()) "0" else currentValueText,
+                        style = MaterialTheme.typography.displaySmall,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        textAlign = TextAlign.End,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = g.unit,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = 16.dp)
+                    )
                 }
             }
+
+
+            // Custom keypad
+            CustomKeypad(
+                isDecimal = g.isDecimal,
+                onKeyPress = { key ->
+                    if (key == ".") {
+                        if (!currentValueText.contains(".")) {
+                            currentValueText = if (currentValueText.isEmpty()) "0." else currentValueText + "."
+                        }
+                    } else {
+                        if (currentValueText == "0") {
+                            currentValueText = key
+                        } else {
+                            currentValueText += key
+                        }
+                    }
+                },
+                onBackspace = {
+                    if (currentValueText.isNotEmpty()) {
+                        currentValueText = currentValueText.dropLast(1)
+                    }
+                }
+            )
 
             OutlinedTextField(
                 value = comment,
@@ -927,8 +947,7 @@ fun CheckInSheet(
                 maxLines = 5,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
-                    keyboardController?.hide()
-                    focusManager.clearFocus()
+                    // This might need a focus manager if we want to dismiss the keyboard
                 }),
                 modifier = Modifier.fillMaxWidth()
             )
