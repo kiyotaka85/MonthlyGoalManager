@@ -12,11 +12,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -70,7 +73,7 @@ fun HigherGoalsScreen(
                 title = { Text(if (isSelectionMode) "Select Higher Goal" else "Higher Goals & Visions") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -209,7 +212,6 @@ fun HigherGoalsScreen(
     // 削除確認ダイアログ
     if (showDeleteDialog && goalToDelete != null) {
         DeleteHigherGoalDialog(
-            higherGoal = goalToDelete!!,
             onDismiss = {
                 showDeleteDialog = false
                 goalToDelete = null
@@ -235,9 +237,7 @@ fun HigherGoalCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                if (isSelectionMode) onSelect() else onToggleCompletion()
-            },
+            .clickable { if (isSelectionMode) onSelect() },
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(
@@ -266,11 +266,21 @@ fun HigherGoalCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = higherGoal.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = higherGoal.title,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    if (!isSelectionMode && higherGoal.isCompleted) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Completed",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
                 if (!higherGoal.description.isNullOrBlank()) {
                     Text(
                         text = higherGoal.description,
@@ -288,10 +298,6 @@ fun HigherGoalCard(
                     fontWeight = FontWeight.Bold
                 )
             } else {
-                Checkbox(
-                    checked = higherGoal.isCompleted,
-                    onCheckedChange = { onToggleCompletion() }
-                )
                 var showMenu by remember { mutableStateOf(false) }
                 Box {
                     IconButton(onClick = { showMenu = true }) {
@@ -308,6 +314,21 @@ fun HigherGoalCard(
                                 showMenu = false
                             },
                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Edit") }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(if (higherGoal.isCompleted) "Unarchive" else "Archive")
+                            },
+                            onClick = {
+                                onToggleCompletion()
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = if (higherGoal.isCompleted) Icons.Default.Unarchive else Icons.Default.Archive,
+                                    contentDescription = "Archive"
+                                )
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete") },
@@ -527,7 +548,6 @@ fun EditHigherGoalDialog(
 
 @Composable
 fun DeleteHigherGoalDialog(
-    higherGoal: HigherGoal,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
