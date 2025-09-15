@@ -224,23 +224,6 @@ fun Home(
                                     }
                                 )
 
-                                // PDF書き出し
-                                DropdownMenuItem(
-                                    text = { Text("PDF書き出し") },
-                                    onClick = {
-                                        val pdfExporter = PdfExporter(context)
-                                        val intent = pdfExporter.exportGoalsToPdf(
-                                            goals = filteredGoals,
-                                            higherGoals = higherGoals.value,
-                                            yearMonth = monthYearText
-                                        )
-                                        intent?.let {
-                                            context.startActivity(Intent.createChooser(it, "Share Goals PDF"))
-                                        }
-                                        showTopBarMenu = false
-                                    }
-                                )
-
                                 HorizontalDivider()
 
                                 // 詳細設定
