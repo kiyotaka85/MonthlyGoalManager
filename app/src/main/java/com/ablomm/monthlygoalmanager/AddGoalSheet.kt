@@ -219,8 +219,9 @@ fun AddGoalSheet(
                     append("Higher goal: ")
                     append(selectedHigherGoal?.title ?: "None")
                     if (isKeyGoal) append(" · Key goal")
-                    if (detailedDescription.isNotBlank()) append(" · Description")
-                    if (celebration.isNotBlank()) append(" · Celebration")
+                    // 備考とご褒美の項目は非表示のため、サマリーからも除外
+                    // if (detailedDescription.isNotBlank()) append(" · Description")
+                    // if (celebration.isNotBlank()) append(" · Celebration")
                 }
                 ListItem(
                     headlineContent = { Text("Options") },
@@ -308,7 +309,8 @@ fun AddGoalSheet(
                         Switch(checked = isKeyGoal, onCheckedChange = { isKeyGoal = it })
                     }
 
-                    // 詳細説明
+                    // 詳細説明（非表示）
+                    /*
                     OutlinedTextField(
                         value = detailedDescription,
                         onValueChange = { detailedDescription = it },
@@ -321,7 +323,7 @@ fun AddGoalSheet(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // ご褒美
+                    // ご褒美（非表示）
                     OutlinedTextField(
                         value = celebration,
                         onValueChange = { celebration = it },
@@ -331,6 +333,7 @@ fun AddGoalSheet(
                             .padding(horizontal = 16.dp),
                         singleLine = true
                     )
+                    */
 
                     Spacer(modifier = Modifier.height(8.dp))
                 }

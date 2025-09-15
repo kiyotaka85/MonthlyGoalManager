@@ -434,7 +434,8 @@ fun AdvancedOptionsSection(
                     viewModel = viewModel
                 )
 
-                // ご褒美
+                // ご褒美（非表示）
+                /*
                 Text(
                     text = "目標達成時のご褒美",
                     style = MaterialTheme.typography.labelMedium,
@@ -452,9 +453,10 @@ fun AdvancedOptionsSection(
                         onNext = { focusManager.clearFocus() }
                     )
                 )
+                */
 
-                // 備考
-
+                // 備考（非表示）
+                /*
                 Text(
                     text = "備考",
                     style = MaterialTheme.typography.labelMedium,
@@ -473,6 +475,7 @@ fun AdvancedOptionsSection(
                         onDone = { focusManager.clearFocus() }
                     )
                 )
+                */
             }
         }
     }
