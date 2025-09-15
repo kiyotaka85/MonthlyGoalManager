@@ -91,11 +91,18 @@ fun AddGoalSheet(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "Add New Goal",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Add goal",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Set a clear numeric target to track your progress.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.Close, contentDescription = "Close")
             }
@@ -107,7 +114,8 @@ fun AddGoalSheet(
             OutlinedTextField(
                 value = goalTitle,
                 onValueChange = { goalTitle = it },
-                label = { Text("Enter your new goal...") },
+                label = { Text("Goal name") },
+                placeholder = { Text("e.g., Read 10 books") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
@@ -123,20 +131,27 @@ fun AddGoalSheet(
 
             // --- 数値設定（デフォルト表示） ---
             Text(
-                text = "Numeric settings",
+                text = "Goal metrics",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            val targetError = targetValueText.isNotBlank() && targetValueText.toDoubleOrNull() == null
+            val startError = startValueText.isNotBlank() && startValueText.toDoubleOrNull() == null
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = targetValueText,
                     onValueChange = { targetValueText = it },
                     label = { Text("Target value") },
+                    placeholder = { Text(if (isDecimal) "e.g., 100.0" else "e.g., 100") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
+                    isError = targetError,
+                    supportingText = {
+                        if (targetError) Text("Enter a valid number") else Text("Required")
+                    },
                     keyboardOptions = KeyboardOptions.Default.copy(
                         keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number,
                         imeAction = ImeAction.Next
@@ -147,8 +162,13 @@ fun AddGoalSheet(
                     value = startValueText,
                     onValueChange = { startValueText = it },
                     label = { Text("Start value") },
+                    placeholder = { Text(if (isDecimal) "e.g., 0.0" else "e.g., 0") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
+                    isError = startError,
+                    supportingText = {
+                        if (startError) Text("Enter a valid number") else Text("Defaults to 0")
+                    },
                     keyboardOptions = KeyboardOptions.Default.copy(
                         keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number,
                         imeAction = ImeAction.Next
@@ -162,7 +182,8 @@ fun AddGoalSheet(
                 OutlinedTextField(
                     value = unitText,
                     onValueChange = { unitText = it },
-                    label = { Text("Unit (e.g. %, km)") },
+                    label = { Text("Unit") },
+                    placeholder = { Text("e.g., %, km, pages") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions.Default.copy(
@@ -175,7 +196,14 @@ fun AddGoalSheet(
                     modifier = Modifier
                         .weight(1f)
                 ) {
-                    Text("Use decimal", modifier = Modifier.weight(1f))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Allow decimals")
+                        Text(
+                            text = "Use decimal numbers like 2.5",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Switch(checked = isDecimal, onCheckedChange = { isDecimal = it })
                 }
             }
@@ -187,8 +215,16 @@ fun AddGoalSheet(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
+                val optionsSummary = buildString {
+                    append("Higher goal: ")
+                    append(selectedHigherGoal?.title ?: "None")
+                    if (isKeyGoal) append(" · Key goal")
+                    if (detailedDescription.isNotBlank()) append(" · Description")
+                    if (celebration.isNotBlank()) append(" · Celebration")
+                }
                 ListItem(
                     headlineContent = { Text("Options") },
+                    supportingContent = { Text(optionsSummary, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     trailingContent = {
                         Icon(
                             imageVector = if (showOptions) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
@@ -261,7 +297,14 @@ fun AddGoalSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Key goal")
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Key goal")
+                            Text(
+                                text = "Mark as a key priority for this month",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Switch(checked = isKeyGoal, onCheckedChange = { isKeyGoal = it })
                     }
 
@@ -296,7 +339,7 @@ fun AddGoalSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 追加ボタン（送信）
-            val addEnabled = goalTitle.isNotBlank() && targetValueText.isNotBlank()
+            val addEnabled = goalTitle.isNotBlank() && targetValueText.toDoubleOrNull() != null
             Button(
                 onClick = {
                     if (addEnabled) {
@@ -328,11 +371,14 @@ fun AddGoalSheet(
                     }
                 },
                 enabled = addEnabled,
-                modifier = Modifier.align(Alignment.End)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(MaterialTheme.shapes.large)
             ) {
                 Icon(Icons.Default.Send, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Add Goal")
+                Text("Add goal")
             }
     }
 }
