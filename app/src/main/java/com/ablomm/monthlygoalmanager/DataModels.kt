@@ -22,8 +22,10 @@ data class HigherGoal(
     val id: UUID = UUID.randomUUID(),
     val title: String,
     val description: String? = null,
-    val color: String = "#2196F3", // デフォルト色
-    val createdAt: Long = System.currentTimeMillis()
+    val icon: String = "EmojiEvents", // デフォルトアイコン（トロフィー）
+    val createdAt: Long = System.currentTimeMillis(),
+    val isCompleted: Boolean = false, // 達成状態
+    val completedAt: Long? = null // 達成日時
 )
 
 // Action Step for goals
@@ -44,17 +46,17 @@ data class GoalItem(
     val title: String,
     val detailedDescription: String? = null,
     val targetMonth: Int = 2025005,
-    val goalType: GoalType = GoalType.SIMPLE, // 目標タイプ
-    val targetValue: String = "0", // シンプル目標用
-    val targetNumericValue: Double? = null, // 数値目標の目標値
-    val currentNumericValue: Double? = null, // 数値目標の現在値
-    val unit: String? = null, // 数値目標の単位
+    val targetNumericValue: Double = 0.0, // 数値目標の目標値（必須）
+    val startNumericValue: Double = 0.0, // 数値目標の開始値（デフォルトは0）
+    val currentNumericValue: Double = 0.0, // 数値目標の現在値（必須）
+    val unit: String = "", // 数値目標の単位（必須）
     val currentProgress: Int = 0,
-    val priority: GoalPriority = GoalPriority.Middle,
+    val isKeyGoal: Boolean = false, // キー目標フラグ
     val isCompleted: Boolean = false,
     val displayOrder: Int = 0,
     val higherGoalId: UUID? = null, // 上位目標への参照
-    val celebration: String? = null // ご褒美
+    val celebration: String? = null, // ご褒美
+    val isDecimal: Boolean = false // 小数点表示フラグを追加
     //val associatedMissionItem: MissionItem? = null
 )
 
@@ -81,53 +83,41 @@ class Converters {
     fun toUUID(uuid: String?): UUID? {
         return uuid?.let { UUID.fromString(it) }
     }
-
-    @TypeConverter
-    fun fromGoalPriority(priority: GoalPriority): String {
-        return priority.name
-    }
-
-    @TypeConverter
-    fun toGoalPriority(priority: String): GoalPriority {
-        return GoalPriority.valueOf(priority)
-    }
-
-    @TypeConverter
-    fun fromGoalType(goalType: GoalType): String {
-        return goalType.name
-    }
-
-    @TypeConverter
-    fun toGoalType(goalType: String): GoalType {
-        return GoalType.valueOf(goalType)
-    }
 }
 
 data class MissionItem(
     val title: String
 )
 
+// 進捗率計算のヘルパー関数
+fun calculateProgress(
+    startValue: Double,
+    targetValue: Double,
+    currentValue: Double
+): Int {
+    val range = targetValue - startValue
+    val progressInRange = currentValue - startValue
 
-enum class GoalPriority{
-    High, Middle, Low
-}
-
-enum class GoalType {
-    NUMERIC,    // 数値目標
-    SIMPLE      // シンプル目標
+    return if (range != 0.0) {
+        (progressInRange / range * 100).coerceAtLeast(0.0).toInt() // 下限は0%だが上限は設けない（オーバーアチーブ許可）
+    } else {
+        if (currentValue >= targetValue) 100 else 0
+    }
 }
 
 @HiltViewModel
 class GoalsViewModel @Inject constructor(
     private val repository: GoalsRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val dataExportImportManager: DataExportImportManager // 依��関係を追加
 ): ViewModel() {
     val goalList: Flow<List<GoalItem>> = repository.allGoals
     
     // Preferences関連
     val isTipsHidden: Flow<Boolean> = preferencesManager.isTipsHidden
     val isHideCompletedGoals: Flow<Boolean> = preferencesManager.isHideCompletedGoals
-    
+    val isHideCompletedHigherGoals: Flow<Boolean> = preferencesManager.isHideCompletedHigherGoals
+
     // 現在表示中の年月を管理
     @RequiresApi(Build.VERSION_CODES.O)
     private val _currentYearMonth = MutableStateFlow(YearMonth.now())
@@ -151,6 +141,12 @@ class GoalsViewModel @Inject constructor(
         }
     }
     
+    fun setHideCompletedHigherGoals(hide: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setHideCompletedHigherGoals(hide)
+        }
+    }
+
     // 並べ替え機能
     fun updateGoalOrder(goalId: UUID, newOrder: Int) {
         viewModelScope.launch {
@@ -324,6 +320,45 @@ class GoalsViewModel @Inject constructor(
     fun updateEditingGoalItem(update: (GoalItem) -> GoalItem) {
         _editingGoalItem.value = _editingGoalItem.value?.let(update)
     }
+
+    // エクスポート・インポート機能
+    suspend fun exportAllData(): String {
+        return dataExportImportManager.exportAllData()
+    }
+
+    suspend fun importData(jsonString: String, replaceExisting: Boolean = false): ImportResult {
+        return dataExportImportManager.importData(jsonString, replaceExisting)
+    }
+
+    suspend fun exportToFile(context: android.content.Context, uri: android.net.Uri, jsonData: String): Boolean {
+        return dataExportImportManager.exportToFile(context, uri, jsonData)
+    }
+
+    suspend fun importFromFile(context: android.content.Context, uri: android.net.Uri): String? {
+        return dataExportImportManager.importFromFile(context, uri)
+    }
+
+    fun generateExportFileName(): String {
+        return dataExportImportManager.generateExportFileName()
+    }
+
+    suspend fun validateImportFile(jsonString: String): Boolean {
+        return dataExportImportManager.validateImportFile(jsonString)
+    }
+
+    // 上位目標の達成状態を切り替える
+    fun toggleHigherGoalCompletion(higherGoal: HigherGoal) {
+        viewModelScope.launch {
+            val updatedGoal = if (higherGoal.isCompleted) {
+                // 未達成に戻す
+                higherGoal.copy(isCompleted = false, completedAt = null)
+            } else {
+                // 達成にする
+                higherGoal.copy(isCompleted = true, completedAt = System.currentTimeMillis())
+            }
+            repository.updateHigherGoal(updatedGoal)
+        }
+    }
 }
 
 
@@ -333,49 +368,45 @@ val juneGoals = listOf(
         title = "MATH 1201 を6月末までに完了する",
         detailedDescription = "SophiaにてCollege Algebraをスコア90%以上で突破する。",
         targetMonth = 2025006,
-        targetValue = "100%", // 完了目標
+        targetNumericValue = 100.0, // 完了目標
         currentProgress = 100,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 0
     ),
     GoalItem(
         title = "CS 2203 を6月末までに完了する",
         targetMonth = 2025006,
-        targetValue = "100%",
+        targetNumericValue = 100.0,
         currentProgress = 5,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 1
     ),
     GoalItem(
         title = "目標入力フォーム画面を完成させる",
         targetMonth = 2025006,
-        targetValue = "UI完成+ViewModel連携",
+        targetNumericValue = 100.0,
         currentProgress = 50,
-        priority = GoalPriority.Middle,
         displayOrder = 2
     ),
     GoalItem(
         title = "チェックイン画面のUIを仮実装する",
         targetMonth = 2025006,
-        targetValue = "進捗入力+保存動作確認",
+        targetNumericValue = 100.0,
         currentProgress = 10,
-        priority = GoalPriority.Middle,
         displayOrder = 3
     ),
     GoalItem(
         title = "Plan 2028 のチェックリスト2項目を深掘りする",
         targetMonth = 2025006,
-        targetValue = "第4・5項目の自己分析完了",
+        targetNumericValue = 100.0,
         currentProgress = 80,
-        priority = GoalPriority.Middle,
         displayOrder = 4
     ),
     GoalItem(
         title = "週1回の自己内省ジャーナルを書く",
         targetMonth = 2025006,
-        targetValue = "4回分",
+        targetNumericValue = 4.0,
         currentProgress = 0,
-        priority = GoalPriority.Low,
         displayOrder = 5
     )
 )
@@ -385,71 +416,66 @@ val julyGoals = listOf(
         title = "月次目標管理アプリのMVPを完成させる",
         detailedDescription = "Jetpack Compose Unit3〜4を進めながら、目標入力・チェックイン・レビューのUIとロジックを最低限実装する。",
         targetMonth = 2025007,
-        targetValue = "基本画面と保存処理の実装",
+        targetNumericValue = 100.0,
         currentProgress = 20,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 0
     ),
     GoalItem(
         title = "Sophia Database教材のPDFをすべて事前学習する",
         detailedDescription = "サブスク再開前にPDFを1周読み、章末まとめをNotion等に整理する。余力があればEthics教材にも着手。",
         targetMonth = 2025007,
-        targetValue = "Database教材1周＋要点まとめ",
+        targetNumericValue = 100.0,
         currentProgress = 10,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 1
     ),
     GoalItem(
         title = "人生設計とキャリア・学位計画をブラッシュアップする",
         detailedDescription = "NotionやPDFにて「Plan2028」含むライフ・キャリアビジョンを言語化・更新し、現実解像度を高める。",
         targetMonth = 2025007,
-        targetValue = "文書化された設計書の完成",
+        targetNumericValue = 100.0,
         currentProgress = 30,
-        priority = GoalPriority.High,
+        isKeyGoal = true,
         displayOrder = 2
     ),
     GoalItem(
         title = "Jetpack Composeチュートリアル Unit3〜4 を完了する",
         targetMonth = 2025007,
-        targetValue = "Unit3とUnit4を完了",
+        targetNumericValue = 100.0,
         currentProgress = 20,
-        priority = GoalPriority.Middle,
         displayOrder = 3
     ),
     GoalItem(
         title = "運動習慣を週1回以上継続する",
         detailedDescription = "ジムまたは外ランニングを週1回以上行う。Grabでジム移動も1回実施する。",
         targetMonth = 2025007,
-        targetValue = "月4回の運動実施",
+        targetNumericValue = 4.0,
         currentProgress = 0,
-        priority = GoalPriority.Middle,
         displayOrder = 4
     ),
     GoalItem(
         title = "ベトナム語を毎日1フレーズ＋週末に実践する",
         detailedDescription = "日々の暮らしで1日1表現を記録し、週末にGrabや買い物などで実践チャレンジする。",
         targetMonth = 2025007,
-        targetValue = "毎日継続＋週末実践4回",
+        targetNumericValue = 7.0,
         currentProgress = 0,
-        priority = GoalPriority.Low,
         displayOrder = 5
     ),
     GoalItem(
         title = "育児を家族と分担し信頼を築く",
         detailedDescription = "朝のミルクと午後の沐浴は可能な限り担当。柔軟に妻をサポートし、家庭の安心感を保つ。",
         targetMonth = 2025007,
-        targetValue = "週5日以上ミルク＋沐浴参加",
+        targetNumericValue = 5.0,
         currentProgress = 0,
-        priority = GoalPriority.Middle,
         displayOrder = 6
     ),
     GoalItem(
         title = "Grabで1人でTime Cityのジムに行く",
         detailedDescription = "道順・語彙・流れを確認し、ベトナム滞在中に自立移動体験を達成する。",
         targetMonth = 2025007,
-        targetValue = "1回成功体験を積む",
+        targetNumericValue = 1.0,
         currentProgress = 0,
-        priority = GoalPriority.Low,
         displayOrder = 7
     )
 )
@@ -476,4 +502,3 @@ data class FinalCheckIn(
     val learnings: String,    // 学んだこと
     val satisfactionRating: Int = 3 // 満足度評価（1-5の星評価）
 )
-

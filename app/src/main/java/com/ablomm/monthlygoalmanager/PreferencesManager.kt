@@ -15,6 +15,7 @@ class PreferencesManager(private val context: Context) {
     companion object {
         private val TIPS_HIDDEN_KEY = booleanPreferencesKey("tips_hidden")
         private val HIDE_COMPLETED_GOALS_KEY = booleanPreferencesKey("hide_completed_goals")
+        private val HIDE_COMPLETED_HIGHER_GOALS_KEY = booleanPreferencesKey("hide_completed_higher_goals")
     }
 
     val isTipsHidden: Flow<Boolean> = context.dataStore.data
@@ -27,6 +28,11 @@ class PreferencesManager(private val context: Context) {
             preferences[HIDE_COMPLETED_GOALS_KEY] ?: false
         }
 
+    val isHideCompletedHigherGoals: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[HIDE_COMPLETED_HIGHER_GOALS_KEY] ?: false
+        }
+
     suspend fun setTipsHidden(hidden: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[TIPS_HIDDEN_KEY] = hidden
@@ -36,6 +42,12 @@ class PreferencesManager(private val context: Context) {
     suspend fun setHideCompletedGoals(hide: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[HIDE_COMPLETED_GOALS_KEY] = hide
+        }
+    }
+
+    suspend fun setHideCompletedHigherGoals(hide: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[HIDE_COMPLETED_HIGHER_GOALS_KEY] = hide
         }
     }
 }

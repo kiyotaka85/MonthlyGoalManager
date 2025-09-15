@@ -25,16 +25,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.*
 
+// 整数の進捗率を小数点一桁まで繰り上がりで表示するヘルパー関数
+private fun formatProgressPercentageFromInt(progressPercent: Int): String {
+    val progressDouble = progressPercent.toDouble()
+    return String.format("%.1f", progressDouble)
+}
+
 data class FinalCheckInState(
     val goalId: UUID,
     val goalTitle: String,
-    val goalType: GoalType, // 目標タイプを追加
     val finalProgress: String = "",
-    val isCompleted: Boolean = false, // シンプル目標用の完了フラグ
     val achievements: String = "",
     val challenges: String = "",
     val learnings: String = "",
@@ -55,7 +60,8 @@ fun MonthlyReviewWizard(
     var finalCheckIns by remember { mutableStateOf<List<FinalCheckInState>>(emptyList()) }
     var overallReflection by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
-    
+    var showCompletionDialog by remember { mutableStateOf(false) }
+
     val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
     
     // その月の目標をフィルタリング
@@ -74,9 +80,11 @@ fun MonthlyReviewWizard(
                 FinalCheckInState(
                     goalId = goal.id,
                     goalTitle = goal.title,
-                    goalType = goal.goalType, // goal.type → goal.goalType に修正
                     finalProgress = goal.currentProgress.toString(),
-                    isCompleted = goal.isCompleted // 完了フラグを設定
+                    achievements = "",
+                    challenges = "",
+                    learnings = "",
+                    satisfactionRating = 3
                 )
             }
         }
@@ -220,8 +228,8 @@ fun MonthlyReviewWizard(
                                     onClick = { currentStep++ },
                                     enabled = finalCheckIns[currentStep].let { checkIn ->
                                         // シンプル目標の場合は進捗率チェック不要
-                                        if (checkIn.goalType == GoalType.SIMPLE) {
-                                            checkIn.achievements.isNotBlank()
+                                        if (checkIn.achievements.isNotBlank()) {
+                                            true
                                         } else {
                                             checkIn.finalProgress.isNotBlank() &&
                                             checkIn.achievements.isNotBlank()
@@ -264,25 +272,16 @@ fun MonthlyReviewWizard(
                                             // Update goal progress - シンプル目標と数値目標で分けて処理
                                             val goal = monthGoals.find { it.id == checkInState.goalId }
                                             goal?.let {
-                                                val updatedGoal = if (checkInState.goalType == GoalType.SIMPLE) {
-                                                    // シンプル目標の場合：isCompletedフラグを使用
-                                                    it.copy(
-                                                        currentProgress = if (checkInState.isCompleted) 100 else 0,
-                                                        isCompleted = checkInState.isCompleted
-                                                    )
-                                                } else {
-                                                    // 数値目標の場合：従来通り進捗率を使用
-                                                    it.copy(
-                                                        currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
-                                                        isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
-                                                    )
-                                                }
+                                                val updatedGoal = it.copy(
+                                                    currentProgress = checkInState.finalProgress.toIntOrNull() ?: it.currentProgress,
+                                                    isCompleted = (checkInState.finalProgress.toIntOrNull() ?: 0) >= 100
+                                                )
                                                 viewModel.updateGoalItem(updatedGoal)
                                             }
                                         }
-                                        
-                                        // Navigate to summary
-                                        navController.navigate("monthlyReviewSummary/$year/$month")
+
+                                        // Show completion dialog instead of direct navigation
+                                        showCompletionDialog = true
                                     },
                                     enabled = overallReflection.isNotBlank()
                                 ) {
@@ -296,6 +295,109 @@ fun MonthlyReviewWizard(
                 }
             }
         }
+    }
+
+    // Completion dialog with next month guidance
+    if (showCompletionDialog) {
+        val nextMonth = if (month == 12) 1 else month + 1
+        val nextYear = if (month == 12) year + 1 else year
+        val nextMonthYearMonth = YearMonth.of(nextYear, nextMonth)
+        val nextMonthText = nextMonthYearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+
+        AlertDialog(
+            onDismissRequest = { showCompletionDialog = false },
+            title = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "🎉",
+                        fontSize = 32.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "月次レビュー完了！",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "${monthYearText}の月次レビューが完了しました！",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Divider()
+
+                    Text(
+                        text = "🚀 次のステップとして、${nextMonthText}の目標を設定しましょう！",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = "継続的な成長のために、次の月の目標設定をお勧めします。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            confirmButton = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 翌月の目標設定ボタン（メインアクション）
+                    Button(
+                        onClick = {
+                            showCompletionDialog = false
+                            // ViewModelの更新は不要。ナビゲーションで直接年月を渡す
+                            navController.navigate("home?year=${nextYear}&month=${nextMonth}") {
+                                popUpTo("monthlyReview/$year/$month") { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("${nextMonthText}の目標へ")
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // サマリーを見るボタン
+                        OutlinedButton(
+                            onClick = {
+                                showCompletionDialog = false
+                                navController.navigate("monthlyReviewSummary/$year/$month")
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("サマリーを見る")
+                        }
+
+                        // 後でやるボタン
+                        TextButton(
+                            onClick = {
+                                showCompletionDialog = false
+                                navController.popBackStack()
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("後でやる")
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 
@@ -321,8 +423,10 @@ fun FinalCheckInStep(
         
         val lastCheckIn = checkIns.maxByOrNull { it.checkInDate }
         lastCheckIn?.let { 
+            // 進捗率を小数点一桁まで繰り上がりで表示
+            val formattedProgress = formatProgressPercentageFromInt(it.progressPercent)
             onUpdate(checkInState.copy(
-                finalProgress = it.progressPercent.toString(),
+                finalProgress = formattedProgress,
                 achievements = it.comment,
                 challenges = "",
                 learnings = ""
@@ -357,71 +461,22 @@ fun FinalCheckInStep(
             }
         }
         
-        // 最後のチェックイン内容を転記するボタン
-        if (hasCheckInHistory) {
-            OutlinedButton(
-                onClick = { copyLastCheckIn() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    Icons.Default.ContentCopy,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Copy from last check-in")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        
         // 進捗入力部分 - 目標タイプに応じて表示を変更
-        if (checkInState.goalType == GoalType.NUMERIC) {
-            // 数値目標の場合：進捗率入力
-            OutlinedTextField(
-                value = checkInState.finalProgress,
-                onValueChange = { text ->
-                    val progress = text.toIntOrNull()
-                    if (progress == null && text.isNotEmpty()) return@OutlinedTextField
-                    if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
-                    onUpdate(checkInState.copy(finalProgress = text))
-                },
-                label = { Text("Final Progress (%) *") },
-                placeholder = { Text("Enter final progress percentage") },
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
-            // シンプル目標の場合：完了/未完了のチェックボックス
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = checkInState.isCompleted,
-                        onCheckedChange = { completed ->
-                            onUpdate(checkInState.copy(
-                                isCompleted = completed,
-                                finalProgress = if (completed) "100" else "0"
-                            ))
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "この目標を完了しましたか？",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
+        OutlinedTextField(
+            value = checkInState.finalProgress,
+            onValueChange = { text ->
+                val progress = text.toIntOrNull()
+                if (progress == null && text.isNotEmpty()) return@OutlinedTextField
+                if (progress != null && (progress < 0 || progress > 100)) return@OutlinedTextField
+                onUpdate(checkInState.copy(finalProgress = text))
+            },
+            label = { Text("Final Progress (%) *") },
+            placeholder = { Text("Enter final progress percentage") },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
 
         OutlinedTextField(
             value = checkInState.achievements,

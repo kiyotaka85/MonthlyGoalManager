@@ -23,17 +23,29 @@ import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.UUID
 
 enum class SortMode {
     DEFAULT,
-    PRIORITY,
+    KEY_GOAL,
     PROGRESS
+}
+
+enum class GroupMode {
+    NONE,
+    HIGHER_GOAL,
+    KEY_GOAL
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
+fun Home(
+    navController: NavHostController,
+    viewModel: GoalsViewModel,
+    targetYear: Int? = null,
+    targetMonth: Int? = null
+) {
     val goalListState = viewModel.goalList.collectAsState(initial = emptyList())
     val isTipsHidden = viewModel.isTipsHidden.collectAsState(initial = false)
     val isHideCompletedGoals = viewModel.isHideCompletedGoals.collectAsState(initial = false)
@@ -42,9 +54,17 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    // ナビゲーション経由で年月が渡された場合、ViewModelの状態を更新する
+    LaunchedEffect(targetYear, targetMonth) {
+        if (targetYear != null && targetMonth != null) {
+            viewModel.setCurrentYearMonth(YearMonth.of(targetYear, targetMonth))
+        }
+    }
+
     // 現在表示中の年月を管理 - ViewModelに保存して状態を保持
     val currentYearMonth by viewModel.currentYearMonth.collectAsState(initial = YearMonth.now())
     var sortMode by remember { mutableStateOf(SortMode.DEFAULT) }
+    var groupMode by remember { mutableStateOf(GroupMode.NONE) }
     var showSortMenu by remember { mutableStateOf(false) }
     
     // 月次レビューの存在をチェック
@@ -70,13 +90,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
         // 並べ替え機能
         when (sortMode) {
             SortMode.DEFAULT -> goals.sortedBy { it.displayOrder }
-            SortMode.PRIORITY -> goals.sortedBy { 
-                when (it.priority) {
-                    GoalPriority.High -> 0
-                    GoalPriority.Middle -> 1
-                    GoalPriority.Low -> 2
-                }
-            }
+            SortMode.KEY_GOAL -> goals.sortedWith(compareByDescending<GoalItem> { it.isKeyGoal }.thenBy { it.displayOrder })
             SortMode.PROGRESS -> goals.sortedByDescending { it.currentProgress }
         }
     }
@@ -84,6 +98,15 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
     val monthYearText = currentYearMonth.format(
         DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
     )
+
+    // チェックイン用モーダルシートの状態
+    var showCheckInSheet by remember { mutableStateOf<Boolean>(false) }
+    var targetGoalForCheckIn by remember { mutableStateOf<UUID?>(null) }
+    val checkInSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // 目標追加用モーダルシートの状態
+    var showAddGoalSheet by remember { mutableStateOf<Boolean>(false) }
+    val addGoalSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
         topBar = {
@@ -181,6 +204,17 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                                 )
                                 HorizontalDivider()
 
+                                // 上位目標の編集
+                                DropdownMenuItem(
+                                    text = { Text("上位目標の編集") },
+                                    onClick = {
+                                        navController.navigate("higherGoals")
+                                        showTopBarMenu = false
+                                    }
+                                )
+
+                                HorizontalDivider()
+
                                 // 表示設定
                                 DropdownMenuItem(
                                     text = { Text("表示設定") },
@@ -241,9 +275,9 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("優先度順 (高→低)") },
+                                text = { Text("キー目標を優先的にソート") },
                                 onClick = {
-                                    sortMode = SortMode.PRIORITY
+                                    sortMode = SortMode.KEY_GOAL
                                     showDisplaySettingsMenu = false
                                 }
                             )
@@ -269,6 +303,40 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                                     showDisplaySettingsMenu = false
                                 }
                             )
+
+                            HorizontalDivider()
+
+                            // グループ化機能
+                            Text(
+                                text = "グループ化",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("グループなし") },
+                                onClick = {
+                                    groupMode = GroupMode.NONE
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("上位目標でグループ化") },
+                                onClick = {
+                                    groupMode = GroupMode.HIGHER_GOAL
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("キー目標でグループ化") },
+                                onClick = {
+                                    groupMode = GroupMode.KEY_GOAL
+                                    showDisplaySettingsMenu = false
+                                }
+                            )
+
+                            HorizontalDivider()
                         }
                     }
                 }
@@ -280,8 +348,7 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                 // Add Goal FABをシンプルな+ボタンに変更
                 FloatingActionButton(
                     onClick = {
-                        val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
-                        navController.navigate("edit?targetMonth=$targetMonth")
+                        showAddGoalSheet = true
                     },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -318,7 +385,48 @@ fun Home(navController: NavHostController, viewModel: GoalsViewModel) {
                 higherGoals = higherGoals.value,
                 monthYearText = monthYearText,
                 context = context,
+                onCheckIn = { goalId ->
+                    targetGoalForCheckIn = goalId
+                    showCheckInSheet = true
+                },
+                groupMode = groupMode,
                 modifier = Modifier.padding(innerPadding)
+            )
+        }
+    }
+
+    val goalList = viewModel.goalList.collectAsState(initial = emptyList()).value
+
+    if (showAddGoalSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddGoalSheet = false },
+            sheetState = addGoalSheetState
+        ) {
+            AddGoalSheet(
+                viewModel = viewModel,
+                targetMonth = currentYearMonth,
+                onClose = { showAddGoalSheet = false },
+                navController = navController,
+                displayOrder = goalList.size
+            )
+        }
+    }
+
+    if (showCheckInSheet && targetGoalForCheckIn != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showCheckInSheet = false
+                targetGoalForCheckIn = null
+            },
+            sheetState = checkInSheetState
+        ) {
+            CheckInSheet(
+                goalId = targetGoalForCheckIn!!,
+                viewModel = viewModel,
+                onClose = {
+                    showCheckInSheet = false
+                    targetGoalForCheckIn = null
+                }
             )
         }
     }
