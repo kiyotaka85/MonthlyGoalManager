@@ -100,9 +100,13 @@ fun Home(
     )
 
     // チェックイン用モーダルシートの状態
-    var showCheckInSheet by remember { mutableStateOf(false) }
+    var showCheckInSheet by remember { mutableStateOf<Boolean>(false) }
     var targetGoalForCheckIn by remember { mutableStateOf<UUID?>(null) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val checkInSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // 目標追加用モーダルシートの状態
+    var showAddGoalSheet by remember { mutableStateOf<Boolean>(false) }
+    val addGoalSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
         topBar = {
@@ -344,8 +348,7 @@ fun Home(
                 // Add Goal FABをシンプルな+ボタンに変更
                 FloatingActionButton(
                     onClick = {
-                        val targetMonth = currentYearMonth.year * 1000 + currentYearMonth.monthValue
-                        navController.navigate("edit?targetMonth=$targetMonth")
+                        showAddGoalSheet = true
                     },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -392,13 +395,30 @@ fun Home(
         }
     }
 
+    val goalList = viewModel.goalList.collectAsState(initial = emptyList()).value
+
+    if (showAddGoalSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddGoalSheet = false },
+            sheetState = addGoalSheetState
+        ) {
+            AddGoalSheet(
+                viewModel = viewModel,
+                targetMonth = currentYearMonth,
+                onClose = { showAddGoalSheet = false },
+                navController = navController,
+                displayOrder = goalList.size
+            )
+        }
+    }
+
     if (showCheckInSheet && targetGoalForCheckIn != null) {
         ModalBottomSheet(
             onDismissRequest = {
                 showCheckInSheet = false
                 targetGoalForCheckIn = null
             },
-            sheetState = sheetState
+            sheetState = checkInSheetState
         ) {
             CheckInSheet(
                 goalId = targetGoalForCheckIn!!,
