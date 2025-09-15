@@ -10,6 +10,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -40,6 +43,15 @@ fun AddGoalSheet(
     displayOrder: Int
 ) {
     var goalTitle by remember { mutableStateOf("") }
+    var targetValueText by remember { mutableStateOf("") }
+    var startValueText by remember { mutableStateOf("0") }
+    var unitText by remember { mutableStateOf("") }
+    var isDecimal by remember { mutableStateOf(false) }
+
+    var showOptions by remember { mutableStateOf(false) }
+    var isKeyGoal by remember { mutableStateOf(false) }
+    var detailedDescription by remember { mutableStateOf("") }
+    var celebration by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
 
@@ -91,137 +103,274 @@ fun AddGoalSheet(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- 上位目標の選択 ---
-        Card(
-            onClick = {
-                // 上位目標選択画面へ遷移
-                navController.navigate("higherGoals/select")
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // 選択された上位目標のアイコン表示
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (selectedHigherGoal != null) MaterialTheme.colorScheme.secondaryContainer
-                                else Color.Transparent
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (selectedHigherGoal != null) {
-                            Icon(
-                                imageVector = GoalIcons.getIconByName(selectedHigherGoal!!.icon),
-                                contentDescription = selectedHigherGoal!!.title,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    // ラベルと選択された目標名
-                    Column {
-                        Text("Higher Goal", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            selectedHigherGoal?.title ?: "Not Selected",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (selectedHigherGoal != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Icon(Icons.Default.ChevronRight, contentDescription = "Select Higher Goal")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- 目標タイトル入力と追加ボタン ---
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // テキストフィールド
+            // --- 目標タイトル ---
             OutlinedTextField(
                 value = goalTitle,
                 onValueChange = { goalTitle = it },
                 label = { Text("Enter your new goal...") },
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .focusRequester(focusRequester),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Send
-                ),
-                keyboardActions = KeyboardActions(
-                    onSend = {
-                        if (goalTitle.isNotBlank()) {
-                            addNewGoal(viewModel, goalTitle, targetMonth, selectedHigherGoalId, displayOrder)
-                            goalTitle = "" // 入力フィールドをクリア
-                            onClose()
-                        }
-                        keyboardController?.hide()
-                    }
+                    imeAction = ImeAction.Next
                 ),
                 shape = MaterialTheme.shapes.extraLarge,
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 送信（追加）ボタン
-            IconButton(
+            // --- 数値設定（デフォルト表示） ---
+            Text(
+                text = "Numeric settings",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = targetValueText,
+                    onValueChange = { targetValueText = it },
+                    label = { Text("Target value") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedTextField(
+                    value = startValueText,
+                    onValueChange = { startValueText = it },
+                    label = { Text("Start value") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = unitText,
+                    onValueChange = { unitText = it },
+                    label = { Text("Unit (e.g. %, km)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .weight(1f)
+                ) {
+                    Text("Use decimal", modifier = Modifier.weight(1f))
+                    Switch(checked = isDecimal, onCheckedChange = { isDecimal = it })
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- オプション（折りたたみ） ---
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                ListItem(
+                    headlineContent = { Text("Options") },
+                    trailingContent = {
+                        Icon(
+                            imageVector = if (showOptions) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                            contentDescription = if (showOptions) "Collapse" else "Expand"
+                        )
+                    },
+                    modifier = Modifier.clickable { showOptions = !showOptions }
+                )
+
+                if (showOptions) {
+                    Divider()
+                    // 上位目標の選択
+                    Card(
+                        onClick = {
+                            navController.navigate("higherGoals/select")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (selectedHigherGoal != null) MaterialTheme.colorScheme.secondaryContainer
+                                            else Color.Transparent
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (selectedHigherGoal != null) {
+                                        Icon(
+                                            imageVector = GoalIcons.getIconByName(selectedHigherGoal!!.icon),
+                                            contentDescription = selectedHigherGoal!!.title,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text("Higher Goal", style = MaterialTheme.typography.labelMedium)
+                                    Text(
+                                        selectedHigherGoal?.title ?: "Not Selected",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (selectedHigherGoal != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Icon(Icons.Default.ChevronRight, contentDescription = "Select Higher Goal")
+                        }
+                    }
+
+                    // キー目標
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Key goal")
+                        Switch(checked = isKeyGoal, onCheckedChange = { isKeyGoal = it })
+                    }
+
+                    // 詳細説明
+                    OutlinedTextField(
+                        value = detailedDescription,
+                        onValueChange = { detailedDescription = it },
+                        label = { Text("Description (optional)") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        minLines = 2
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // ご褒美
+                    OutlinedTextField(
+                        value = celebration,
+                        onValueChange = { celebration = it },
+                        label = { Text("Celebration (optional)") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 追加ボタン（送信）
+            val addEnabled = goalTitle.isNotBlank() && targetValueText.isNotBlank()
+            Button(
                 onClick = {
-                    if (goalTitle.isNotBlank()) {
-                        addNewGoal(viewModel, goalTitle, targetMonth, selectedHigherGoalId, displayOrder)
+                    if (addEnabled) {
+                        val targetVal = targetValueText.toDoubleOrNull() ?: 0.0
+                        val startVal = startValueText.toDoubleOrNull() ?: 0.0
+                        addNewGoal(
+                            viewModel = viewModel,
+                            title = goalTitle,
+                            targetMonth = targetMonth,
+                            higherGoalId = selectedHigherGoalId,
+                            displayOrder = displayOrder,
+                            targetNumericValue = targetVal,
+                            startNumericValue = startVal,
+                            unit = unitText,
+                            isDecimal = isDecimal,
+                            isKeyGoal = isKeyGoal,
+                            detailedDescription = detailedDescription.ifBlank { null },
+                            celebration = celebration.ifBlank { null }
+                        )
                         goalTitle = ""
+                        targetValueText = ""
+                        startValueText = "0"
+                        unitText = ""
+                        isDecimal = false
+                        isKeyGoal = false
+                        detailedDescription = ""
+                        celebration = ""
                         onClose()
                     }
                 },
-                enabled = goalTitle.isNotBlank(),
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(if (goalTitle.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                enabled = addEnabled,
+                modifier = Modifier.align(Alignment.End)
             ) {
-                Icon(
-                    Icons.Default.Send,
-                    contentDescription = "Add Goal",
-                    tint = if (goalTitle.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Icon(Icons.Default.Send, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Add Goal")
             }
-        }
     }
 }
 
-private fun addNewGoal(
-    viewModel: GoalsViewModel,
-    title: String,
-    targetMonth: YearMonth,
-    higherGoalId: UUID?,
-    displayOrder: Int
-) {
-    val newGoal = GoalItem(
-        title = title,
-        targetMonth = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    private fun addNewGoal(
+        viewModel: GoalsViewModel,
+        title: String,
+        targetMonth: YearMonth,
+        higherGoalId: UUID?,
+        displayOrder: Int,
+        targetNumericValue: Double,
+        startNumericValue: Double,
+        unit: String,
+        isDecimal: Boolean,
+        isKeyGoal: Boolean = false,
+        detailedDescription: String? = null,
+        celebration: String? = null
+    ) {
+        val computedMonth = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             targetMonth.year * 1000 + targetMonth.monthValue
         } else {
-            // Fallback for older API levels (though this shouldn't happen due to @RequiresApi)
             java.util.Calendar.getInstance().let { cal ->
                 cal.get(java.util.Calendar.YEAR) * 1000 + (cal.get(java.util.Calendar.MONTH) + 1)
             }
-        },
-        displayOrder = displayOrder
-    )
-    viewModel.addGoalItem(newGoal)}
+        }
+        val newGoal = GoalItem(
+            title = title,
+            detailedDescription = detailedDescription,
+            targetMonth = computedMonth,
+            targetNumericValue = targetNumericValue,
+            startNumericValue = startNumericValue,
+            currentNumericValue = startNumericValue, // 初期現在値は開始値に合わせる
+            unit = unit,
+            isKeyGoal = isKeyGoal,
+            displayOrder = displayOrder,
+            higherGoalId = higherGoalId,
+            celebration = celebration,
+            isDecimal = isDecimal
+        )
+        viewModel.addGoalItem(newGoal)
+    }
