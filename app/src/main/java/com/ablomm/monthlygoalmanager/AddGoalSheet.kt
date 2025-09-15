@@ -60,22 +60,7 @@ fun AddGoalSheet(
         focusRequester.requestFocus()
     }
 
-    // `higherGoals/select` から戻ってきた時に選択された上位目標IDを取得
-    val selectedHigherGoalId = navController.currentBackStackEntry
-        ?.savedStateHandle
-        ?.get<String>("selected_higher_goal_id")
-        ?.let { UUID.fromString(it) }
 
-    var selectedHigherGoal by remember { mutableStateOf<HigherGoal?>(null) }
-
-    // selectedHigherGoalId が変更されたときに上位目標を再取得
-    LaunchedEffect(selectedHigherGoalId) {
-        selectedHigherGoal = if (selectedHigherGoalId != null) {
-            viewModel.getHigherGoalById(selectedHigherGoalId)
-        } else {
-            null
-        }
-    }
 
 
     // UIの組み立て
@@ -216,11 +201,16 @@ fun AddGoalSheet(
                 colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 val optionsSummary = buildString {
-                    append("Higher goal: ")
-                    append(selectedHigherGoal?.title ?: "None")
-                    if (isKeyGoal) append(" · Key goal")
-                    if (detailedDescription.isNotBlank()) append(" · Description")
-                    if (celebration.isNotBlank()) append(" · Celebration")
+                    if (isKeyGoal) append("Key goal")
+                    if (detailedDescription.isNotBlank()) {
+                        if (isNotEmpty()) append(" · ")
+                        append("Description")
+                    }
+                    if (celebration.isNotBlank()) {
+                        if (isNotEmpty()) append(" · ")
+                        append("Celebration")
+                    }
+                    if (isEmpty()) append("None")
                 }
                 ListItem(
                     headlineContent = { Text("Options") },
@@ -236,58 +226,7 @@ fun AddGoalSheet(
 
                 if (showOptions) {
                     Divider()
-                    // 上位目標の選択
-                    Card(
-                        onClick = {
-                            navController.navigate("higherGoals/select")
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (selectedHigherGoal != null) MaterialTheme.colorScheme.secondaryContainer
-                                            else Color.Transparent
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (selectedHigherGoal != null) {
-                                        Icon(
-                                            imageVector = GoalIcons.getIconByName(selectedHigherGoal!!.icon),
-                                            contentDescription = selectedHigherGoal!!.title,
-                                            modifier = Modifier.size(20.dp),
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text("Higher Goal", style = MaterialTheme.typography.labelMedium)
-                                    Text(
-                                        selectedHigherGoal?.title ?: "Not Selected",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (selectedHigherGoal != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            Icon(Icons.Default.ChevronRight, contentDescription = "Select Higher Goal")
-                        }
-                    }
+
 
                     // キー目標
                     Row(
@@ -349,7 +288,6 @@ fun AddGoalSheet(
                             viewModel = viewModel,
                             title = goalTitle,
                             targetMonth = targetMonth,
-                            higherGoalId = selectedHigherGoalId,
                             displayOrder = displayOrder,
                             targetNumericValue = targetVal,
                             startNumericValue = startVal,
@@ -387,7 +325,6 @@ fun AddGoalSheet(
         viewModel: GoalsViewModel,
         title: String,
         targetMonth: YearMonth,
-        higherGoalId: UUID?,
         displayOrder: Int,
         targetNumericValue: Double,
         startNumericValue: Double,
@@ -414,7 +351,7 @@ fun AddGoalSheet(
             unit = unit,
             isKeyGoal = isKeyGoal,
             displayOrder = displayOrder,
-            higherGoalId = higherGoalId,
+            higherGoalId = null,
             celebration = celebration,
             isDecimal = isDecimal
         )

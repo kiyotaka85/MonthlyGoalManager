@@ -524,50 +524,6 @@ fun GoalListContent(
                         )
                     }
                 }
-                GroupMode.HIGHER_GOAL -> {
-                    val groupedGoals = filteredGoals.groupBy { goal ->
-                        higherGoals.find { it.id == goal.higherGoalId }
-                    }
-
-                    val higherGoalGroups = groupedGoals.filterKeys { it != null }.toList().sortedBy { it.first?.createdAt }
-                    val noHigherGoalGroup = groupedGoals[null]
-
-                    higherGoalGroups.forEach { (higherGoal, goals) ->
-                        item {
-                            GroupHeader(
-                                title = higherGoal?.title ?: "上位目標なし",
-                                count = goals.size,
-                                icon = higherGoal?.icon
-                            )
-                        }
-                        items(goals, key = { it.id.toString() }) { goalItem ->
-                            GoalCard(
-                                goalItem = goalItem,
-                                higherGoal = higherGoal,
-                                navController = navController,
-                                onCheckIn = onCheckIn,
-                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
-                            )
-                        }
-                    }
-
-                    noHigherGoalGroup?.let { goals ->
-                        if (goals.isNotEmpty()) {
-                            item {
-                                GroupHeader(title = "上位目標なし", count = goals.size)
-                            }
-                            items(goals, key = { it.id.toString() }) { goalItem ->
-                                GoalCard(
-                                    goalItem = goalItem,
-                                    higherGoal = null,
-                                    navController = navController,
-                                    onCheckIn = onCheckIn,
-                                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
-                                )
-                            }
-                        }
-                    }
-                }
                 GroupMode.KEY_GOAL -> {
                     val keyGoals = filteredGoals.filter { it.isKeyGoal }
                     val normalGoals = filteredGoals.filter { !it.isKeyGoal }

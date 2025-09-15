@@ -33,7 +33,6 @@ enum class SortMode {
 
 enum class GroupMode {
     NONE,
-    HIGHER_GOAL,
     KEY_GOAL
 }
 
@@ -204,17 +203,6 @@ fun Home(
                                 )
                                 HorizontalDivider()
 
-                                // 上位目標の編集
-                                DropdownMenuItem(
-                                    text = { Text("上位目標の編集") },
-                                    onClick = {
-                                        navController.navigate("higherGoals")
-                                        showTopBarMenu = false
-                                    }
-                                )
-
-                                HorizontalDivider()
-
                                 // 表示設定
                                 DropdownMenuItem(
                                     text = { Text("表示設定") },
@@ -318,13 +306,6 @@ fun Home(
                                 text = { Text("グループなし") },
                                 onClick = {
                                     groupMode = GroupMode.NONE
-                                    showDisplaySettingsMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("上位目標でグループ化") },
-                                onClick = {
-                                    groupMode = GroupMode.HIGHER_GOAL
                                     showDisplaySettingsMenu = false
                                 }
                             )

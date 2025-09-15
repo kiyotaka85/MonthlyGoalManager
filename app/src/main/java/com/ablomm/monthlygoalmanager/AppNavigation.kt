@@ -181,28 +181,7 @@ fun AppNavigation() {
             )
         }
 
-        composable("higherGoals") {
-            val goalsViewModel: GoalsViewModel = hiltViewModel()
-            HigherGoalsScreen(
-                navController = navController,
-                viewModel = goalsViewModel
-            )
-        }
 
-        composable(
-            route = "higherGoals/{goalId}",
-            arguments = listOf(navArgument("goalId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val goalsViewModel: GoalsViewModel = hiltViewModel()
-            val goalIdString = backStackEntry.arguments?.getString("goalId")
-            val goalId: UUID? = goalIdString?.let { UUID.fromString(it) }
-
-            HigherGoalsScreen(
-                navController = navController,
-                viewModel = goalsViewModel,
-                goalId = goalId
-            )
-        }
 
         composable("settings") {
             val goalsViewModel: GoalsViewModel = hiltViewModel()

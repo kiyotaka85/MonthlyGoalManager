@@ -119,8 +119,7 @@ fun GoalEditForm(
     var showAdvancedOptions by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
-    // 上位目標のリストを取得
-    val higherGoals by viewModel.higherGoalList.collectAsState(initial = emptyList())
+
 
     // 初期化処理（goalIdに基づいて一度だけ実行）
     LaunchedEffect(key1 = goalId) {
@@ -149,37 +148,13 @@ fun GoalEditForm(
             if (viewModel.editingGoalItem.value?.id != goalId) {
                 val loaded = viewModel.getGoalById(goalId)
                 viewModel.setEditingGoalItem(loaded)
-                // 編集モードで上位目標が設定されている場合は詳細オプションを展開
-                if (loaded?.higherGoalId != null) {
-                    showAdvancedOptions = true
-                }
+                // 編集モードの場合は既存の目標を読み込み
             }
         }
         isLoading = false
     }
 
-    // 上位目標選択結果の受け取り
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    LaunchedEffect(navBackStackEntry) {
-        navBackStackEntry?.savedStateHandle?.get<String>("selected_higher_goal_id")?.let { selectedId ->
-            val higherGoalId = UUID.fromString(selectedId)
-            // 現在の編集中のGoalItemを保持したまま上位目標IDのみ更新
-            viewModel.editingGoalItem.value?.let { currentGoal ->
-                viewModel.setEditingGoalItem(currentGoal.copy(higherGoalId = higherGoalId))
-            }
-            // 上位目標を選択した後は詳細オプションを開いておく
-            showAdvancedOptions = true
-            // 使用済みのデータをクリア
-            navBackStackEntry?.savedStateHandle?.remove<String>("selected_higher_goal_id")
-        }
-    }
 
-    // 上位目標が設定されている場合は自動的に詳細オプションを展開
-    LaunchedEffect(editingGoalItem?.higherGoalId) {
-        if (editingGoalItem?.higherGoalId != null) {
-            showAdvancedOptions = true
-        }
-    }
 
     val scrollPosition = rememberScrollState()
     val focusManager = LocalFocusManager.current
@@ -215,7 +190,6 @@ fun GoalEditForm(
                 // 必須項目セクション
                 RequiredFieldsSection(
                     editingGoalItem = editingGoalItem!!,
-                    higherGoals = higherGoals,
                     viewModel = viewModel,
                     navController = navController,
                     focusManager = focusManager
@@ -226,7 +200,6 @@ fun GoalEditForm(
                     editingGoalItem = editingGoalItem!!,
                     viewModel = viewModel,
                     navController = navController,
-                    higherGoals = higherGoals,
                     showAdvancedOptions = showAdvancedOptions,
                     onToggleAdvancedOptions = { showAdvancedOptions = !showAdvancedOptions },
                     focusManager = focusManager
@@ -268,7 +241,6 @@ fun GoalEditForm(
 @Composable
 fun RequiredFieldsSection(
     editingGoalItem: GoalItem,
-    higherGoals: List<HigherGoal>,
     viewModel: GoalsViewModel,
     navController: NavHostController,
     focusManager: FocusManager
@@ -365,7 +337,6 @@ fun AdvancedOptionsSection(
     editingGoalItem: GoalItem,
     viewModel: GoalsViewModel,
     navController: NavHostController,
-    higherGoals: List<HigherGoal>,
     showAdvancedOptions: Boolean,
     onToggleAdvancedOptions: () -> Unit,
     focusManager: FocusManager
@@ -408,18 +379,6 @@ fun AdvancedOptionsSection(
             Column(
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // 上位目標関連付け（最優先）
-                HigherGoalAssociation(
-                    higherGoals = higherGoals,
-                    selectedHigherGoalId = editingGoalItem.higherGoalId,
-                    onSelectHigherGoal = {
-                        navController.navigate("higherGoals/${editingGoalItem.id}")
-                    },
-                    onRemoveHigherGoal = {
-                        viewModel.setEditingGoalItem(editingGoalItem.copy(higherGoalId = null))
-                    }
-                )
-
                 // キー目標設定
                 KeyGoalSelector(
                     isKeyGoal = editingGoalItem.isKeyGoal,
@@ -525,46 +484,6 @@ fun NumericGoalFields(
             onValueChange = onUnitChanged,
             placeholder = { Text("単位 (例:ページ)") },
             singleLine = true
-        )
-    }
-}
-
-// 上位目標関連付け
-@Composable
-fun HigherGoalAssociation(
-    higherGoals: List<HigherGoal>,
-    selectedHigherGoalId: UUID?,
-    onSelectHigherGoal: () -> Unit,
-    onRemoveHigherGoal: () -> Unit
-) {
-    Column {
-        Text(
-            text = "上位目標関連付け",
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        val selectedHigherGoal = higherGoals.find { it.id == selectedHigherGoalId }
-
-        OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onSelectHigherGoal() },
-            value = selectedHigherGoal?.title ?: "",
-            onValueChange = { },
-            enabled = false,
-            label = { Text("選択された上位目標") },
-            placeholder = { Text("上位目標を選択してください") },
-            trailingIcon = {
-                if (selectedHigherGoalId != null) {
-                    IconButton(onClick = onRemoveHigherGoal) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "上位目標を解除"
-                        )
-                    }
-                }
-            }
         )
     }
 }
