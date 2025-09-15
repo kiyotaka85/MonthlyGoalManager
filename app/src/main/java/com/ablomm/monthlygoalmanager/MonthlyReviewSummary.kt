@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -22,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import java.time.YearMonth
@@ -146,14 +149,10 @@ fun MonthlyReviewSummary(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item {
-                    MonthlyStatsCard(goals = goals, finalCheckIns = finalCheckIns)
-                }
-                
                 items(goals) { goal ->
                     val finalCheckIn = finalCheckIns.find { it.goalId == goal.id }
                     if (finalCheckIn != null) {
-                        GoalSummaryCard(goal = goal, finalCheckIn = finalCheckIn)
+                        ReviewGoalCard(goal = goal, finalCheckIn = finalCheckIn)
                     }
                 }
                 
@@ -167,152 +166,77 @@ fun MonthlyReviewSummary(
 }
 
 @Composable
-fun MonthlyStatsCard(goals: List<GoalItem>, finalCheckIns: List<FinalCheckIn>) {
-    val avgProgress = if (finalCheckIns.isNotEmpty()) {
-        finalCheckIns.map { it.finalProgress }.average().toInt()
-    } else 0
-    
-    val completedGoals = finalCheckIns.count { it.finalProgress >= 100 }
-    
+fun ReviewGoalCard(goal: GoalItem, finalCheckIn: FinalCheckIn) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "🎯",
-                fontSize = 40.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Monthly Performance",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                StatItem(
-                    value = "$avgProgress%",
-                    label = "Avg Progress"
-                )
-                StatItem(
-                    value = "$completedGoals/${goals.size}",
-                    label = "Completed"
-                )
-                StatItem(
-                    value = "${goals.size}",
-                    label = "Total Goals"
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = goal.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    // 満足度（ヘッダーなしのコンパクト表示）
+                    InlineStars(rating = finalCheckIn.satisfactionRating)
+                }
+                RingProgressMini(
+                    fraction = (finalCheckIn.finalProgress / 100f).coerceIn(0f, 1f),
+                    label = "${finalCheckIn.finalProgress}%"
                 )
             }
-        }
-    }
-}
 
-@Composable
-fun StatItem(value: String, label: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray
-        )
-    }
-}
-
-@Composable
-fun GoalSummaryCard(goal: GoalItem, finalCheckIn: FinalCheckIn) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+            // 折りたたみトグル
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End
             ) {
-                Text(
-                    text = goal.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                
-                Box(
-                    modifier = Modifier
-                        .background(                        color = when {
-                            finalCheckIn.finalProgress >= 100 -> Color.Green.copy(alpha = 0.2f)
-                            finalCheckIn.finalProgress >= 75 -> Color.Blue.copy(alpha = 0.2f)
-                            finalCheckIn.finalProgress >= 50 -> Color(0xFFFF9800).copy(alpha = 0.2f) // Orange color
-                            else -> Color.Red.copy(alpha = 0.2f)
-                        },
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "${finalCheckIn.finalProgress}%",
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            finalCheckIn.finalProgress >= 100 -> Color.Green.copy(alpha = 0.8f)
-                            finalCheckIn.finalProgress >= 75 -> Color.Blue.copy(alpha = 0.8f)
-                            finalCheckIn.finalProgress >= 50 -> Color(0xFFFF9800).copy(alpha = 0.8f) // Orange color
-                            else -> Color.Red.copy(alpha = 0.8f)
-                        }
+                TextButton(onClick = { expanded = !expanded }) {
+                    Text("Details")
+                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "Collapse" else "Expand"
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // 満足度評価（星評価）を表示
-            SatisfactionRatingDisplay(rating = finalCheckIn.satisfactionRating)
 
-            if (finalCheckIn.achievements.isNotBlank()) {
-                SummarySection(
-                    title = "✅ Achievements",
-                    content = finalCheckIn.achievements
-                )
-            }
-            
-            if (finalCheckIn.challenges.isNotBlank()) {
-                SummarySection(
-                    title = "🔥 Challenges",
-                    content = finalCheckIn.challenges
-                )
-            }
-            
-            if (finalCheckIn.learnings.isNotBlank()) {
-                SummarySection(
-                    title = "💡 Learnings",
-                    content = finalCheckIn.learnings
-                )
+            if (expanded) {
+                Spacer(Modifier.height(8.dp))
+
+                if (finalCheckIn.achievements.isNotBlank()) {
+                    ReviewSection(title = "✅ Achievements", content = finalCheckIn.achievements)
+                }
+                if (finalCheckIn.challenges.isNotBlank()) {
+                    ReviewSection(title = "🔥 Challenges", content = finalCheckIn.challenges)
+                }
+                if (finalCheckIn.learnings.isNotBlank()) {
+                    ReviewSection(title = "💡 Learnings", content = finalCheckIn.learnings)
+                }
             }
         }
     }
 }
 
 @Composable
-fun SummarySection(title: String, content: String) {
-    Column {
+private fun ReviewSection(title: String, content: String) {
+    Column(modifier = Modifier.padding(top = 8.dp)) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelMedium,
@@ -324,7 +248,64 @@ fun SummarySection(title: String, content: String) {
             text = content,
             style = MaterialTheme.typography.bodyMedium
         )
-        Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun RingProgressMini(
+    fraction: Float,
+    size: Dp = 64.dp,
+    trackColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    progressColor: Color = MaterialTheme.colorScheme.primary,
+    label: String
+) {
+    Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+            val strokeWidth = this.size.minDimension * 0.12f
+            val stroke = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawArc(
+                color = trackColor,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                style = stroke
+            )
+            if (fraction > 0f) {
+                drawArc(
+                    color = progressColor,
+                    startAngle = -90f,
+                    sweepAngle = 360f * fraction,
+                    useCenter = false,
+                    style = stroke
+                )
+            }
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun InlineStars(rating: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        repeat(5) { index ->
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = if (index < rating)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            )
+        }
     }
 }
 
