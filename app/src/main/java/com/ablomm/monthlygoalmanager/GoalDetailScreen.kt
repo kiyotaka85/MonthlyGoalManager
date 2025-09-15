@@ -246,7 +246,8 @@ fun GoalBasicInfoContent(
             }
         }
 
-        // ご褒美
+        // ご褒美（非表示）
+        /*
         if (!goal.celebration.isNullOrBlank()) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -259,8 +260,10 @@ fun GoalBasicInfoContent(
                 )
             }
         }
+        */
 
-        // 詳細説明
+        // 詳細説明（非表示）
+        /*
         if (!goal.detailedDescription.isNullOrBlank()) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -273,6 +276,7 @@ fun GoalBasicInfoContent(
                 )
             }
         }
+        */
     }
 }
 

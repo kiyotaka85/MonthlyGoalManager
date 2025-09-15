@@ -635,7 +635,8 @@ fun CheckInCompletionDialog(
                         }
                     }
 
-                    // 目標達成時のお祝いメッセージを表示
+                    // 目標達成時のお祝いメッセージを表示（非表示）
+                    /*
                     if (isGoalCompleted && !goal.celebration.isNullOrBlank()) {
                         Card(
                             colors = CardDefaults.cardColors(
@@ -662,6 +663,7 @@ fun CheckInCompletionDialog(
                             }
                         }
                     }
+                    */
 
                     // 記入内容の表示
                     Card(
@@ -722,9 +724,12 @@ fun CheckInCompletionDialog(
                             val shareText = buildString {
                                 if (isGoalCompleted) {
                                     appendLine("🎉 目標達成しました！")
+                                    // ご褒美の共有は非表示
+                                    /*
                                     if (!goal.celebration.isNullOrBlank()) {
                                         appendLine("🥳 ${goal.celebration}")
                                     }
+                                    */
                                 } else {
                                     appendLine("📈 進捗更新")
                                 }
