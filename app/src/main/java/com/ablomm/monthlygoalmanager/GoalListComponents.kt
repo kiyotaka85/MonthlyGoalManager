@@ -261,12 +261,20 @@ private fun RingProgress(
             )
             if (showAddIcon) {
                 Spacer(Modifier.height(2.dp))
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "チェックインを追加",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(14.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "チェックインを追加",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
             }
         }
     }
