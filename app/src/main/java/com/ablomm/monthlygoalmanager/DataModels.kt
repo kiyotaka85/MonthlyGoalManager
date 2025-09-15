@@ -29,6 +29,7 @@ data class HigherGoal(
 )
 
 // Action Step for goals
+@Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
 @Entity(tableName = "action_steps")
 data class ActionStep(
     @PrimaryKey
@@ -280,22 +281,26 @@ class GoalsViewModel @Inject constructor(
     }
 
     // ActionStep関連のメソッド
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     fun getActionStepsForGoal(goalId: UUID): Flow<List<ActionStep>> {
         return repository.getActionStepsForGoal(goalId)
     }
 
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     fun addActionStep(actionStep: ActionStep) {
         viewModelScope.launch {
             repository.addActionStep(actionStep)
         }
     }
 
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     fun updateActionStep(actionStep: ActionStep) {
         viewModelScope.launch {
             repository.updateActionStep(actionStep)
         }
     }
 
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     fun deleteActionStep(actionStep: ActionStep) {
         viewModelScope.launch {
             repository.deleteActionStep(actionStep)

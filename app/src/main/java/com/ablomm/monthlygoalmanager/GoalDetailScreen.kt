@@ -426,6 +426,7 @@ fun CheckInHistoryContent(checkIns: List<CheckInItem>) {
     }
 }
 
+@Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
 @Composable
 fun GoalActionStepsContent(
     goal: GoalItem,

@@ -12,5 +12,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun monthlyReviewDao(): MonthlyReviewDao // MonthlyReviewDAOを取得するための抽象メソッド
     abstract fun finalCheckInDao(): FinalCheckInDao // FinalCheckInDAOを取得するための抽象メソッド
     abstract fun higherGoalDao(): HigherGoalDao // HigherGoalDAOを取得するための抽象メソッド
-    abstract fun actionStepDao(): ActionStepDao // ActionStepDAOを取得するための抽象メソッド
+    abstract fun actionStepDao(): ActionStepDao // ActionStepDAOを取得するための抽象メソッド (DEPRECATED: ActionStep機能は廃止予定)
 }
