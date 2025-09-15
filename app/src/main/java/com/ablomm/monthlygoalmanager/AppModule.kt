@@ -112,7 +112,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideActionStepDao(db: AppDatabase): ActionStepDao = db.actionStepDao()
+    fun provideActionStepDao(db: AppDatabase): ActionStepDao = db.actionStepDao() // DEPRECATED: ActionStep機能は廃止予定
 
     @Provides
     @Singleton
