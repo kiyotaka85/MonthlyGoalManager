@@ -172,29 +172,19 @@ fun GoalCard(
                             }
                         }
 
-                        // リングチャート
+                        // リングチャート（内側タップでチェックイン）
                         RingProgress(
                             fraction = animatedFraction,
                             size = 72.dp,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                             progressColor = MaterialTheme.colorScheme.primary,
-                            label = "${progress.toInt()}%"
+                            label = "${progress.toInt()}%",
+                            onClick = { onCheckIn(goalItem.id) },
+                            showAddIcon = true
                         )
                     }
 
-                    // ボタン行（全幅）
-                    FilledTonalButton(
-                        onClick = { onCheckIn(goalItem.id) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Check-in")
-                    }
+                    // チェックインボタンは撤去（円ゲージ内タップに統合）
                 }
 
                 // キー目標バッジ
@@ -227,10 +217,17 @@ private fun RingProgress(
     size: Dp,
     trackColor: Color,
     progressColor: Color,
-    label: String
+    label: String,
+    onClick: (() -> Unit)? = null,
+    showAddIcon: Boolean = false
 ) {
     Box(
-        modifier = Modifier.size(size),
+        modifier = Modifier
+            .size(size)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .let { base ->
+                if (onClick != null) base.clickable { onClick() } else base
+            },
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.matchParentSize()) {
@@ -255,12 +252,23 @@ private fun RingProgress(
                 )
             }
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (showAddIcon) {
+                Spacer(Modifier.height(2.dp))
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "チェックインを追加",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
     }
 }
 
