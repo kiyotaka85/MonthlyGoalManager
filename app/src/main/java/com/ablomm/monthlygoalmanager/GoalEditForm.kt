@@ -429,10 +429,7 @@ fun AdvancedOptionsSection(
                 )
 
                 // アクションステップ
-                ActionStepsSection(
-                    goalId = editingGoalItem.id,
-                    viewModel = viewModel
-                )
+                    // ...existing code...
 
                 // ご褒美
                 Text(

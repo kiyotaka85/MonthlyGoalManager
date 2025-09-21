@@ -156,6 +156,7 @@ fun GoalDetailScreen(
                         )
                     }
                 }
+                    // ...existing code...
 
                 // チェックイン履歴セクション
                 item {
