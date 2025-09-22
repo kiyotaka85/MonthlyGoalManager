@@ -38,6 +38,14 @@
             </set>
           </value>
         </entry>
+        <entry key="bd411031-83ec-4ac5-9011-531c72f4f1ae">
+          <value>
+            <set>
+              <option value="a1717125-327f-445a-acb5-52eff71ed858" />
+              <option value="bb04ce44-1acb-4394-a1f9-dbecb48d2cb0" />
+            </set>
+          </value>
+        </entry>
         <entry key="c22915a3-379b-490e-8ecf-035be996b802">
           <value>
             <set>
@@ -62,6 +70,14 @@
       <entry key="95ec9d16-836c-4d5b-90f7-1d7735353f71">
         <set>
           <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/CheckInScreen.kt" />
+        </set>
+      </entry>
+      <entry key="bd411031-83ec-4ac5-9011-531c72f4f1ae">
+        <set>
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/AddGoalSheet.kt" />
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/GoalDetailScreen.kt" />
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/GoalListComponents.kt" />
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/Home.kt" />
         </set>
       </entry>
     </pendingWorkingSetItems>

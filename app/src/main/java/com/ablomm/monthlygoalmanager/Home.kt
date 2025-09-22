@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -53,6 +54,7 @@ fun Home(
     
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // ナビゲーション経由で年月が渡された場合、ViewModelの状態を更新する
     LaunchedEffect(targetYear, targetMonth) {
@@ -63,15 +65,10 @@ fun Home(
 
     // 現在表示中の年月を管理 - ViewModelに保存して状態を保持
     val currentYearMonth by viewModel.currentYearMonth.collectAsState(initial = YearMonth.now())
+    val isEditableMonth = currentYearMonth == YearMonth.now()
     var sortMode by remember { mutableStateOf(SortMode.DEFAULT) }
     var groupMode by remember { mutableStateOf(GroupMode.NONE) }
     var showSortMenu by remember { mutableStateOf(false) }
-    
-    // 月次レビューの存在をチェック
-    val hasReviewState = viewModel.hasMonthlyReview(
-        currentYearMonth.year, 
-        currentYearMonth.monthValue
-    ).collectAsState(initial = false)
     
     // 現在の年月に基づいてフィルタリング
     val filteredGoals = goalListState.value.filter { goal ->
@@ -114,6 +111,7 @@ fun Home(
     val editGoalSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -144,6 +142,15 @@ fun Home(
                                 fontWeight = FontWeight.Bold
                             )
 
+                            if (!isEditableMonth) {
+                                Spacer(Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Locked month",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
                             IconButton(
                                 onClick = {
                                     viewModel.setCurrentYearMonth(currentYearMonth.plusMonths(1))
@@ -158,7 +165,7 @@ fun Home(
                     }
                 },
                 actions = {
-                    // メニューアイコンを右端に配置
+                    // メニューアイコンを右端に配置（レビュー関連は削除）
                     var showTopBarMenu by remember { mutableStateOf(false) }
                     var showDisplaySettingsMenu by remember { mutableStateOf(false) }
 
@@ -170,93 +177,58 @@ fun Home(
                             )
                         }
 
-                        // メインメニュー
+                        // メインメニュー（レビュー関連を削除）
                         DropdownMenu(
                             expanded = showTopBarMenu,
                             onDismissRequest = { showTopBarMenu = false }
                         ) {
-                            if (hasReviewState.value) {
-                                // レビューが完了している場合：Edit ReviewとDeleteのみ表示
-                                DropdownMenuItem(
-                                    text = { Text("Edit Review") },
-                                    onClick = {
-                                        navController.navigate("monthlyReviewWizard/${currentYearMonth.year}/${currentYearMonth.monthValue}")
-                                        showTopBarMenu = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Delete") },
-                                    onClick = {
-                                        // 年月から月次レビューを取得してから削除
-                                        viewModel.viewModelScope.launch {
-                                            val review = viewModel.getMonthlyReview(currentYearMonth.year, currentYearMonth.monthValue)
-                                            review?.let {
-                                                viewModel.deleteMonthlyReview(it)
-                                            }
-                                        }
-                                        showTopBarMenu = false
-                                    }
-                                )
-                            } else {
-                                // レビューが未完了の場合：従来のメニュー
-                                // 月次レビューの開始
-                                DropdownMenuItem(
-                                    text = { Text("月次レビューの開始") },
-                                    onClick = {
-                                        navController.navigate("monthlyReview/${currentYearMonth.year}/${currentYearMonth.monthValue}")
-                                        showTopBarMenu = false
-                                    }
-                                )
-                                HorizontalDivider()
+                            // 上位目標の編集
+                            DropdownMenuItem(
+                                text = { Text("上位目標の編集") },
+                                onClick = {
+                                    navController.navigate("higherGoals")
+                                    showTopBarMenu = false
+                                }
+                            )
 
-                                // 上位目標の編集
-                                DropdownMenuItem(
-                                    text = { Text("上位目標の編集") },
-                                    onClick = {
-                                        navController.navigate("higherGoals")
-                                        showTopBarMenu = false
+                            HorizontalDivider()
+
+                            // 表示設定
+                            DropdownMenuItem(
+                                text = { Text("表示設定") },
+                                onClick = {
+                                    showTopBarMenu = false
+                                    showDisplaySettingsMenu = true
+                                }
+                            )
+
+                            // PDF書き出し
+                            DropdownMenuItem(
+                                text = { Text("PDF書き出し") },
+                                onClick = {
+                                    val pdfExporter = PdfExporter(context)
+                                    val intent = pdfExporter.exportGoalsToPdf(
+                                        goals = filteredGoals,
+                                        higherGoals = higherGoals.value,
+                                        yearMonth = monthYearText
+                                    )
+                                    intent?.let {
+                                        context.startActivity(Intent.createChooser(it, "Share Goals PDF"))
                                     }
-                                )
+                                    showTopBarMenu = false
+                                }
+                            )
 
-                                HorizontalDivider()
+                            HorizontalDivider()
 
-                                // 表示設定
-                                DropdownMenuItem(
-                                    text = { Text("表示設定") },
-                                    onClick = {
-                                        showTopBarMenu = false
-                                        showDisplaySettingsMenu = true
-                                    }
-                                )
-
-                                // PDF書き出し
-                                DropdownMenuItem(
-                                    text = { Text("PDF書き出し") },
-                                    onClick = {
-                                        val pdfExporter = PdfExporter(context)
-                                        val intent = pdfExporter.exportGoalsToPdf(
-                                            goals = filteredGoals,
-                                            higherGoals = higherGoals.value,
-                                            yearMonth = monthYearText
-                                        )
-                                        intent?.let {
-                                            context.startActivity(Intent.createChooser(it, "Share Goals PDF"))
-                                        }
-                                        showTopBarMenu = false
-                                    }
-                                )
-
-                                HorizontalDivider()
-
-                                // 詳細設定
-                                DropdownMenuItem(
-                                    text = { Text("詳細設定") },
-                                    onClick = {
-                                        navController.navigate("settings")
-                                        showTopBarMenu = false
-                                    }
-                                )
-                            }
+                            // 詳細設定
+                            DropdownMenuItem(
+                                text = { Text("詳細設定") },
+                                onClick = {
+                                    navController.navigate("settings")
+                                    showTopBarMenu = false
+                                }
+                            )
                         }
 
                         // 表示設定のサブメニュー
@@ -348,9 +320,8 @@ fun Home(
             )
         },
         floatingActionButton = {
-            // レビューが完了している場合は何も表示しない
-            if (!hasReviewState.value) {
-                // Add Goal FABをシンプルな+ボタンに変更
+            // 編集ロック中は表示しない
+            if (isEditableMonth) {
                 FloatingActionButton(
                     onClick = {
                         showAddGoalSheet = true
@@ -366,42 +337,43 @@ fun Home(
             }
         }
     ) { innerPadding ->
-        if (hasReviewState.value) {
-            // レビューが完了している場合：サマリーを表示
-            MonthlyReviewSummaryContent(
-                year = currentYearMonth.year,
-                month = currentYearMonth.monthValue,
-                viewModel = viewModel,
-                navController = navController,
-                modifier = Modifier.padding(innerPadding)
-            )
-        } else {
-            // レビューが未完了の場合：目標リストを表示
-            GoalListContent(
-                filteredGoals = filteredGoals,
-                isTipsHidden = isTipsHidden.value,
-                viewModel = viewModel,
-                navController = navController,
-                sortMode = sortMode,
-                setSortMode = { sortMode = it },
-                showSortMenu = showSortMenu,
-                setShowSortMenu = { showSortMenu = it },
-                isHideCompletedGoals = isHideCompletedGoals.value,
-                higherGoals = higherGoals.value,
-                monthYearText = monthYearText,
-                context = context,
-                onCheckIn = { goalId ->
+        // 目標リストを表示（常に）
+        GoalListContent(
+            filteredGoals = filteredGoals,
+            isTipsHidden = isTipsHidden.value,
+            viewModel = viewModel,
+            navController = navController,
+            sortMode = sortMode,
+            setSortMode = { sortMode = it },
+            showSortMenu = showSortMenu,
+            setShowSortMenu = { showSortMenu = it },
+            isHideCompletedGoals = isHideCompletedGoals.value,
+            higherGoals = higherGoals.value,
+            monthYearText = monthYearText,
+            context = context,
+            onCheckIn = { goalId ->
+                if (isEditableMonth) {
                     targetGoalForCheckIn = goalId
                     showCheckInSheet = true
-                },
-                groupMode = groupMode,
-                modifier = Modifier.padding(innerPadding),
-                onEdit = { goalId ->
+                } else {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("This month is locked for editing.")
+                    }
+                }
+            },
+            groupMode = groupMode,
+            modifier = Modifier.padding(innerPadding),
+            onEdit = { goalId ->
+                if (isEditableMonth) {
                     targetGoalForEdit = goalId
                     showEditGoalSheet = true
+                } else {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("This month is locked for editing.")
+                    }
                 }
-            )
-        }
+            }
+        )
     }
 
     val goalList = viewModel.goalList.collectAsState(initial = emptyList()).value

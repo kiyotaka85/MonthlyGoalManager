@@ -64,13 +64,24 @@ fun GoalDetailScreen(
     var showEditSheet by remember { mutableStateOf(false) }
     val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(goalId) {
         goalItem = viewModel.getGoalById(goalId)
         isLoading = false
     }
 
+    val isEditableMonth = remember(goalItem) {
+        goalItem?.let {
+            val year = it.targetMonth / 1000
+            val month = it.targetMonth % 1000
+            val ym = java.time.YearMonth.of(year, month)
+            ym == java.time.YearMonth.now()
+        } ?: false
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("目標詳細") },
@@ -80,10 +91,12 @@ fun GoalDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = { showEditSheet = true }
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = "編集")
+                    if (isEditableMonth) {
+                        IconButton(
+                            onClick = { showEditSheet = true }
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = "編集")
+                        }
                     }
                 }
             )
@@ -109,7 +122,13 @@ fun GoalDetailScreen(
                     GoalActionButtons(
                         goalId = goalId,
                         navController = navController,
-                        onCheckIn = { showCheckInSheet = true }
+                        onCheckIn = {
+                            if (isEditableMonth) {
+                                showCheckInSheet = true
+                            } else {
+                                scope.launch { snackbarHostState.showSnackbar("This month is locked for editing.") }
+                            }
+                        }
                     )
                 }
 
@@ -155,9 +174,11 @@ fun GoalDetailScreen(
                     }
                 }
 
-                // 削除セクション
-                item {
-                    GoalDeleteSection(goal = goalItem!!, viewModel = viewModel, navController = navController)
+                // 削除セクション（編集可能な月のみ）
+                if (isEditableMonth) {
+                    item {
+                        GoalDeleteSection(goal = goalItem!!, viewModel = viewModel, navController = navController)
+                    }
                 }
             }
         }
