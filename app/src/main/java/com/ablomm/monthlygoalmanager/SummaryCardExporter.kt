@@ -2,19 +2,23 @@ package com.ablomm.monthlygoalmanager
 
 import android.content.ContentValues
 import android.content.Context
-import android.graphics.*
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 import java.time.YearMonth
 import java.util.Locale
 
-/**
- * Data for one summary row.
- */
+// Data for one summary row
 data class SummaryGoalRow(
     val name: String,
     val current: Double,
@@ -23,15 +27,11 @@ data class SummaryGoalRow(
     val isDecimal: Boolean = false
 )
 
-/**
- * Create a clean, minimal summary card bitmap suitable for social sharing.
- * White background, sans-serif, no icons/graphs.
- */
+// Create a clean, minimal summary card bitmap suitable for social sharing.
 fun createSummaryCardBitmap(
     context: Context,
     title: String,
     rows: List<SummaryGoalRow>,
-    // Image width in px (height will be computed based on content)
     widthPx: Int = 1080,
 ): Bitmap {
     val dm = context.resources.displayMetrics
@@ -41,7 +41,7 @@ fun createSummaryCardBitmap(
     val paddingTop = dp(28f)
     val paddingBottom = dp(24f)
     val lineSpacing = dp(8f)
-    val rowHeight = dp(40f) // approx row height
+    val rowHeight = dp(40f)
     val dividerHeight = dp(1f)
 
     val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -60,11 +60,6 @@ fun createSummaryCardBitmap(
         textSize = dp(18f)
         textAlign = Paint.Align.RIGHT
     }
-    val unitPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.DKGRAY
-        typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
-        textSize = dp(14f)
-    }
     val footerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.DKGRAY
         typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
@@ -76,7 +71,6 @@ fun createSummaryCardBitmap(
         strokeWidth = dividerHeight
     }
 
-    // Compute dynamic height
     val titleMetrics = Paint.FontMetrics().also { titlePaint.getFontMetrics(it) }
     val titleHeight = titleMetrics.bottom - titleMetrics.top
     val contentHeight = rows.size * (rowHeight + lineSpacing)
@@ -91,33 +85,30 @@ fun createSummaryCardBitmap(
 
     var y = paddingTop
 
-    // Draw title
+    // Title
     val titleBaseline = y - titleMetrics.top
     canvas.drawText(title, paddingH, titleBaseline, titlePaint)
     y += titleHeight + dp(16f)
 
-    // Layout areas
     val leftX = paddingH
     val rightX = widthPx - paddingH
 
-    // Draw rows: name left, values right "current / target unit"
+    // Rows: name left, values right: "current / target unit"
     rows.forEach { row ->
-        val nameBaseline = y + namePaint.textSize
-        canvas.drawText(row.name, leftX, nameBaseline, namePaint)
+        val baseline = y + namePaint.textSize
+        canvas.drawText(row.name, leftX, baseline, namePaint)
 
         val currentStr = formatNumberForSummary(row.current, row.isDecimal)
         val targetStr = formatNumberForSummary(row.target, row.isDecimal)
         val valueStr = "$currentStr / $targetStr ${row.unit}".trim()
-
-        val valueBaseline = nameBaseline
-        canvas.drawText(valueStr, rightX, valueBaseline, valuePaint)
+        canvas.drawText(valueStr, rightX, baseline, valuePaint)
 
         y += rowHeight + lineSpacing
     }
 
     // Divider
     val dividerY = y + dp(8f)
-    canvas.drawLine(paddingH, dividerY, widthPx - paddingH, dividerY, dividerPaint)
+    canvas.drawLine(paddingH, dividerY, rightX, dividerY, dividerPaint)
 
     // Footer
     val footerText = "Monthly Goal Manager • Prove your progress with real numbers"
@@ -132,10 +123,12 @@ private fun formatNumberForSummary(value: Double, isDecimal: Boolean): String {
     else String.format(Locale.getDefault(), "%.1f", value)
 }
 
-/**
- * Save bitmap to the user's Pictures directory (MediaStore on Q+), returns saved URI string if success.
- */
-fun saveSummaryBitmapToPictures(context: Context, bitmap: Bitmap, filename: String = "monthly_goal_summary_${System.currentTimeMillis()}.png"): String? {
+// Save the bitmap to Pictures/MonthlyGoalManager (optional utility kept for future needs)
+fun saveSummaryBitmapToPictures(
+    context: Context,
+    bitmap: Bitmap,
+    filename: String = "monthly_goal_summary_${System.currentTimeMillis()}.png"
+): String? {
     return try {
         val mimeType = "image/png"
         var uriString: String? = null
@@ -173,9 +166,28 @@ fun saveSummaryBitmapToPictures(context: Context, bitmap: Bitmap, filename: Stri
     }
 }
 
-/**
- * Convenience that builds a title from YearMonth: "YYYY/MM Summary"
- */
+// Share via Android share sheet using FileProvider
+fun shareSummaryBitmap(
+    context: Context,
+    bitmap: Bitmap,
+    filename: String = "monthly_goal_summary_${System.currentTimeMillis()}.png"
+) {
+    val dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    val folder = File(dir, "MonthlyGoalManagerShare").apply { mkdirs() }
+    val file = File(folder, filename)
+    FileOutputStream(file).use { stream ->
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+    }
+    val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "image/png"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(shareIntent, "Share summary image"))
+}
+
+// Build a title like "YYYY/MM Summary"
 fun buildSummaryTitle(ym: YearMonth): String {
     return String.format(Locale.getDefault(), "%04d/%02d Summary", ym.year, ym.monthValue)
 }

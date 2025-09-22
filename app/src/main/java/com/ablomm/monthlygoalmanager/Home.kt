@@ -222,10 +222,8 @@ fun Home(
                                             title = buildSummaryTitle(currentYearMonth),
                                             rows = rows
                                         )
-                                        val uri = saveSummaryBitmapToPictures(context, bmp)
-                                        snackbarHostState.showSnackbar(
-                                            if (uri != null) "サマリー画像を保存しました" else "サマリー画像の保存に失敗しました"
-                                        )
+                                        // Open share sheet
+                                        shareSummaryBitmap(context, bmp)
                                     }
                                 }
                             )
