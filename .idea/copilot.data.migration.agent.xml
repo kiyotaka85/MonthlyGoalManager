@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AgentMigrationStateService">
+    <option name="pendingSessionIds">
+      <option value="62449a90-55d5-406e-b904-8568d93544e3" />
+    </option>
+    <option name="pendingTurns">
+      <map>
+        <entry key="62449a90-55d5-406e-b904-8568d93544e3">
+          <value>
+            <set>
+              <option value="3c9fd67e-5781-4afd-be12-9ea152d96ad3" />
+            </set>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <pendingWorkingSetItems>
+      <entry key="62449a90-55d5-406e-b904-8568d93544e3">
+        <set>
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/GoalListComponents.kt" />
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/GoalDetailScreen.kt" />
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/AddGoalSheet.kt" />
+        </set>
+      </entry>
+    </pendingWorkingSetItems>
+  </component>
+</project>
