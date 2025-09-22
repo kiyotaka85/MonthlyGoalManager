@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="AgentMigrationStateService">
+    <option name="migrationStatus" value="IN_PROGRESS" />
     <option name="pendingSessionIds">
+      <option value="06c19ca0-119b-49aa-94a6-ee8011c8bfa8" />
       <option value="62449a90-55d5-406e-b904-8568d93544e3" />
+      <option value="95ec9d16-836c-4d5b-90f7-1d7735353f71" />
+      <option value="b25602ef-d3c5-42b0-afd4-443769a59993" />
+      <option value="bd411031-83ec-4ac5-9011-531c72f4f1ae" />
+      <option value="c22915a3-379b-490e-8ecf-035be996b802" />
+      <option value="ee649c56-b98d-4c46-b566-7f76cf483afa" />
     </option>
     <option name="pendingTurns">
       <map>
@@ -10,17 +17,51 @@
           <value>
             <set>
               <option value="3c9fd67e-5781-4afd-be12-9ea152d96ad3" />
+              <option value="4c4b7ee7-7eba-4079-9771-e1e40d9a5da4" />
+            </set>
+          </value>
+        </entry>
+        <entry key="95ec9d16-836c-4d5b-90f7-1d7735353f71">
+          <value>
+            <set>
+              <option value="c359c31b-5d00-44ad-989a-c0d153f07ae4" />
+              <option value="78bb3156-a1c0-456f-8011-463fc0573d23" />
+            </set>
+          </value>
+        </entry>
+        <entry key="b25602ef-d3c5-42b0-afd4-443769a59993">
+          <value>
+            <set>
+              <option value="d69b53d7-7d3d-44cb-947a-115a96e8fe50" />
+              <option value="5371371c-2a8d-4afb-8871-47e070052315" />
+              <option value="159eb854-5234-410b-bc63-83fc636ffb06" />
+            </set>
+          </value>
+        </entry>
+        <entry key="c22915a3-379b-490e-8ecf-035be996b802">
+          <value>
+            <set>
+              <option value="85eb1164-7548-4052-81d4-1c88692ff78a" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ee649c56-b98d-4c46-b566-7f76cf483afa">
+          <value>
+            <set>
+              <option value="9b861325-1a61-495f-a540-116123235c05" />
+              <option value="59f37d1f-fa7f-46f9-a1f3-21710554c004" />
+              <option value="ef69ca42-2cc2-4179-be20-30103081fdbb" />
+              <option value="fe637422-6893-483d-8aad-fb3f043c960a" />
             </set>
           </value>
         </entry>
       </map>
     </option>
     <pendingWorkingSetItems>
-      <entry key="62449a90-55d5-406e-b904-8568d93544e3">
+      <entry key="62449a90-55d5-406e-b904-8568d93544e3" />
+      <entry key="95ec9d16-836c-4d5b-90f7-1d7735353f71">
         <set>
-          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/GoalListComponents.kt" />
-          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/GoalDetailScreen.kt" />
-          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/AddGoalSheet.kt" />
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/CheckInScreen.kt" />
         </set>
       </entry>
     </pendingWorkingSetItems>

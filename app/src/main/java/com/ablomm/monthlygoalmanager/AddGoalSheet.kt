@@ -31,7 +31,8 @@ fun AddGoalSheet(
     targetMonth: YearMonth,
     onClose: () -> Unit,
     navController: NavController,
-    displayOrder: Int
+    displayOrder: Int,
+    existingGoal: GoalItem? = null
 ) {
     var goalTitle by remember { mutableStateOf("") }
     var targetValueText by remember { mutableStateOf("") }
@@ -39,10 +40,22 @@ fun AddGoalSheet(
     var unitText by remember { mutableStateOf("") }
     var isDecimal by remember { mutableStateOf(false) }
 
+    val isEditMode = existingGoal != null
+
     val focusRequester = remember { FocusRequester() }
 
-    // フォーカス
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    // 初期値の設定（編集モード時）
+    LaunchedEffect(existingGoal?.id) {
+        existingGoal?.let { g ->
+            goalTitle = g.title
+            targetValueText = g.targetNumericValue.toString()
+            startValueText = g.startNumericValue.toString()
+            unitText = g.unit
+            isDecimal = g.isDecimal
+        }
+        // フォーカス
+        focusRequester.requestFocus()
+    }
 
     // UI
     Column(
@@ -59,12 +72,12 @@ fun AddGoalSheet(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Add goal",
+                    if (isEditMode) "Edit goal" else "Add goal",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Set a clear numeric target to track your progress.",
+                    text = if (isEditMode) "Update goal details and metrics." else "Set a clear numeric target to track your progress.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -113,7 +126,7 @@ fun AddGoalSheet(
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 isError = targetError,
-                supportingText = { if (targetError) Text("Enter a valid number") else Text("Required") },
+                supportingText = { if (targetError) Text("Enter a valid number") else Text(if (isEditMode) "Required" else "Required") },
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -128,7 +141,7 @@ fun AddGoalSheet(
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 isError = startError,
-                supportingText = { if (startError) Text("Enter a valid number") else Text("Defaults to 0") },
+                supportingText = { if (startError) Text("Enter a valid number") else Text(if (isEditMode) "Current start" else "Defaults to 0") },
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -164,33 +177,47 @@ fun AddGoalSheet(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 追加ボタン
+        // 追加/保存ボタン
         val addEnabled = goalTitle.isNotBlank() && targetValueText.toDoubleOrNull() != null
         Button(
             onClick = {
                 if (addEnabled) {
                     val targetVal = targetValueText.toDoubleOrNull() ?: 0.0
                     val startVal = startValueText.toDoubleOrNull() ?: 0.0
-                    addNewGoal(
-                        viewModel = viewModel,
-                        title = goalTitle,
-                        targetMonth = targetMonth,
-                        higherGoalId = null, // removed in MVP
-                        displayOrder = displayOrder,
-                        targetNumericValue = targetVal,
-                        startNumericValue = startVal,
-                        unit = unitText,
-                        isDecimal = isDecimal,
-                        isKeyGoal = false, // removed in MVP
-                        detailedDescription = null, // removed in MVP
-                        celebration = null // removed in MVP
-                    )
-                    goalTitle = ""
-                    targetValueText = ""
-                    startValueText = "0"
-                    unitText = ""
-                    isDecimal = false
-                    onClose()
+                    if (isEditMode) {
+                        existingGoal?.let { g ->
+                            val updated = g.copy(
+                                title = goalTitle,
+                                targetNumericValue = targetVal,
+                                startNumericValue = startVal,
+                                unit = unitText,
+                                isDecimal = isDecimal
+                            )
+                            viewModel.updateGoalItem(updated)
+                        }
+                        onClose()
+                    } else {
+                        addNewGoal(
+                            viewModel = viewModel,
+                            title = goalTitle,
+                            targetMonth = targetMonth,
+                            higherGoalId = null, // removed in MVP
+                            displayOrder = displayOrder,
+                            targetNumericValue = targetVal,
+                            startNumericValue = startVal,
+                            unit = unitText,
+                            isDecimal = isDecimal,
+                            isKeyGoal = false, // removed in MVP
+                            detailedDescription = null, // removed in MVP
+                            celebration = null // removed in MVP
+                        )
+                        goalTitle = ""
+                        targetValueText = ""
+                        startValueText = "0"
+                        unitText = ""
+                        isDecimal = false
+                        onClose()
+                    }
                 }
             },
             enabled = addEnabled,
@@ -201,7 +228,46 @@ fun AddGoalSheet(
         ) {
             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Add goal")
+            Text(if (isEditMode) "Save changes" else "Add goal")
+        }
+
+        // 削除ボタン（編集モード時のみ表示）
+        if (isEditMode && existingGoal != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            var showDeleteDialog by remember { mutableStateOf(false) }
+            Button(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(MaterialTheme.shapes.large),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) {
+                Text("Delete goal")
+            }
+
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = { Text("Delete goal") },
+                    text = { Text("Are you sure you want to delete this goal? This action cannot be undone.") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.deleteGoalItem(existingGoal)
+                                showDeleteDialog = false
+                                onClose()
+                            }
+                        ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                    }
+                )
+            }
         }
     }
 }

@@ -35,6 +35,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -59,6 +60,11 @@ fun GoalDetailScreen(
     var showCheckInSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // 編集用シート
+    var showEditSheet by remember { mutableStateOf(false) }
+    val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(goalId) {
         goalItem = viewModel.getGoalById(goalId)
         isLoading = false
@@ -75,7 +81,7 @@ fun GoalDetailScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { navController.navigate("goalEdit/$goalId") }
+                        onClick = { showEditSheet = true }
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = "編集")
                     }
@@ -166,6 +172,39 @@ fun GoalDetailScreen(
                 goalId = goalItem!!.id,
                 viewModel = viewModel,
                 onClose = { showCheckInSheet = false }
+            )
+        }
+    }
+
+    // 編集用のモーダルシート（AddGoalSheetを再利用）
+    if (showEditSheet && goalItem != null) {
+        val ym = run {
+            val year = goalItem!!.targetMonth / 1000
+            val month = goalItem!!.targetMonth % 1000
+            java.time.YearMonth.of(year, month)
+        }
+        ModalBottomSheet(
+            onDismissRequest = { showEditSheet = false },
+            sheetState = editSheetState
+        ) {
+            AddGoalSheet(
+                viewModel = viewModel,
+                targetMonth = ym,
+                onClose = {
+                    showEditSheet = false
+                    // 変更・削除反映のため再取得
+                    scope.launch {
+                        val reloaded = viewModel.getGoalById(goalId)
+                        if (reloaded == null) {
+                            navController.popBackStack()
+                        } else {
+                            goalItem = reloaded
+                        }
+                    }
+                },
+                navController = navController,
+                displayOrder = goalItem!!.displayOrder,
+                existingGoal = goalItem
             )
         }
     }
