@@ -33,7 +33,8 @@ fun GoalCard(
     higherGoal: HigherGoal?,
     navController: NavHostController,
     onCheckIn: (java.util.UUID) -> Unit, // 追加
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onEdit: (java.util.UUID) -> Unit // 追加: リング以外タップで編集
 ) {
     val progress = calculateProgressPrecise(
         startValue = goalItem.startNumericValue,
@@ -48,11 +49,9 @@ fun GoalCard(
     )
 
     Box(modifier = modifier.fillMaxWidth()) {
-        // カード本体
+        // カード本体（カード全体のナビゲーションは削除）
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { navController.navigate("goalDetail/${goalItem.id}") },
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -71,7 +70,9 @@ fun GoalCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onEdit(goalItem.id) },
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             // タイトル行
@@ -370,7 +371,8 @@ fun GoalListContent(
     context: android.content.Context,
     onCheckIn: (java.util.UUID) -> Unit, // 追加: シート起動
     groupMode: GroupMode = GroupMode.NONE,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onEdit: (java.util.UUID) -> Unit // 追加: カード編集
 ) {
     val listBg = Color(0xFFF5F5F5)
     if (filteredGoals.isEmpty()) {
@@ -422,7 +424,8 @@ fun GoalListContent(
                             higherGoal = higherGoal,
                             navController = navController,
                             onCheckIn = onCheckIn,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            onEdit = onEdit
                         )
                     }
                 }
@@ -434,7 +437,9 @@ fun GoalListContent(
                     val higherGoalGroups = groupedGoals.filterKeys { it != null }.toList().sortedBy { it.first?.createdAt }
                     val noHigherGoalGroup = groupedGoals[null]
 
-                    higherGoalGroups.forEach { (higherGoal, goals) ->
+                    higherGoalGroups.forEach { (higherGoal, goals) -> {
+                        // Kotlin trailing lambda mismatch fix
+                    }
                         item {
                             GroupHeader(
                                 title = higherGoal?.title ?: "上位目標なし",
@@ -448,7 +453,8 @@ fun GoalListContent(
                                 higherGoal = higherGoal,
                                 navController = navController,
                                 onCheckIn = onCheckIn,
-                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
+                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
+                                onEdit = onEdit
                             )
                         }
                     }
@@ -464,7 +470,8 @@ fun GoalListContent(
                                     higherGoal = null,
                                     navController = navController,
                                     onCheckIn = onCheckIn,
-                                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
+                                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
+                                    onEdit = onEdit
                                 )
                             }
                         }
@@ -488,7 +495,8 @@ fun GoalListContent(
                                 higherGoal = higherGoal,
                                 navController = navController,
                                 onCheckIn = onCheckIn,
-                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
+                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
+                                onEdit = onEdit
                             )
                         }
                     }
@@ -506,7 +514,8 @@ fun GoalListContent(
                                 higherGoal = higherGoal,
                                 navController = navController,
                                 onCheckIn = onCheckIn,
-                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
+                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
+                                onEdit = onEdit
                             )
                         }
                     }

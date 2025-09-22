@@ -108,6 +108,11 @@ fun Home(
     var showAddGoalSheet by remember { mutableStateOf<Boolean>(false) }
     val addGoalSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // 目標編集用モーダルシートの状態
+    var showEditGoalSheet by remember { mutableStateOf<Boolean>(false) }
+    var targetGoalForEdit by remember { mutableStateOf<UUID?>(null) }
+    val editGoalSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -390,7 +395,11 @@ fun Home(
                     showCheckInSheet = true
                 },
                 groupMode = groupMode,
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
+                onEdit = { goalId ->
+                    targetGoalForEdit = goalId
+                    showEditGoalSheet = true
+                }
             )
         }
     }
@@ -409,6 +418,32 @@ fun Home(
                 navController = navController,
                 displayOrder = goalList.size
             )
+        }
+    }
+
+    if (showEditGoalSheet && targetGoalForEdit != null) {
+        val existing = goalList.firstOrNull { it.id == targetGoalForEdit }
+        if (existing != null) {
+            val ym = YearMonth.of(existing.targetMonth / 1000, existing.targetMonth % 1000)
+            ModalBottomSheet(
+                onDismissRequest = {
+                    showEditGoalSheet = false
+                    targetGoalForEdit = null
+                },
+                sheetState = editGoalSheetState
+            ) {
+                AddGoalSheet(
+                    viewModel = viewModel,
+                    targetMonth = ym,
+                    onClose = {
+                        showEditGoalSheet = false
+                        targetGoalForEdit = null
+                    },
+                    navController = navController,
+                    displayOrder = existing.displayOrder,
+                    existingGoal = existing
+                )
+            }
         }
     }
 
