@@ -202,6 +202,34 @@ fun Home(
                                 }
                             )
 
+                            // サマリー画像書き出し
+                            DropdownMenuItem(
+                                text = { Text("サマリー画像を書き出し") },
+                                onClick = {
+                                    showTopBarMenu = false
+                                    coroutineScope.launch {
+                                        val rows = filteredGoals.map { g ->
+                                            SummaryGoalRow(
+                                                name = g.title,
+                                                current = g.currentNumericValue,
+                                                target = g.targetNumericValue,
+                                                unit = g.unit,
+                                                isDecimal = g.isDecimal
+                                            )
+                                        }
+                                        val bmp = createSummaryCardBitmap(
+                                            context = context,
+                                            title = buildSummaryTitle(currentYearMonth),
+                                            rows = rows
+                                        )
+                                        val uri = saveSummaryBitmapToPictures(context, bmp)
+                                        snackbarHostState.showSnackbar(
+                                            if (uri != null) "サマリー画像を保存しました" else "サマリー画像の保存に失敗しました"
+                                        )
+                                    }
+                                }
+                            )
+
                             // PDF書き出し
                             DropdownMenuItem(
                                 text = { Text("PDF書き出し") },

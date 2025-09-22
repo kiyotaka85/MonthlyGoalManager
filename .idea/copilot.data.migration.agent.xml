@@ -43,6 +43,8 @@
             <set>
               <option value="a1717125-327f-445a-acb5-52eff71ed858" />
               <option value="bb04ce44-1acb-4394-a1f9-dbecb48d2cb0" />
+              <option value="3121a973-9e0d-4c2a-8246-409073a36f40" />
+              <option value="d32c9956-1551-4de6-a41f-eaf4a0b667bd" />
             </set>
           </value>
         </entry>
@@ -78,6 +80,8 @@
           <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/GoalDetailScreen.kt" />
           <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/GoalListComponents.kt" />
           <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/Home.kt" />
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/AppNavigation.kt" />
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/SummaryCardExporter.kt" />
         </set>
       </entry>
     </pendingWorkingSetItems>
