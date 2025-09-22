@@ -50,11 +50,9 @@ fun GoalDetailScreen(
     // 各セクションの開閉状態を管理
     var isBasicInfoExpanded by remember { mutableStateOf(false) }
     var isProgressExpanded by remember { mutableStateOf(false) }
-    var isActionStepsExpanded by remember { mutableStateOf(false) }
     var isCheckInHistoryExpanded by remember { mutableStateOf(false) }
 
     val checkInsState = viewModel.getCheckInsForGoal(goalId).collectAsState(initial = emptyList())
-    val actionStepsState = viewModel.getActionStepsForGoal(goalId).collectAsState(initial = emptyList())
     val higherGoalsState = viewModel.higherGoalList.collectAsState(initial = emptyList())
 
     // チェックイン用シート
@@ -135,24 +133,6 @@ fun GoalDetailScreen(
                         GoalProgressContent(
                             goal = goalItem!!,
                             checkIns = checkInsState.value
-                        )
-                    }
-                }
-
-                // アクションステップセクション（常に表示）
-                item {
-                    ExpandableSection(
-                        title = "アクションステップ",
-                        icon = Icons.Default.CheckCircle,
-                        isExpanded = isActionStepsExpanded,
-                        onToggle = { isActionStepsExpanded = !isActionStepsExpanded }
-                    ) {
-                        GoalActionStepsContent(
-                            goal = goalItem!!,
-                            actionSteps = actionStepsState.value,
-                            onAdd = { viewModel.addActionStep(it) },
-                            onUpdate = { viewModel.updateActionStep(it) },
-                            onDelete = { viewModel.deleteActionStep(it) }
                         )
                     }
                 }
