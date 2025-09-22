@@ -4,7 +4,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,7 +18,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -27,7 +25,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import kotlin.math.abs
 
 // UXを最大化するために再設計されたゴールカード
 @Composable
@@ -38,14 +35,6 @@ fun GoalCard(
     onCheckIn: (java.util.UUID) -> Unit, // 追加
     modifier: Modifier = Modifier
 ) {
-    var offsetX by remember { mutableStateOf(0f) }
-    val animatedOffsetX by animateFloatAsState(
-        targetValue = offsetX,
-        animationSpec = spring(),
-        label = "offset_x_animation"
-    )
-    val swipeThresholdPx = with(androidx.compose.ui.platform.LocalDensity.current) { 120.dp.toPx() }
-
     val progress = calculateProgressPrecise(
         startValue = goalItem.startNumericValue,
         targetValue = goalItem.targetNumericValue,
@@ -59,30 +48,11 @@ fun GoalCard(
     )
 
     Box(modifier = modifier.fillMaxWidth()) {
-        // 背景アクション
-        SwipeActionBackground(animatedOffsetX = animatedOffsetX)
-
         // カード本体
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(x = animatedOffsetX.dp)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            when {
-                                offsetX > swipeThresholdPx -> navController.navigate("goalEdit/${goalItem.id}")
-                                offsetX < -swipeThresholdPx -> onCheckIn(goalItem.id) // シートを開く
-                            }
-                            offsetX = 0f
-                        }
-                    ) { _, dragAmount ->
-                        offsetX = (offsetX + dragAmount).coerceIn(-swipeThresholdPx * 1.5f, swipeThresholdPx * 1.5f)
-                    }
-                }
-                .clickable {
-                    if (abs(offsetX) < 20f) navController.navigate("goalDetail/${goalItem.id}")
-                },
+                .clickable { navController.navigate("goalDetail/${goalItem.id}") },
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -280,56 +250,6 @@ private fun RingProgress(
     }
 }
 
-@Composable
-private fun SwipeActionBackground(animatedOffsetX: Float) {
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(12.dp)),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Edit Action (Left)
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(animatedOffsetX.coerceAtLeast(0f).dp)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            if (animatedOffsetX > 20.dp.value) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 20.dp)
-                ) {
-                    Icon(Icons.Default.Edit, "編集", tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Spacer(Modifier.width(8.dp))
-                    Text("編集", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-        // Check-in Action (Right)
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(abs(animatedOffsetX.coerceAtMost(0f)).dp)
-                .background(Color(0xFF4CAF50).copy(alpha = 0.2f)),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            if (animatedOffsetX < -20.dp.value) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(end = 20.dp)
-                ) {
-                    Text("チェックイン", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.width(8.dp))
-                    Icon(Icons.Default.Check, "チェックイン", tint = Color(0xFF388E3C))
-                }
-            }
-        }
-    }
-}
-
 // グループヘッダーコンポーネント
 @Composable
 fun GroupHeader(
@@ -399,53 +319,35 @@ fun TipsCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "💡",
-                        fontSize = 20.sp
-                    )
-                    Text(
-                        text = "使い方のヒント",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "閉じる",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(16.dp)
-                    )
+                Text(
+                    text = "今日のヒント",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                TextButton(onClick = onDismiss) {
+                    Text("非表示にする")
                 }
             }
-
             Text(
-                text = "• カードを左右にスワイプして素早くチェックイン・編集\n• メニューから表示設定でソートやグループ化が可能\n• 目標をタップして詳細を確認",
+                text = "ゴールカードの円ゲージをタップして、素早くチェックインしましょう。",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.onTertiaryContainer
             )
         }
     }
