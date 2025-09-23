@@ -51,6 +51,7 @@
               <option value="217e50b8-96b0-4100-96d6-071a7d2e0224" />
               <option value="29554665-abbe-46a6-976c-aecfe7342602" />
               <option value="f7ff86c3-d06c-4056-8189-5d4fe3c4503c" />
+              <option value="e31d73ae-e123-4359-afbf-2f307b6cf485" />
             </set>
           </value>
         </entry>
@@ -89,6 +90,7 @@
           <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/AppNavigation.kt" />
           <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/SummaryCardExporter.kt" />
           <option value="file://$PROJECT_DIR$/app/src/main/AndroidManifest.xml" />
+          <option value="file://$PROJECT_DIR$/app/src/main/java/com/ablomm/monthlygoalmanager/ProgressUtils.kt" />
         </set>
       </entry>
     </pendingWorkingSetItems>

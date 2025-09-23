@@ -317,10 +317,9 @@ fun RequiredFieldsSection(
                 targetValue = editingGoalItem.targetNumericValue,
                 startValue = editingGoalItem.startNumericValue,
                 unit = editingGoalItem.unit,
-                isDecimal = editingGoalItem.isDecimal,
                 onTargetValueChange = { text ->
                     val value = text.toDoubleOrNull() ?: 0.0
-                    val hasDecimal = text.contains('.')
+                    val inferredIsDecimal = (value % 1.0 != 0.0) || (editingGoalItem.startNumericValue % 1.0 != 0.0)
                     val progress = calculateProgress(
                         editingGoalItem.startNumericValue,
                         value,
@@ -329,14 +328,14 @@ fun RequiredFieldsSection(
                     viewModel.setEditingGoalItem(
                         editingGoalItem.copy(
                             targetNumericValue = value,
-                            isDecimal = hasDecimal,
+                            isDecimal = inferredIsDecimal,
                             currentProgress = progress
                         )
                     )
                 },
                 onStartValueChange = { text ->
                     val value = text.toDoubleOrNull() ?: 0.0
-                    val hasDecimal = text.contains('.')
+                    val inferredIsDecimal = (value % 1.0 != 0.0) || (editingGoalItem.targetNumericValue % 1.0 != 0.0)
                     val progress = calculateProgress(
                         value,
                         editingGoalItem.targetNumericValue,
@@ -346,7 +345,7 @@ fun RequiredFieldsSection(
                         editingGoalItem.copy(
                             startNumericValue = value,
                             currentNumericValue = value,
-                            isDecimal = hasDecimal,
+                            isDecimal = inferredIsDecimal,
                             currentProgress = progress
                         )
                     )
@@ -484,7 +483,6 @@ fun NumericGoalFields(
     targetValue: Double,
     startValue: Double,
     unit: String,
-    isDecimal: Boolean,
     onTargetValueChange: (String) -> Unit,
     onStartValueChange: (String) -> Unit,
     onUnitChanged: (String) -> Unit
@@ -497,7 +495,7 @@ fun NumericGoalFields(
         // 開始値
         OutlinedTextField(
             modifier = Modifier.weight(1f),
-            value = if (startValue == 0.0 && !isDecimal) "" else formatNumber(startValue, isDecimal),
+            value = formatNumber(startValue, false),
             onValueChange = onStartValueChange,
             placeholder = { Text("開始値") },
             keyboardOptions = KeyboardOptions(
@@ -509,7 +507,7 @@ fun NumericGoalFields(
         // 目標値
         OutlinedTextField(
             modifier = Modifier.weight(1f),
-            value = if (targetValue == 0.0 && !isDecimal) "" else formatNumber(targetValue, isDecimal),
+            value = formatNumber(targetValue, false),
             onValueChange = onTargetValueChange,
             placeholder = { Text("目標値") },
             keyboardOptions = KeyboardOptions(
