@@ -359,20 +359,12 @@ fun TipsCard(
 fun GoalListContent(
     filteredGoals: List<GoalItem>,
     isTipsHidden: Boolean,
-    viewModel: GoalsViewModel, // 追加
+    viewModel: GoalsViewModel,
     navController: NavHostController,
-    sortMode: SortMode,
-    setSortMode: (SortMode) -> Unit,
-    showSortMenu: Boolean,
-    setShowSortMenu: (Boolean) -> Unit,
-    isHideCompletedGoals: Boolean,
     higherGoals: List<HigherGoal>,
-    monthYearText: String,
-    context: android.content.Context,
-    onCheckIn: (java.util.UUID) -> Unit, // 追加: シート起動
-    groupMode: GroupMode = GroupMode.NONE,
+    onCheckIn: (java.util.UUID) -> Unit,
     modifier: Modifier = Modifier,
-    onEdit: (java.util.UUID) -> Unit // 追加: カード編集
+    onEdit: (java.util.UUID) -> Unit
 ) {
     val listBg = Color(0xFFF5F5F5)
     if (filteredGoals.isEmpty()) {
@@ -407,7 +399,7 @@ fun GoalListContent(
         LazyColumn(
             modifier = modifier.fillMaxSize().background(listBg),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp) // 間隔を調整
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (!isTipsHidden) {
                 item {
@@ -415,111 +407,16 @@ fun GoalListContent(
                 }
             }
 
-            when (groupMode) {
-                GroupMode.NONE -> {
-                    items(filteredGoals, key = { it.id.toString() }) { goalItem ->
-                        val higherGoal = higherGoals.find { it.id == goalItem.higherGoalId }
-                        GoalCard(
-                            goalItem = goalItem,
-                            higherGoal = higherGoal,
-                            navController = navController,
-                            onCheckIn = onCheckIn,
-                            modifier = Modifier.fillMaxWidth(),
-                            onEdit = onEdit
-                        )
-                    }
-                }
-                GroupMode.HIGHER_GOAL -> {
-                    val groupedGoals = filteredGoals.groupBy { goal ->
-                        higherGoals.find { it.id == goal.higherGoalId }
-                    }
-
-                    val higherGoalGroups = groupedGoals.filterKeys { it != null }.toList().sortedBy { it.first?.createdAt }
-                    val noHigherGoalGroup = groupedGoals[null]
-
-                    higherGoalGroups.forEach { (higherGoal, goals) -> {
-                        // Kotlin trailing lambda mismatch fix
-                    }
-                        item {
-                            GroupHeader(
-                                title = higherGoal?.title ?: "上位目標なし",
-                                count = goals.size,
-                                icon = higherGoal?.icon
-                            )
-                        }
-                        items(goals, key = { it.id.toString() }) { goalItem ->
-                            GoalCard(
-                                goalItem = goalItem,
-                                higherGoal = higherGoal,
-                                navController = navController,
-                                onCheckIn = onCheckIn,
-                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
-                                onEdit = onEdit
-                            )
-                        }
-                    }
-
-                    noHigherGoalGroup?.let { goals ->
-                        if (goals.isNotEmpty()) {
-                            item {
-                                GroupHeader(title = "上位目標なし", count = goals.size)
-                            }
-                            items(goals, key = { it.id.toString() }) { goalItem ->
-                                GoalCard(
-                                    goalItem = goalItem,
-                                    higherGoal = null,
-                                    navController = navController,
-                                    onCheckIn = onCheckIn,
-                                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
-                                    onEdit = onEdit
-                                )
-                            }
-                        }
-                    }
-                }
-                GroupMode.KEY_GOAL -> {
-                    val keyGoals = filteredGoals.filter { it.isKeyGoal }
-                    val normalGoals = filteredGoals.filter { !it.isKeyGoal }
-
-                    if (keyGoals.isNotEmpty()) {
-                        item {
-                            GroupHeader(
-                                title = "🗝️ キー目標",
-                                count = keyGoals.size
-                            )
-                        }
-                        items(keyGoals, key = { it.id.toString() }) { goalItem ->
-                            val higherGoal = higherGoals.find { it.id == goalItem.higherGoalId }
-                            GoalCard(
-                                goalItem = goalItem,
-                                higherGoal = higherGoal,
-                                navController = navController,
-                                onCheckIn = onCheckIn,
-                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
-                                onEdit = onEdit
-                            )
-                        }
-                    }
-                    if (normalGoals.isNotEmpty()) {
-                        item {
-                            GroupHeader(
-                                title = "📋 通常目標",
-                                count = normalGoals.size
-                            )
-                        }
-                        items(normalGoals, key = { it.id.toString() }) { goalItem ->
-                            val higherGoal = higherGoals.find { it.id == goalItem.higherGoalId }
-                            GoalCard(
-                                goalItem = goalItem,
-                                higherGoal = higherGoal,
-                                navController = navController,
-                                onCheckIn = onCheckIn,
-                                modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
-                                onEdit = onEdit
-                            )
-                        }
-                    }
-                }
+            items(filteredGoals, key = { it.id.toString() }) { goalItem ->
+                val higherGoal = higherGoals.find { it.id == goalItem.higherGoalId }
+                GoalCard(
+                    goalItem = goalItem,
+                    higherGoal = higherGoal,
+                    navController = navController,
+                    onCheckIn = onCheckIn,
+                    modifier = Modifier.fillMaxWidth(),
+                    onEdit = onEdit
+                )
             }
         }
     }

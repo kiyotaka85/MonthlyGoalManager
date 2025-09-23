@@ -10,7 +10,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,18 +25,6 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
-
-enum class SortMode {
-    DEFAULT,
-    KEY_GOAL,
-    PROGRESS
-}
-
-enum class GroupMode {
-    NONE,
-    HIGHER_GOAL,
-    KEY_GOAL
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -66,32 +54,17 @@ fun Home(
     // 現在表示中の年月を管理 - ViewModelに保存して状態を保持
     val currentYearMonth by viewModel.currentYearMonth.collectAsState(initial = YearMonth.now())
     val isEditableMonth = currentYearMonth == YearMonth.now()
-    var sortMode by remember { mutableStateOf(SortMode.DEFAULT) }
-    var groupMode by remember { mutableStateOf(GroupMode.NONE) }
-    var showSortMenu by remember { mutableStateOf(false) }
-    
-    // 現在の年月に基づいてフィルタリング
+
+    // 現在の年月に基づいてフィルタリング（デフォルト順のみ）
     val filteredGoals = goalListState.value.filter { goal ->
         val goalYearMonth = goal.targetMonth
         val goalYear = goalYearMonth / 1000
         val goalMonth = goalYearMonth % 1000
         currentYearMonth.year == goalYear && currentYearMonth.monthValue == goalMonth
     }.let { goals ->
-        // 完了済み目標の非表示機能
-        if (isHideCompletedGoals.value) {
-            goals.filter { !it.isCompleted }
-        } else {
-            goals
-        }
-    }.let { goals ->
-        // 並べ替え機能
-        when (sortMode) {
-            SortMode.DEFAULT -> goals.sortedBy { it.displayOrder }
-            SortMode.KEY_GOAL -> goals.sortedWith(compareByDescending<GoalItem> { it.isKeyGoal }.thenBy { it.displayOrder })
-            SortMode.PROGRESS -> goals.sortedByDescending { it.currentProgress }
-        }
-    }
-    
+        if (isHideCompletedGoals.value) goals.filter { !it.isCompleted } else goals
+    }.sortedBy { it.displayOrder }
+
     val monthYearText = currentYearMonth.format(
         DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
     )
@@ -165,182 +138,32 @@ fun Home(
                     }
                 },
                 actions = {
-                    // メニューアイコンを右端に配置（レビュー関連は削除）
-                    var showTopBarMenu by remember { mutableStateOf(false) }
-                    var showDisplaySettingsMenu by remember { mutableStateOf(false) }
-
-                    Box {
-                        IconButton(onClick = { showTopBarMenu = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Menu"
-                            )
-                        }
-
-                        // メインメニュー（レビュー関連を削除）
-                        DropdownMenu(
-                            expanded = showTopBarMenu,
-                            onDismissRequest = { showTopBarMenu = false }
-                        ) {
-                            // 上位目標の編集
-                            DropdownMenuItem(
-                                text = { Text("上位目標の編集") },
-                                onClick = {
-                                    navController.navigate("higherGoals")
-                                    showTopBarMenu = false
-                                }
-                            )
-
-                            HorizontalDivider()
-
-                            // 表示設定
-                            DropdownMenuItem(
-                                text = { Text("表示設定") },
-                                onClick = {
-                                    showTopBarMenu = false
-                                    showDisplaySettingsMenu = true
-                                }
-                            )
-
-                            // サマリー画像書き出し
-                            DropdownMenuItem(
-                                text = { Text("サマリー画像を書き出し") },
-                                onClick = {
-                                    showTopBarMenu = false
-                                    coroutineScope.launch {
-                                        val rows = filteredGoals.map { g ->
-                                            SummaryGoalRow(
-                                                name = g.title,
-                                                current = g.currentNumericValue,
-                                                target = g.targetNumericValue,
-                                                unit = g.unit,
-                                                isDecimal = g.isDecimal
-                                            )
-                                        }
-                                        val bmp = createSummaryCardBitmap(
-                                            context = context,
-                                            title = buildSummaryTitle(currentYearMonth),
-                                            rows = rows
-                                        )
-                                        // Open share sheet
-                                        shareSummaryBitmap(context, bmp)
-                                    }
-                                }
-                            )
-
-                            // PDF書き出し
-                            DropdownMenuItem(
-                                text = { Text("PDF書き出し") },
-                                onClick = {
-                                    val pdfExporter = PdfExporter(context)
-                                    val intent = pdfExporter.exportGoalsToPdf(
-                                        goals = filteredGoals,
-                                        higherGoals = higherGoals.value,
-                                        yearMonth = monthYearText
+                    // Share summary image directly (no overflow menus)
+                    IconButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                val rows = filteredGoals.map { g ->
+                                    SummaryGoalRow(
+                                        name = g.title,
+                                        current = g.currentNumericValue,
+                                        target = g.targetNumericValue,
+                                        unit = g.unit,
+                                        isDecimal = g.isDecimal
                                     )
-                                    intent?.let {
-                                        context.startActivity(Intent.createChooser(it, "Share Goals PDF"))
-                                    }
-                                    showTopBarMenu = false
                                 }
-                            )
-
-                            HorizontalDivider()
-
-                            // 詳細設定
-                            DropdownMenuItem(
-                                text = { Text("詳細設定") },
-                                onClick = {
-                                    navController.navigate("settings")
-                                    showTopBarMenu = false
-                                }
-                            )
+                                val bmp = createSummaryCardBitmap(
+                                    context = context,
+                                    title = buildSummaryTitle(currentYearMonth),
+                                    rows = rows
+                                )
+                                shareSummaryBitmap(context, bmp)
+                            }
                         }
-
-                        // 表示設定のサブメニュー
-                        DropdownMenu(
-                            expanded = showDisplaySettingsMenu,
-                            onDismissRequest = { showDisplaySettingsMenu = false }
-                        ) {
-                            // ソート機能
-                            Text(
-                                text = "ソート機能",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-
-                            DropdownMenuItem(
-                                text = { Text("デフォルト順") },
-                                onClick = {
-                                    sortMode = SortMode.DEFAULT
-                                    showDisplaySettingsMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("キー目標を優先的にソート") },
-                                onClick = {
-                                    sortMode = SortMode.KEY_GOAL
-                                    showDisplaySettingsMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("進捗順 (高→低)") },
-                                onClick = {
-                                    sortMode = SortMode.PROGRESS
-                                    showDisplaySettingsMenu = false
-                                }
-                            )
-
-                            HorizontalDivider()
-
-                            // 完了済み目標の表示/非表示
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (isHideCompletedGoals.value) "完了済み目標を表示" else "完了済み目標を非表示"
-                                    )
-                                },
-                                onClick = {
-                                    viewModel.setHideCompletedGoals(!isHideCompletedGoals.value)
-                                    showDisplaySettingsMenu = false
-                                }
-                            )
-
-                            HorizontalDivider()
-
-                            // グループ化機能
-                            Text(
-                                text = "グループ化",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-
-                            DropdownMenuItem(
-                                text = { Text("グループなし") },
-                                onClick = {
-                                    groupMode = GroupMode.NONE
-                                    showDisplaySettingsMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("上位目標でグループ化") },
-                                onClick = {
-                                    groupMode = GroupMode.HIGHER_GOAL
-                                    showDisplaySettingsMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("キー目標でグループ化") },
-                                onClick = {
-                                    groupMode = GroupMode.KEY_GOAL
-                                    showDisplaySettingsMenu = false
-                                }
-                            )
-
-                            HorizontalDivider()
-                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share summary"
+                        )
                     }
                 }
             )
@@ -369,14 +192,7 @@ fun Home(
             isTipsHidden = isTipsHidden.value,
             viewModel = viewModel,
             navController = navController,
-            sortMode = sortMode,
-            setSortMode = { sortMode = it },
-            showSortMenu = showSortMenu,
-            setShowSortMenu = { showSortMenu = it },
-            isHideCompletedGoals = isHideCompletedGoals.value,
             higherGoals = higherGoals.value,
-            monthYearText = monthYearText,
-            context = context,
             onCheckIn = { goalId ->
                 if (isEditableMonth) {
                     targetGoalForCheckIn = goalId
@@ -387,7 +203,6 @@ fun Home(
                     }
                 }
             },
-            groupMode = groupMode,
             modifier = Modifier.padding(innerPadding),
             onEdit = { goalId ->
                 if (isEditableMonth) {
