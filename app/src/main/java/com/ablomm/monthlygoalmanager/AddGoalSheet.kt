@@ -38,7 +38,6 @@ fun AddGoalSheet(
     var targetValueText by remember { mutableStateOf("") }
     var startValueText by remember { mutableStateOf("0") }
     var unitText by remember { mutableStateOf("") }
-    var isDecimal by remember { mutableStateOf(false) }
 
     val isEditMode = existingGoal != null
 
@@ -51,7 +50,6 @@ fun AddGoalSheet(
             targetValueText = g.targetNumericValue.toString()
             startValueText = g.startNumericValue.toString()
             unitText = g.unit
-            isDecimal = g.isDecimal
         }
         // フォーカス
         focusRequester.requestFocus()
@@ -122,13 +120,13 @@ fun AddGoalSheet(
                 value = targetValueText,
                 onValueChange = { targetValueText = it },
                 label = { Text("Target value") },
-                placeholder = { Text(if (isDecimal) "e.g., 100.0" else "e.g., 100") },
+                placeholder = { Text("e.g., 100 or 100.0") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 isError = targetError,
-                supportingText = { if (targetError) Text("Enter a valid number") else Text(if (isEditMode) "Required" else "Required") },
+                supportingText = { if (targetError) Text("Enter a valid number") else Text("Required") },
                 keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number,
+                    keyboardType = KeyboardType.Decimal,
                     imeAction = ImeAction.Next
                 )
             )
@@ -137,13 +135,13 @@ fun AddGoalSheet(
                 value = startValueText,
                 onValueChange = { startValueText = it },
                 label = { Text("Start value") },
-                placeholder = { Text(if (isDecimal) "e.g., 0.0" else "e.g., 0") },
+                placeholder = { Text("e.g., 0 or 0.0") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 isError = startError,
-                supportingText = { if (startError) Text("Enter a valid number") else Text(if (isEditMode) "Current start" else "Defaults to 0") },
+                supportingText = { if (startError) Text("Enter a valid number") else Text("Defaults to 0") },
                 keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number,
+                    keyboardType = KeyboardType.Decimal,
                     imeAction = ImeAction.Next
                 )
             )
@@ -161,18 +159,6 @@ fun AddGoalSheet(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Allow decimals")
-                    Text(
-                        text = "Use decimal numbers like 2.5",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(checked = isDecimal, onCheckedChange = { isDecimal = it })
-            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -184,6 +170,7 @@ fun AddGoalSheet(
                 if (addEnabled) {
                     val targetVal = targetValueText.toDoubleOrNull() ?: 0.0
                     val startVal = startValueText.toDoubleOrNull() ?: 0.0
+                    val inferredIsDecimal = (targetVal % 1.0 != 0.0) || (startVal % 1.0 != 0.0)
                     if (isEditMode) {
                         existingGoal?.let { g ->
                             val updated = g.copy(
@@ -191,7 +178,7 @@ fun AddGoalSheet(
                                 targetNumericValue = targetVal,
                                 startNumericValue = startVal,
                                 unit = unitText,
-                                isDecimal = isDecimal
+                                isDecimal = inferredIsDecimal
                             )
                             viewModel.updateGoalItem(updated)
                         }
@@ -206,7 +193,7 @@ fun AddGoalSheet(
                             targetNumericValue = targetVal,
                             startNumericValue = startVal,
                             unit = unitText,
-                            isDecimal = isDecimal,
+                            isDecimal = inferredIsDecimal,
                             isKeyGoal = false, // removed in MVP
                             detailedDescription = null, // removed in MVP
                             celebration = null // removed in MVP
@@ -215,7 +202,6 @@ fun AddGoalSheet(
                         targetValueText = ""
                         startValueText = "0"
                         unitText = ""
-                        isDecimal = false
                         onClose()
                     }
                 }

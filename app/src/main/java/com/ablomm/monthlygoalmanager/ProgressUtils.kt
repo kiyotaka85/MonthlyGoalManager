@@ -5,10 +5,12 @@ import java.util.Locale
 
 // Shared numeric formatter for UI
 fun formatNumber(value: Double, isDecimal: Boolean): String {
-    if (!isDecimal && value % 1.0 == 0.0) {
-        return value.toInt().toString()
+    // Ignore isDecimal; auto-format based on value only
+    return if (value % 1.0 == 0.0) {
+        value.toInt().toString()
+    } else {
+        String.format(Locale.getDefault(), "%.1f", value)
     }
-    return String.format(Locale.getDefault(), "%.1f", value)
 }
 
 // Shared precise progress calculator (allows overachievement)
@@ -26,4 +28,3 @@ fun calculateProgressPrecise(
         if (currentValue >= targetValue) 100.0 else 0.0
     }
 }
-
