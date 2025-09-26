@@ -295,7 +295,7 @@ fun CheckInScreen(
                     putExtra(Intent.EXTRA_TEXT, shareText)
                     type = "text/plain"
                 }
-                context.startActivity(Intent.createChooser(shareIntent, "進捗を共有"))
+                context.startActivity(Intent.createChooser(shareIntent, "Share progress"))
                 showCompletionDialog = false
                 navController.popBackStack()
             },
@@ -364,13 +364,13 @@ private fun formatProgressPercentageFromInt(progressPercent: Int): String {
 // 進捗率の増加量を小数点一桁まで繰り上がりで表示するヘルパー関数
 private fun formatProgressIncrease(progressIncrease: Double): String {
     return if (progressIncrease > 0) {
-        val rounded = kotlin.math.ceil(progressIncrease * 10) / 10 // 小数点一桁まで繰り上がり
+        val rounded = kotlin.math.ceil(progressIncrease * 10) / 10
         "+${String.format("%.1f", rounded)}%"
     } else if (progressIncrease < 0) {
-        val rounded = kotlin.math.floor(progressIncrease * 10) / 10 // 負の値の場合は切り下げ
+        val rounded = kotlin.math.floor(progressIncrease * 10) / 10
         "${String.format("%.1f", rounded)}%"
     } else {
-        "変化なし"
+        "No change"
     }
 }
 
@@ -539,11 +539,11 @@ fun CheckInCompletionDialog(
     // 精密な進捗率を小数点一桁まで繰り上がりで表示
     val formattedProgress = kotlin.math.ceil(preciseProgress * 10) / 10
 
-    // 紙吹雪を数秒後に自動的に停止
+    // 紙吹雪を数秒後に自動的に停止（控えめに 3 秒）
     LaunchedEffect(isGoalCompleted) {
         if (isGoalCompleted) {
             showConfetti = true
-            kotlinx.coroutines.delay(5000) // 5秒間表示
+            kotlinx.coroutines.delay(3000)
             showConfetti = false
         }
     }
@@ -560,7 +560,7 @@ fun CheckInCompletionDialog(
             onDismissRequest = onDismiss,
             title = {
                 Text(
-                    text = if (isGoalCompleted) "🎉 目標達成！" else "✅ チェックイン完了！",
+                    text = if (isGoalCompleted) "Goal completed" else "Check-in complete",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -570,100 +570,7 @@ fun CheckInCompletionDialog(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = if (isGoalCompleted)
-                            "おめでとうございます！目標を達成しました！"
-                        else
-                            "チェックインが完了しました。",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
-                    )
-
-                    // 今回の成果カード
-                    if (changeAmount != 0.0 || progressIncreaseDecimal != 0.0) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = "今回の成果",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-
-                                // 数値の変更量を表示
-                                val changeText = when {
-                                    changeAmount > 0 -> "+${formatNumber(changeAmount, goal.isDecimal)} ${goal.unit}"
-                                    changeAmount < 0 -> "${formatNumber(changeAmount, goal.isDecimal)} ${goal.unit}"
-                                    else -> "変化なし"
-                                }
-
-                                Text(
-                                    text = changeText,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = when {
-                                        changeAmount > 0 -> Color(0xFF4CAF50) // Green
-                                        changeAmount < 0 -> Color(0xFFF44336) // Red
-                                        else -> MaterialTheme.colorScheme.onTertiaryContainer
-                                    }
-                                )
-
-                                // 進捗率の増加を表示
-                                if (progressIncreaseDecimal != 0.0) {
-                                    Text(
-                                        text = formatProgressIncrease(progressIncreaseDecimal),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = when {
-                                            progressIncreaseDecimal > 0 -> Color(0xFF4CAF50)
-                                            progressIncreaseDecimal < 0 -> Color(0xFFF44336)
-                                            else -> MaterialTheme.colorScheme.onTertiaryContainer
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // 目標達成時のお祝いメッセージを表示
-                    if (isGoalCompleted && !goal.celebration.isNullOrBlank()) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = "Enjoy your celebration: 🥳",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = goal.celebration!!,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    }
-
-                    // 記入内容の表示
+                    // Details card (Goal / Progress / Change)
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -673,96 +580,135 @@ fun CheckInCompletionDialog(
                             modifier = Modifier.padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = "記入内容",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("目標:")
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Goal")
                                 Text(goal.title, fontWeight = FontWeight.Medium)
                             }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("進捗:")
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Progress")
                                 Text("${String.format("%.1f", formattedProgress)}%", fontWeight = FontWeight.Medium)
                             }
 
-                            if (checkIn.comment.isNotBlank()) {
-                                Column {
-                                    Text("コメント:", style = MaterialTheme.typography.labelSmall)
-                                    Text(
-                                        text = checkIn.comment,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.padding(top = 2.dp)
-                                    )
+                            // Change line (value and/or percent)
+                            val hasChange = (changeAmount != 0.0) || (progressIncreaseDecimal != 0.0)
+                            if (hasChange) {
+                                val changeValue = when {
+                                    changeAmount > 0 -> "+${formatNumber(changeAmount, goal.isDecimal)} ${goal.unit}"
+                                    changeAmount < 0 -> "${formatNumber(changeAmount, goal.isDecimal)} ${goal.unit}"
+                                    else -> null
                                 }
+                                val changePercent = if (progressIncreaseDecimal != 0.0) {
+                                    // 例: +1.5%
+                                    val sign = if (progressIncreaseDecimal > 0) "+" else ""
+                                    "$sign${String.format("%.1f", progressIncreaseDecimal)}%"
+                                } else null
+                                val changeParts = listOfNotNull(changeValue, changePercent)
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Change")
+                                    Text(changeParts.joinToString(", "), fontWeight = FontWeight.Medium)
+                                }
+                            }
+                        }
+                    }
+
+                    // Reward (only when completed)
+                    if (isGoalCompleted && !goal.celebration.isNullOrBlank()) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Reward",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = goal.celebration!!,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+
+                    // Note (if exists)
+                    if (checkIn.comment.isNotBlank()) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "Note",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = checkIn.comment,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
                         }
                     }
                 }
             },
             confirmButton = {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = onDismiss) {
-                        Text("ホームに戻る")
+                        Text("Done")
                     }
-
                     Button(
                         onClick = {
                             val shareText = buildString {
                                 if (isGoalCompleted) {
-                                    appendLine("🎉 目標達成しました！")
+                                    appendLine("🎉 Goal completed!")
                                     if (!goal.celebration.isNullOrBlank()) {
-                                        appendLine("🥳 ${goal.celebration}")
+                                        appendLine("Reward: ${goal.celebration}")
                                     }
                                 } else {
-                                    appendLine("📈 進捗更新")
+                                    appendLine("✅ Check-in complete")
                                 }
                                 appendLine()
-                                appendLine("目標: ${goal.title}")
-                                appendLine("進捗: ${String.format("%.1f", formattedProgress)}%")
+                                appendLine("Goal: ${goal.title}")
+                                appendLine("Progress: ${String.format("%.1f", formattedProgress)}%")
 
-                                // 今回の成果を追加
-                                if (changeAmount != 0.0 || progressIncreaseDecimal != 0.0) {
+                                val hasChange = (changeAmount != 0.0) || (progressIncreaseDecimal != 0.0)
+                                if (hasChange) {
                                     appendLine()
-                                    appendLine("✨ 今回の成果:")
+                                    append("Change: ")
+                                    val parts = mutableListOf<String>()
                                     if (changeAmount != 0.0) {
-                                        val changeText = when {
-                                            changeAmount > 0 -> "+${formatNumber(changeAmount, goal.isDecimal)} ${goal.unit}"
-                                            changeAmount < 0 -> "${formatNumber(changeAmount, goal.isDecimal)} ${goal.unit}"
-                                            else -> "変化なし"
-                                        }
-                                        appendLine("数値変化: $changeText")
+                                        val changeStr = if (changeAmount > 0) "+${formatNumber(changeAmount, goal.isDecimal)} ${goal.unit}" else "${formatNumber(changeAmount, goal.isDecimal)} ${goal.unit}"
+                                        parts.add(changeStr)
                                     }
                                     if (progressIncreaseDecimal != 0.0) {
-                                        val progressText = formatProgressIncrease(progressIncreaseDecimal)
-                                        appendLine("進捗率: $progressText")
+                                        val sign = if (progressIncreaseDecimal > 0) "+" else ""
+                                        parts.add("$sign${String.format("%.1f", progressIncreaseDecimal)}%")
                                     }
+                                    appendLine(parts.joinToString(", "))
                                 }
 
                                 if (checkIn.comment.isNotBlank()) {
                                     appendLine()
-                                    appendLine("💭 ${checkIn.comment}")
+                                    appendLine("Note: ${checkIn.comment}")
                                 }
                                 appendLine()
-                                appendLine("#Litmo #リトモ #目標達成 #進捗 #モチベーション")
+                                appendLine("#Litmo #MonthlyGoalManager #progress #motivation")
                             }
                             onShare(shareText)
                         }
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("成果を共有")
+                        Text("Share")
                     }
                 }
             }
@@ -870,7 +816,7 @@ fun CheckInSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "前回: ${formatNumber(g.currentNumericValue, g.isDecimal)} ${g.unit}",
+                    text = "Previous: ${formatNumber(g.currentNumericValue, g.isDecimal)} ${g.unit}",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1017,7 +963,7 @@ fun CheckInSheet(
                     putExtra(Intent.EXTRA_TEXT, shareText)
                     type = "text/plain"
                 }
-                context.startActivity(Intent.createChooser(shareIntent, "進捗を共有"))
+                context.startActivity(Intent.createChooser(shareIntent, "Share progress"))
                 onClose()
             },
             onDismiss = {
