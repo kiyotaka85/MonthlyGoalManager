@@ -372,6 +372,9 @@ fun Home(
                     targetGoalForCheckIn = goalId
                     showCheckInSheet = true
                 },
+                onDelete = { goalItem ->
+                    viewModel.deleteGoalItem(goalItem)
+                },
                 groupMode = groupMode,
                 modifier = Modifier.padding(innerPadding)
             )

@@ -36,6 +36,7 @@ fun GoalCard(
     higherGoal: HigherGoal?,
     navController: NavHostController,
     onCheckIn: (java.util.UUID) -> Unit, // 追加
+    onDelete: (GoalItem) -> Unit, // 削除用コールバック追加
     modifier: Modifier = Modifier
 ) {
     var offsetX by remember { mutableStateOf(0f) }
@@ -71,13 +72,13 @@ fun GoalCard(
                     detectHorizontalDragGestures(
                         onDragEnd = {
                             when {
-                                offsetX > swipeThresholdPx -> navController.navigate("goalEdit/${goalItem.id}")
-                                offsetX < -swipeThresholdPx -> onCheckIn(goalItem.id) // シートを開く
+                                offsetX < -swipeThresholdPx -> onCheckIn(goalItem.id) // シートを開く (左スワイプのみ)
                             }
                             offsetX = 0f
                         }
                     ) { _, dragAmount ->
-                        offsetX = (offsetX + dragAmount).coerceIn(-swipeThresholdPx * 1.5f, swipeThresholdPx * 1.5f)
+                        // 左スワイプ（チェックイン）のみ許可
+                        offsetX = (offsetX + dragAmount).coerceIn(-swipeThresholdPx * 1.5f, 0f)
                     }
                 }
                 .clickable {
@@ -125,6 +126,54 @@ fun GoalCard(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
+                                
+                                // 3点メニューボタン
+                                var showDropdownMenu by remember { mutableStateOf(false) }
+                                Box {
+                                    IconButton(
+                                        onClick = { showDropdownMenu = true },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "メニュー",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    
+                                    DropdownMenu(
+                                        expanded = showDropdownMenu,
+                                        onDismissRequest = { showDropdownMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("編集") },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Default.Edit,
+                                                    contentDescription = "編集"
+                                                )
+                                            },
+                                            onClick = {
+                                                showDropdownMenu = false
+                                                navController.navigate("goalEdit/${goalItem.id}")
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("削除") },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Default.Delete,
+                                                    contentDescription = "削除"
+                                                )
+                                            },
+                                            onClick = {
+                                                showDropdownMenu = false
+                                                onDelete(goalItem)
+                                            }
+                                        )
+                                    }
+                                }
                             }
 
                             // 現在値 / 目標値
@@ -282,33 +331,13 @@ private fun RingProgress(
 
 @Composable
 private fun SwipeActionBackground(animatedOffsetX: Float) {
-    Row(
+    // Check-in Action (Right side only)
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(12.dp)),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        contentAlignment = Alignment.CenterEnd
     ) {
-        // Edit Action (Left)
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(animatedOffsetX.coerceAtLeast(0f).dp)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            if (animatedOffsetX > 20.dp.value) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 20.dp)
-                ) {
-                    Icon(Icons.Default.Edit, "編集", tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Spacer(Modifier.width(8.dp))
-                    Text("編集", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-        // Check-in Action (Right)
         Box(
             modifier = Modifier
                 .fillMaxHeight()
@@ -443,7 +472,7 @@ fun TipsCard(
             }
 
             Text(
-                text = "• カードを左右にスワイプして素早くチェックイン・編集\n• メニューから表示設定でソートやグループ化が可能\n• 目標をタップして詳細を確認",
+                text = "• カードを左にスワイプして素早くチェックイン\n• カード右上の3点メニューから編集・削除\n• メニューから表示設定でソートやグループ化が可能\n• 目標をタップして詳細を確認",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -467,6 +496,7 @@ fun GoalListContent(
     monthYearText: String,
     context: android.content.Context,
     onCheckIn: (java.util.UUID) -> Unit, // 追加: シート起動
+    onDelete: (GoalItem) -> Unit, // 追加: 削除用コールバック
     groupMode: GroupMode = GroupMode.NONE,
     modifier: Modifier = Modifier
 ) {
@@ -520,6 +550,7 @@ fun GoalListContent(
                             higherGoal = higherGoal,
                             navController = navController,
                             onCheckIn = onCheckIn,
+                            onDelete = onDelete,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -546,6 +577,7 @@ fun GoalListContent(
                                 higherGoal = higherGoal,
                                 navController = navController,
                                 onCheckIn = onCheckIn,
+                                onDelete = onDelete,
                                 modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
                             )
                         }
@@ -562,6 +594,7 @@ fun GoalListContent(
                                     higherGoal = null,
                                     navController = navController,
                                     onCheckIn = onCheckIn,
+                                    onDelete = onDelete,
                                     modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
                                 )
                             }
@@ -586,6 +619,7 @@ fun GoalListContent(
                                 higherGoal = higherGoal,
                                 navController = navController,
                                 onCheckIn = onCheckIn,
+                                onDelete = onDelete,
                                 modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
                             )
                         }
@@ -604,6 +638,7 @@ fun GoalListContent(
                                 higherGoal = higherGoal,
                                 navController = navController,
                                 onCheckIn = onCheckIn,
+                                onDelete = onDelete,
                                 modifier = Modifier.fillMaxWidth().padding(start = 8.dp)
                             )
                         }
