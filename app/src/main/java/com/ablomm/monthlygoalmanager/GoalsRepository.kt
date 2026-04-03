@@ -69,18 +69,22 @@ class GoalsRepository(
     }
 
     // Action Step関連のメソッド
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     fun getActionStepsForGoal(goalId: UUID): Flow<List<ActionStep>> {
         return actionStepDao.getActionStepsForGoal(goalId)
     }
 
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     suspend fun addActionStep(actionStep: ActionStep) {
         actionStepDao.insertActionStep(actionStep)
     }
 
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     suspend fun updateActionStep(actionStep: ActionStep) {
         actionStepDao.updateActionStep(actionStep)
     }
 
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     suspend fun deleteActionStep(actionStep: ActionStep) {
         actionStepDao.deleteActionStep(actionStep)
     }
@@ -156,6 +160,7 @@ class GoalsRepository(
         return higherGoalDao.getAllHigherGoalsOnce()
     }
 
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     suspend fun getAllActionStepsOnce(): List<ActionStep> {
         return actionStepDao.getAllActionStepsOnce()
     }
@@ -181,6 +186,7 @@ class GoalsRepository(
         higherGoalDao.insertHigherGoal(higherGoal)
     }
 
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     suspend fun insertActionStep(actionStep: ActionStep) {
         actionStepDao.insertActionStep(actionStep)
     }

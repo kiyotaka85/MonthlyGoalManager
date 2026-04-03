@@ -56,6 +56,7 @@ data class SerializableHigherGoal(
     val createdAt: Long
 )
 
+@Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
 @Serializable
 data class SerializableActionStep(
     val id: String,
@@ -148,6 +149,7 @@ fun SerializableHigherGoal.toHigherGoal() = HigherGoal(
     createdAt = createdAt
 )
 
+@Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
 fun ActionStep.toSerializable() = SerializableActionStep(
     id = id.toString(),
     goalId = goalId.toString(),
@@ -156,6 +158,7 @@ fun ActionStep.toSerializable() = SerializableActionStep(
     order = order
 )
 
+@Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
 fun SerializableActionStep.toActionStep() = ActionStep(
     id = UUID.fromString(id),
     goalId = UUID.fromString(goalId),

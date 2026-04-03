@@ -668,6 +668,7 @@ fun SectionHeader(title: String) {
 }
 
 // アクションステップセクション
+@Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
 @Composable
 fun ActionStepsSection(
     goalId: UUID,
@@ -803,6 +804,7 @@ fun ActionStepsSection(
 }
 
 // 個別のアクションステップアイテム
+@Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
 @Composable
 fun ActionStepItem(
     step: ActionStep,

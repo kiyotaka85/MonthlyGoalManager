@@ -172,29 +172,36 @@ interface HigherGoalDao {
     suspend fun deleteAllHigherGoals()
 }
 
+@Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
 @Dao
 interface ActionStepDao {
     // 特定の目標のアクションステップを取得
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     @Query("SELECT * FROM action_steps WHERE goalId = :goalId ORDER BY `order`")
     fun getActionStepsForGoal(goalId: UUID): Flow<List<ActionStep>>
 
     // アクションステップを追加
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     @Insert
     suspend fun insertActionStep(actionStep: ActionStep)
 
     // アクションステップを更新
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     @Update
     suspend fun updateActionStep(actionStep: ActionStep)
 
     // アクションステップを削除
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     @Delete
     suspend fun deleteActionStep(actionStep: ActionStep)
 
     // JSON エクスポート用の一括取得
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     @Query("SELECT * FROM action_steps")
     suspend fun getAllActionStepsOnce(): List<ActionStep>
 
     // 全データ削除（インポート時のリセット用）
+    @Deprecated("ActionStep機能は廃止予定です。今後は使用しないでください。")
     @Query("DELETE FROM action_steps")
     suspend fun deleteAllActionSteps()
 }
